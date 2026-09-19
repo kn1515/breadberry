@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   boards,
   catalog,
+  i2cAddresses,
   circuitSchema,
   validateCircuit,
   type Board,
@@ -61,6 +62,9 @@ Use ONLY this board: ${board}. Allowed board endpoints: ${Object.keys(
     .join(",")}.
 Catalog: ${JSON.stringify(catalog)}. Components have id, kind, value, purpose. Endpoints are partID.pin or board.PIN. No extra parts or unknown pins. Maximum 6 parts, 24 wires. No mains, motors, relays, batteries or 5V circuits. If unsupported explain why in description and return an empty parts list (application will reject).
 Every non-NC pin must connect; never connect NC. Do not directly connect GPIOs to power, ground or another GPIO. Board pins permit only ONE jumper; use a component's existing net as a branch point (up to 4 jumpers per part pin). LED K goes to GND; LED A goes through a 220Ω or greater series resistor to GPIO. Resistor values must be numeric with optional k or M and Ω, e.g. 330Ω, 10kΩ. DHT22 is the bare FOUR pin device; VCC=3.3V, GND=ground, DATA requires 10kΩ to VCC. BH1750 is a 3.3V 4-pin breakout with integrated I2C pullups. Use correct I2C pins and matching firmware. LDR: connect one pin to 3V3, the other to ADC and a 10kΩ resistor to GND. ADC pins: ESP32 GPIO32/33/34/35, Pico GP26/27/28; Raspberry Pi has NO ADC so never use LDR there. ESP32 GPIO34/35 are INPUT ONLY and have no internal pullups; do not use for LED, button pullup, DHT22, or I2C. Prefer non-strapping GPIOs. Button is a 2-pin NO switch; use internal pullup in firmware.
+Additional catalog rules: BME280 measures temperature/humidity/pressure; BMP280 has NO humidity. SHT31 measures temperature/humidity. SSD1306 is a 128x64 I2C OLED with reset circuitry, never SPI. All I2C modules use 3.3V and built-in pullups with fixed configured addresses: ${JSON.stringify(i2cAddresses)}. Share SDA and SCL by chaining through part pins (do not attach multiple jumpers to a board pin). Do not place two devices with the same address on one bus. Use SoftI2C for arbitrary ESP32/Pico output-capable pins; Pi uses I2C1 GPIO2=SDA, GPIO3=SCL. Include each exact driver and installation method in notes; do not pretend a driver is built in. Do not invent sensor APIs.
+DS18B20: external power only, VDD=3V3, GND=ground, DQ=bidirectional GPIO with a 4.7kΩ resistor to 3V3. On Raspberry Pi use Linux w1-gpio overlay configured to the chosen BCM pin, and w1 sysfs with CRC checks. MicroPython uses onewire and ds18x20, wait at least 750ms after conversion.
+Potentiometer: value=10kΩ, pin 1=3V3, pin 3=GND, W=ADC. NTC: value=10kΩ, pin 1=3V3, pin 2=ADC plus a 10kΩ resistor to GND; require the actual B coefficient and calibration, state any assumed value. NTC and potentiometer (like LDR) are unsupported on Pi without ADC. Reed and tilt switches are two-pin dry contacts between internal-pullup GPIO and GND; debounce in firmware, do not substitute powered modules. Never use GPIO34/35 for a switch pullup or DS18B20.
 The renderer allocates each component five rows on a 30-row breadboard, each pin to its own electrically separate row. It joins wires via the same row; DO NOT generate hole coordinates.
 Firmware must implement requested behavior using the exact board and GPIO numbers in the netlist (MicroPython for esp32/pico; Python for Raspberry Pi Linux). Include required libraries/setup and limitations in notes. Never claim simulation, testing, or hardware validation was performed.`;
   const schema = z.toJSONSchema(circuitSchema);

@@ -4,10 +4,13 @@ import {
   type Project,
   validateCircuit,
 } from "./circuit";
+export type Example = "climate" | "led" | "temperature" | "display";
 export function demoCircuit(
   board: Board = "esp32",
-  example: "climate" | "led" = "climate",
+  example: Example = "climate",
 ): Circuit {
+  if (example === "temperature" || example === "display")
+    return extendedDemo(board, example);
   const gpio = board === "pico" ? ["GP15", "GP14"] : ["GPIO4", "GPIO18"];
   if (board === "raspberry-pi") gpio[1] = "GPIO17";
   const c: Circuit = {
@@ -121,7 +124,7 @@ export function demoCircuit(
 }
 export function demoProject(
   board: Board = "esp32",
-  example: "climate" | "led" = "climate",
+  example: Example = "climate",
 ): Project {
   return {
     id: `demo-${board}-${example}`,
@@ -134,4 +137,146 @@ export function demoProject(
     },
     storage: "browser",
   };
+}
+
+function extendedDemo(
+  board: Board,
+  example: "temperature" | "display",
+): Circuit {
+  const pi = board === "raspberry-pi";
+  const data = board === "pico" ? "GP15" : "GPIO4";
+  const sda = board === "pico" ? "GP4" : pi ? "GPIO2" : "GPIO21";
+  const scl = board === "pico" ? "GP5" : pi ? "GPIO3" : "GPIO22";
+  const wire = (
+    from: string,
+    to: string,
+    explanation: string,
+    color: Circuit["wires"][number]["color"] = "#38bdf8",
+  ) => ({ from, to, explanation, color });
+  const c: Circuit = {
+    title:
+      example === "temperature"
+        ? "DS18B20でつくる温度計"
+        : "OLEDにメッセージを表示",
+    description:
+      example === "temperature"
+        ? "3端子の温度センサーを1-Wireで読み取ります。"
+        : "I2C接続の128×64 OLEDに文字を表示します。",
+    board,
+    parts: [],
+    wires: [],
+    firmware: "",
+    firmwareLanguage: "python",
+    notes: [
+      "配線中はUSB電源を抜き、実物の端子名を確認してください。3Dは配線用の模式モデルです。",
+    ],
+  };
+  if (example === "temperature") {
+    c.parts = [
+      { id: "U1", kind: "ds18b20", value: "TO-92", purpose: "温度を読み取る" },
+      {
+        id: "R1",
+        kind: "resistor",
+        value: "4.7kΩ",
+        purpose: "1-Wireデータ線をプルアップ",
+      },
+    ];
+    c.wires = [
+      wire("board.3V3", "U1.VDD", "VDDに3.3Vを供給します。", "#fb7185"),
+      wire("board.GND", "U1.GND", "GNDを共通にします。", "#94a3b8"),
+      wire(`board.${data}`, "U1.DQ", "DQをデータ用GPIOに接続します。"),
+      wire("U1.DQ", "R1.1", "DQと同じ導通列から4.7kΩ抵抗へつなぎます。"),
+      wire("R1.2", "U1.VDD", "抵抗の反対側を3.3Vにつなぎます。", "#fb7185"),
+    ];
+    c.notes.push(
+      pi
+        ? "Raspberry Pi OSで1-Wireを有効にし、/boot/firmware/config.txtにdtoverlay=w1-gpio,gpiopin=4を設定して再起動。w1-gpio/w1-thermを使用します。"
+        : "MicroPythonのonewireとds18x20が必要です。12bit測定の変換完了まで750ms待ちます。",
+    );
+    c.firmware = pi
+      ? `# Raspberry Pi OS: dtoverlay=w1-gpio,gpiopin=4, then reboot
+from pathlib import Path
+from time import sleep
+while True:
+    devices = list(Path("/sys/bus/w1/devices").glob("28-*/w1_slave"))
+    if not devices:
+        print("No DS18B20 found; check wiring and 1-Wire setup")
+    for device in devices:
+        try:
+            lines = device.read_text().splitlines()
+            if len(lines) >= 2 and lines[0].strip().endswith("YES") and "t=" in lines[1]:
+                print(device.parent.name, int(lines[1].split("t=")[1]) / 1000, "C")
+            else:
+                print("CRC/read error:", device.parent.name)
+        except (OSError, ValueError) as error:
+            print(error)
+    sleep(1)
+`
+      : `from machine import Pin
+import onewire, ds18x20
+from time import sleep_ms
+sensor = ds18x20.DS18X20(onewire.OneWire(Pin(${data.replace(/\D/g, "")})))
+while True:
+    try:
+        devices = sensor.scan()
+        if devices:
+            sensor.convert_temp()
+            sleep_ms(750)
+            for device in devices:
+                print(sensor.read_temp(device), "C")
+        else:
+            print("No DS18B20 found; check wiring")
+    except OSError as error:
+        print(error)
+    sleep_ms(1000)
+`;
+  } else {
+    c.parts = [
+      {
+        id: "U1",
+        kind: "ssd1306",
+        value: "128x64 / 0x3C / I2C",
+        purpose: "文字を表示",
+      },
+    ];
+    c.wires = [
+      wire(
+        "board.3V3",
+        "U1.VCC",
+        "3.3VをVCCへ。実物の端子順を確認します。",
+        "#fb7185",
+      ),
+      wire("board.GND", "U1.GND", "GNDを共通にします。", "#94a3b8"),
+      wire(`board.${scl}`, "U1.SCL", "クロック線SCLをつなぎます。", "#818cf8"),
+      wire(`board.${sda}`, "U1.SDA", "データ線SDAをつなぎます。"),
+    ];
+    c.notes.push(
+      "3.3V対応・プルアップとリセット回路内蔵の4端子SSD1306、アドレス0x3Cを想定。表示は実機上で行い、3D画面では再現しません。",
+    );
+    c.notes.push(
+      pi
+        ? "Raspberry Pi OSでI2Cを有効化。Adafruit Blinkaの環境を構築し、仮想環境にadafruit-circuitpython-ssd1306をインストールしてください。"
+        : "MicroPython用ssd1306.pyドライバを基板の/libへコピーしてください。MicroPython公式ドキュメントのSSD1306ドライバを使用します。",
+    );
+    c.firmware = pi
+      ? `import board
+import adafruit_ssd1306
+i2c = board.I2C()
+display = adafruit_ssd1306.SSD1306_I2C(128, 64, i2c, addr=0x3C)
+display.fill(0)
+display.text("Hello Breadberry", 0, 12, 1)
+display.show()
+`
+      : `from machine import Pin, SoftI2C
+from ssd1306 import SSD1306_I2C
+i2c = SoftI2C(sda=Pin(${sda.replace(/\D/g, "")}), scl=Pin(${scl.replace(/\D/g, "")}), freq=100000)
+if 0x3C not in i2c.scan():
+    raise OSError("OLED not found at 0x3C; check wiring/address")
+display = SSD1306_I2C(128, 64, i2c, addr=0x3C)
+display.fill(0)
+display.text("Hello Breadberry", 0, 12, 1)
+display.show()
+`;
+  }
+  return validateCircuit(c);
 }

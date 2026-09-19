@@ -117,3 +117,49 @@ test("successful generation updates circuit and reports Firestore persistence", 
   await expect(page.getByRole("status")).toContainText("Firestoreに保存");
   await expect(page.getByRole("slider")).toHaveValue("5");
 });
+
+test("expanded catalog respects board capabilities and new samples render", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto("/");
+  await page.locator(".parts-catalog summary").click();
+  await expect(page.locator(".catalog-grid button")).toHaveCount(15);
+  await page
+    .getByRole("button", { name: "BME280 温湿度・気圧モジュール", exact: true })
+    .click();
+  await expect(page.getByLabel("作りたいもの")).toHaveValue(/BME280/);
+  await page.getByLabel("使用する基板").selectOption("raspberry-pi");
+  await expect(
+    page.getByRole("button", { name: "可変抵抗（ADCが必要）", exact: true }),
+  ).toBeDisabled();
+  await page.getByLabel("使用する基板").selectOption("pico");
+  await expect(
+    page.getByRole("button", { name: "可変抵抗", exact: true }),
+  ).toBeEnabled();
+  await page.locator(".parts-catalog summary").click();
+  for (const [name, title, steps, code] of [
+    ["OLEDディスプレイ", "OLEDにメッセージを表示", "5", "SSD1306_I2C"],
+    ["DS18B20 温度計", "DS18B20でつくる温度計", "7", "ds18x20"],
+  ]) {
+    await page.getByRole("button", { name: "サンプル", exact: true }).click();
+    await page.getByRole("button", { name, exact: true }).click();
+    await expect(
+      page.getByRole("heading", { name: title, exact: true }),
+    ).toBeVisible();
+    await expect(page.locator("canvas")).toBeVisible();
+    await expect(
+      page.getByRole("slider", { name: "組み立て工程" }),
+    ).toHaveValue(steps);
+    await page.getByRole("button", { name: "前の工程", exact: true }).click();
+    await page.getByRole("button", { name: "次の工程", exact: true }).click();
+    await page.getByRole("tab", { name: "コード", exact: true }).click();
+    await expect(page.locator("pre")).toContainText(code);
+    await page.getByRole("tab", { name: /ブレッドボード/ }).click();
+  }
+  expect(errors).toEqual([]);
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(page.viewportSize()!.width + 1);
+});

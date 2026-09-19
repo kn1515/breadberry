@@ -14,6 +14,7 @@ import {
   boards,
   resistorBands,
   catalog,
+  isI2c,
   compileCircuit,
   holePosition,
   boardPinPosition,
@@ -290,6 +291,67 @@ function Part({
             <meshStandardMaterial color="#1d9d77" />
           </mesh>
         </>
+      ) : isI2c(part.kind) ? (
+        <>
+          <mesh position={[x, 0.71, z]} castShadow>
+            <boxGeometry args={[1.02, 0.12, 0.72]} />
+            <meshStandardMaterial color={def.color} />
+          </mesh>
+          <mesh position={[x, 0.81, z]}>
+            <boxGeometry
+              args={[
+                part.kind === "ssd1306" ? 0.86 : 0.28,
+                0.08,
+                part.kind === "ssd1306" ? 0.54 : 0.28,
+              ]}
+            />
+            <meshStandardMaterial
+              color={part.kind === "ssd1306" ? "#08131f" : "#a7b4b9"}
+              metalness={0.5}
+              roughness={0.35}
+            />
+          </mesh>
+          {part.kind === "ssd1306" && (
+            <Label at={[x, 0.89, z]} color="#67e8f9">
+              OLED · 128×64
+            </Label>
+          )}
+        </>
+      ) : part.kind === "potentiometer" ? (
+        <>
+          <mesh position={[x, 0.76, z]} castShadow>
+            <boxGeometry args={[0.65, 0.25, 0.5]} />
+            <meshStandardMaterial color={def.color} />
+          </mesh>
+          <mesh position={[x, 1.0, z]}>
+            <cylinderGeometry args={[0.14, 0.14, 0.25, 16]} />
+            <meshStandardMaterial color="#c6cfda" metalness={0.6} />
+          </mesh>
+        </>
+      ) : part.kind === "reed" ? (
+        <>
+          <Segment a={[pins[0][0], 0.65, z]} b={[pins[1][0], 0.65, z]} />
+          <mesh
+            position={[x, 0.65, z]}
+            rotation={[0, 0, Math.PI / 2]}
+            castShadow
+          >
+            <cylinderGeometry args={[0.11, 0.11, 0.6, 16]} />
+            <meshStandardMaterial color={def.color} transparent opacity={0.5} />
+          </mesh>
+        </>
+      ) : part.kind === "ntc" || part.kind === "ldr" ? (
+        <mesh position={[x, 0.79, z]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+          <cylinderGeometry args={[0.22, 0.22, 0.13, 20]} />
+          <meshStandardMaterial color={def.color} />
+        </mesh>
+      ) : part.kind === "ds18b20" || part.kind === "tilt" ? (
+        <mesh position={[x, 0.86, z]} castShadow>
+          <cylinderGeometry
+            args={[0.24, 0.24, 0.43, part.kind === "ds18b20" ? 5 : 16]}
+          />
+          <meshStandardMaterial color={def.color} />
+        </mesh>
       ) : (
         <>
           <mesh position={[x, 0.88, z]} castShadow>

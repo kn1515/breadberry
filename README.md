@@ -206,16 +206,38 @@ firebase deploy --only firestore --project "$GOOGLE_CLOUD_PROJECT"
 | ESP32              | ESP32-WROOMの30ピンDevKit V1を想定。S3/C3や38ピン基板とは異なる    |
 | Raspberry Pi Pico  | RP2040のPico。MicroPython                                          |
 | Raspberry Pi 4 / 5 | 40ピンGPIOヘッダー。BCM番号と物理番号を区別。Linux上のPython       |
-| 部品               | LED、抵抗、4ピンDHT22、2ピン押しボタン、4ピンBH1750モジュール、CdS |
-| CdS                | ESP32 ADC1 / Pico ADCの分圧回路。Pi 4/5はADC非搭載のため対象外     |
+| 部品               | LED、抵抗、DHT22、押しボタン、BH1750、CdS、および下表の追加9種類（計15種類） |
+| アナログ部品       | CdS・NTC・可変抵抗はESP32 ADC1 / Pico ADCを使用。Pi 4/5はADC非搭載のため対象外 |
 | 規模               | 1枚の30列ブレッドボード、最大6部品・24ジャンパ線・3.3V             |
+
+### 追加したセンサー・部品
+
+入力欄の「対応するセンサー・部品」から部品名を選べます。選択した基板で使えないADC部品は無効になります。「サンプル」にはAPIキー不要のDS18B20温度計とOLED表示を追加しました。
+
+| kind | 部品 | 接続と条件 |
+| --- | --- | --- |
+| `bme280` | 温湿度・気圧 | 3.3V I2C変換基板、アドレス0x76 |
+| `bmp280` | 温度・気圧 | 3.3V I2C変換基板、アドレス0x76。湿度測定なし |
+| `sht31` | 温湿度 | 3.3V I2C変換基板、アドレス0x44 |
+| `ssd1306` | OLED表示 | 128×64、3.3V I2C、0x3C、リセット回路内蔵の4端子版 |
+| `ds18b20` | 温度 | TO-92、外部3.3V給電、DQに4.7kΩプルアップ |
+| `potentiometer` | 可変抵抗 | 10kΩ、両端を3.3V/GND、摺動端子をADCへ |
+| `ntc` | サーミスタ | 25℃で10kΩ、10kΩ固定抵抗と分圧。B定数は実物に合わせる |
+| `reed` | 磁気スイッチ | 常開・2端子の無電圧接点、内部プルアップGPIOとGND |
+| `tilt` | 傾斜スイッチ | ボール式・2端子の無電圧接点、内部プルアップGPIOとGND |
+
+I2C部品は**3.3V対応・プルアップ内蔵・上表のアドレスに設定したモジュール**を対象とします。図のVCC/GND/SCL/SDAは接続用の端子名であり、製品の物理的なピン順を保証しません。実物の印字で対応を確認し、端子順が異なる場合はジャンパ線で引き出してください。裸のIC、SPI版、追加の制御端子が必要な基板は対象外です。アドレスを変更した基板には現時点で対応しません。
+
+同じI2CバスのSDA/SCLは部品端子の空き穴を経由して分岐します。BME280＋OLEDは使用可能です。BME280＋BMP280など同一アドレスの組み合わせは同一バスで拒否します。ESP32/Picoは任意の双方向GPIOをSoftI2Cで使用、PiはI2C1（SDA=GPIO2、SCL=GPIO3）です。
+
+DS18B20サンプルはMicroPythonの`onewire` / `ds18x20`、PiではLinuxの`w1-gpio` / `w1-therm`を使います。OLEDサンプルはMicroPython用`ssd1306.py`、PiではAdafruit Blinkaと`adafruit-circuitpython-ssd1306`が必要です。設定手順は各サンプルの注意事項に表示します。実機上のセンサー値やOLED画面を3D内でシミュレーションする機能はありません。
 
 Pi 4/5はマイコンではなくLinux SBCです。ESP32/Picoとは生成コードの実行環境を分けています。DHT22サンプルは、Pico/ESP32ではMicroPythonの `dht`、Piでは `gpiozero` / `adafruit-circuitpython-dht` / `libgpiod` が必要です。Pi上のライブラリとOSの組み合わせによってDHT22のタイミング読み取りが不安定になる場合があります。実機で確認してください。
 
 - 部品の各脚を独立した行に置きます。同じ行の `a–e` は導通、`f–j` は別ネットです。部品脚を `b`、ジャンパ線を `e/d/c/a` の空き穴に割り当てます。
 - 基板はブレッドボードの外に置きます。基板端子へのジャンパ線は各1本まで、部品端子のネットは4本までです。
 - 抵抗の脚は必要に応じて曲げて指定穴へ挿します。3Dモデルは説明用で、機械CADや実寸モデルではありません。
-- AI応答はZodの型検査とネット検査を通します。未知ピン、NC接続、重複ID、未接続、端子短絡、3.3V–GND短絡、GPIOへの電源直結、LED抵抗欠如、DHT22プルアップ欠如などを拒否します。
+- AI応答はZodの型検査とネット検査を通します。未知ピン、NC接続、重複ID、未接続、端子短絡、3.3V–GND短絡、GPIOへの電源直結、LED抵抗欠如、DHT22/DS18B20プルアップ欠如、ADC以外へのアナログ接続、I2Cアドレス重複などを拒否します。
 - GMIは補助レビューです。失敗時は「未実施」として設計を保持します。電気的な動作シミュレーターや安全認証ではありません。
 - 部品外形の干渉、全電流・熱設計、タイミング、生成ファームウェアの実機動作は検証しません。高電圧、モーター、リレー、未登録部品、大規模回路は対象外です。
 - ジャンパ線は実物の端子に合わせてオス–オス／オス–メスを選んでください。USBケーブル等は基板付属品・作業環境として別途必要です。
@@ -264,3 +286,9 @@ GitHub Actionsでも実行します。APIキー・Google Cloudプロジェクト
 - [Pico基板仕様](https://www.raspberrypi.com/documentation/microcontrollers/pico-series.html)
 - [Raspberry Pi GPIO](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#gpio)
 - [Fritzing Learning](https://fritzing.org/learning/)
+
+### 追加部品の参照資料
+
+- [DS18B20データシート（Analog Devices）](https://www.analog.com/media/en/technical-documentation/data-sheets/ds18b20.pdf)：電源、端子、1-Wireプルアップ。
+- [BME280の配線](https://learn.adafruit.com/adafruit-bme280-humidity-barometric-pressure-temperature-sensor-breakout/pinouts)、[BMP280の配線](https://learn.adafruit.com/adafruit-bmp280-barometric-pressure-plus-temperature-sensor-breakout/pinouts)、[SHT31の配線](https://learn.adafruit.com/adafruit-sht31-d-temperature-and-humidity-sensor-breakout/pinouts)：電源・I2C信号の参考。Adafruit基板の外形・端子配列を3Dモデルで再現するものではありません。
+- [MicroPythonの1-Wire](https://docs.micropython.org/en/latest/esp8266/tutorial/onewire.html)、[SSD1306ドライバ](https://docs.micropython.org/en/latest/esp8266/tutorial/ssd1306.html)：サンプルコードのAPI・ドライバ。

@@ -222,11 +222,7 @@ main > *:not(.aurora, .grain) {
   box-shadow: 0 0 8px #34d39945;
 }
 .intro {
-  display: grid;
-  grid-template-columns: 1.04fr 1fr;
-  gap: 7%;
-  align-items: center;
-  padding: 61px 0 52px;
+  padding: 32px 0;
 }
 .eyebrow {
   font-size: 9px;
@@ -236,59 +232,6 @@ main > *:not(.aurora, .grain) {
   gap: 8px;
   color: #a2adc8;
   font-weight: 500;
-}
-.tiny-line {
-  height: 1px;
-  width: 24px;
-  background: #818cf8;
-}
-.intro h1 {
-  font-family: "Playfair Display", Georgia, serif;
-  font-size: clamp(38px, 3.4vw, 58px);
-  line-height: 1.12;
-  letter-spacing: -1.5px;
-  font-weight: 500;
-  margin-top: 16px;
-  color: #f2f4fe;
-}
-.intro h1 em {
-  font-weight: 500;
-  color: #b5b6f9;
-  background: linear-gradient(100deg, #c3c6fd 0%, #91b2c7 95%);
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-.intro-copy > p {
-  margin-top: 20px;
-  color: #a3afc7;
-  font-size: 12px;
-  line-height: 1.9;
-  letter-spacing: 0.4px;
-}
-.mobile-break {
-  display: none;
-}
-.intro-features {
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  color: #7f8da7;
-  font-size: 9px;
-  margin-top: 26px;
-}
-.intro-features > span {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.intro-features svg {
-  color: #91a1c2;
-}
-.intro-features i {
-  height: 3px;
-  width: 3px;
-  background: #52637f;
-  border-radius: 50%;
 }
 .prompt-card {
   border: 1px solid #92a4cc26;
@@ -328,13 +271,13 @@ main > *:not(.aurora, .grain) {
 .prompt-card textarea {
   width: 100%;
   resize: vertical;
-  min-height: 85px;
-  max-height: 170px;
+  min-height: 180px;
+  max-height: 480px;
   border: 0;
   background: transparent;
   padding: 17px 0 10px;
   color: #dde7f7;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.9;
 }
 .prompt-card textarea::placeholder {
@@ -1643,20 +1586,6 @@ footer > span:last-child {
   main {
     padding: 0 3%;
   }
-  .intro {
-    gap: 4%;
-    padding: 43px 0;
-  }
-  .intro h1 {
-    font-size: 41px;
-  }
-  .intro-features {
-    gap: 9px;
-    font-size: 8px;
-  }
-  .intro-features > span:last-child {
-    display: none;
-  }
   .prompt-card {
     padding: 19px 18px 0;
   }
@@ -1729,16 +1658,6 @@ footer > span:last-child {
   }
   .brand {
     font-size: 20px;
-  }
-  .intro {
-    grid-template-columns: 1fr 1fr;
-    gap: 28px;
-  }
-  .intro h1 {
-    font-size: 36px;
-  }
-  .intro-copy > p {
-    font-size: 10px;
   }
   .eyebrow {
     font-size: 8px;
@@ -1817,30 +1736,15 @@ footer > span:last-child {
     padding: 8px;
   }
   .intro {
-    display: block;
-    padding: 33px 0 26px;
-  }
-  .intro h1 {
-    font-size: 43px;
-    line-height: 1.13;
-    margin-top: 16px;
-  }
-  .intro-copy > p {
-    font-size: 11px;
-    margin-top: 18px;
-  }
-  .intro-features {
-    margin-top: 18px;
-    font-size: 8px;
+    padding: 24px 0;
   }
   .prompt-card {
-    margin-top: 27px;
     padding: 18px 17px 0;
     border-radius: 12px;
   }
   .prompt-card textarea {
-    min-height: 81px;
-    font-size: 11px;
+    min-height: 160px;
+    font-size: 16px;
   }
   .ai-label {
     display: block;

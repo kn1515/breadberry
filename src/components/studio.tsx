@@ -376,33 +376,6 @@ export default function Studio() {
         </div>
       </header>
       <section className="intro reveal">
-        <div className="intro-copy">
-          <div className="eyebrow">
-            <span className="tiny-line" /> YOUR NEXT IDEA, CONNECTED.
-          </div>
-          <h1>
-            Small parts.
-            <br />
-            <em>Infinite possibilities.</em>
-          </h1>
-          <p>
-            「つくりたい」を、動く回路に。
-            <br className="mobile-break" /> AIと一緒に、ものづくりの、その先へ。
-          </p>
-          <div className="intro-features">
-            <span>
-              <Sparkles size={13} /> AI回路設計
-            </span>
-            <i />
-            <span>
-              <Box size={13} /> 3D組み立てガイド
-            </span>
-            <i />
-            <span>
-              <Cpu size={13} /> はじめてでも、ひとつずつ。
-            </span>
-          </div>
-        </div>
         <form
           className="prompt-card"
           onSubmit={(e) => {

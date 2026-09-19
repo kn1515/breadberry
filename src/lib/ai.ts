@@ -65,7 +65,7 @@ The renderer allocates each component five rows on a 30-row breadboard, each pin
 Firmware must implement requested behavior using the exact board and GPIO numbers in the netlist (MicroPython for esp32/pico; Python for Raspberry Pi Linux). Include required libraries/setup and limitations in notes. Never claim simulation, testing, or hardware validation was performed.`;
   const schema = z.toJSONSchema(circuitSchema);
   delete schema.$schema;
-  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+  const model = process.env.GEMINI_MODEL || "gemini-3.8-flash";
   const payload = await providerJson(
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
     {

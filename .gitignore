@@ -9,3 +9,8 @@ node_modules/
 
 # Codex configuration
 .codex/config.toml
+.next/
+.env*
+!.env.example
+*.tsbuildinfo
+coverage/

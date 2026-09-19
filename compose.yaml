@@ -1,0 +1,12 @@
+services:
+  breadberry:
+    build: .
+    ports:
+      - "8080:8080"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      PORT: "8080"
+    restart: unless-stopped
+# Local Google credentials: use compose.gcp.yaml as an additional file (see README).

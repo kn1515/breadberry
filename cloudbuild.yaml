@@ -1,0 +1,16 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      [
+        "build",
+        "-t",
+        "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/breadberry:$BUILD_ID",
+        ".",
+      ]
+images:
+  - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/breadberry:$BUILD_ID"
+substitutions:
+  _REGION: asia-northeast1
+  _REPOSITORY: breadberry
+options:
+  logging: CLOUD_LOGGING_ONLY

@@ -1,0 +1,6 @@
+services:
+  breadberry:
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/google-adc.json
+    volumes:
+      - ${GOOGLE_ADC_FILE:?Set GOOGLE_ADC_FILE to a readable ADC JSON file}:/run/secrets/google-adc.json:ro

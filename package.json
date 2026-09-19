@@ -1,9 +1,17 @@
 {
   "name": "breadberry",
   "version": "1.0.0",
-  "description": "",
+  "description": "AI circuit designer with an animated 3D breadboard workspace",
   "main": "index.js",
-  "scripts": {},
+  "private": true,
+  "scripts": {
+    "dev": "next dev --hostname 0.0.0.0",
+    "build": "next build && node scripts/prepare-standalone.mjs",
+    "start": "node scripts/start.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test tests/unit/*.test.ts",
+    "test:e2e": "playwright test"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/kn1515/breadberry.git"
@@ -11,13 +19,36 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "bugs": {
     "url": "https://github.com/kn1515/breadberry/issues"
   },
   "homepage": "https://github.com/kn1515/breadberry#readme",
   "devDependencies": {
     "@playwright/test": "^1.63.0",
-    "@types/node": "^26.6.2"
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^26.6.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/three": "^0.186.0",
+    "prettier": "^3.9.8",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@fontsource/inter": "^5.3.0",
+    "@fontsource/noto-sans-jp": "^5.3.0",
+    "@fontsource/oswald": "^5.3.0",
+    "@fontsource/playfair-display": "^5.3.0",
+    "@google-cloud/firestore": "^9.2.0",
+    "@react-three/drei": "^10.7.8",
+    "@react-three/fiber": "^9.7.0",
+    "lucide-react": "^1.47.0",
+    "next": "^16.3.5",
+    "react": "19.2",
+    "react-dom": "19.2",
+    "three": "^0.186.0",
+    "zod": "^4.6.5"
   }
 }

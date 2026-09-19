@@ -42,7 +42,7 @@ openssl rand -hex 32
 | 変数                     | 用途                                                              |
 | ------------------------ | ----------------------------------------------------------------- |
 | `GEMINI_API_KEY`         | Google AI Studioで発行したAPIキー                                 |
-| `GEMINI_MODEL`           | 既定 `gemini-2.5-flash`。利用可能な構造化出力対応モデルに変更可能 |
+| `GEMINI_MODEL`           | 既定 `gemini-3.8-flash`。利用可能な構造化出力対応モデルに変更可能 |
 | `GMI_API_KEY`            | GMI CloudのAPIキー。未設定時はレビュー未実施と表示                |
 | `GMI_MODEL`              | 既定 `meta-llama/Llama-3.3-70B-Instruct`                          |
 | `GMI_BASE_URL`           | 既定 `https://api.gmi-serving.com/v1`。HTTPSのみ                  |
@@ -159,14 +159,33 @@ make deploy
 
 `scripts/deploy.sh` がCloud BuildでDockerをビルドし、Cloud Runへデプロイします。東京リージョン、1GiBメモリ、最大3インスタンス、180秒タイムアウト、**IAMで保護された非公開サービス**が既定です。環境変数 `REGION` / `SERVICE` / `SERVICE_ACCOUNT` で変更できます。
 
-非公開のまま自分で確認するには：
+`APP_ORIGIN` を指定して実行すると、そのURLを操作の送信元として許可します（末尾 `/` なし）。未指定の場合はCloud Runに設定済みの値を保持します。他の追加済み環境変数も再デプロイ時に保持します。
+
+`make deploy` は `.env.local` を読み込みません。モデルを変更する場合は `GEMINI_MODEL=gemini-3.8-flash make deploy` のように環境変数で指定してください。Gemini 2.5 Flashはモデル一覧に表示されても、新規ユーザーの生成リクエストが404で拒否される場合があります。
+
+非公開のまま自分で確認するには、まずlocalhostを許可してプロキシを起動します：
 
 ```bash
+gcloud run services update breadberry --region "$REGION" \
+  --project "$GOOGLE_CLOUD_PROJECT" \
+  --update-env-vars 'APP_ORIGIN=http://localhost:8080'
+
 gcloud run services proxy breadberry --region "$REGION" \
   --project "$GOOGLE_CLOUD_PROJECT" --port 8080
 ```
 
-[http://localhost:8080](http://localhost:8080) を開きます。Origin不一致になる場合は、`APP_ORIGIN=http://localhost:8080` をCloud Run環境変数に設定してください。本番URLでアクセスするときは、そのURLに戻します。
+[http://localhost:8080](http://localhost:8080) を開きます。`127.0.0.1` や別のポートは異なる送信元として扱われるため、設定と同じURLを使ってください。
+
+Cloud RunのURLでアクセスするときは、許可する送信元をそのURLに切り替えます：
+
+```bash
+export APP_ORIGIN="https://YOUR_SERVICE_URL"
+gcloud run services update breadberry --region "$REGION" \
+  --project "$GOOGLE_CLOUD_PROJECT" \
+  --update-env-vars "APP_ORIGIN=${APP_ORIGIN}"
+```
+
+現在の実装で許可する送信元は1つです。localhostと公開URLの両方を同時には指定できません。「この送信元からは操作できません。」という403は、セッション開始などの操作時にブラウザの送信元と許可URLが一致しない場合にアプリが返します。Cloud RunのIAM認証による `Error: Forbidden` とは別の設定です。
 
 一般公開する場合は、アクセスコードを設定したうえでCloud RunのInvoker権限を運用に合わせて変更してください。公開URLに合わせて `APP_ORIGIN` を設定します。本格的な複数ユーザー運用にはFirebase Authentication等の認証を追加してください。
 

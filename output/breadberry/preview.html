@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>breadberry_pitch.pptx</title>
+<script type="importmap">{"imports":{"three":"https://d.officecli.ai/assets/three-0.170.0/build/three.module.js","three/addons/":"https://d.officecli.ai/assets/three-0.170.0/examples/jsm/"}}</script>
+<style>
+:root{--slide-design-w:960pt;--slide-design-h:540pt;--slide-aspect:1.7778;}
+/* OfficeCli HTML Preview Stylesheet */
+/* Dynamic variables --slide-design-w, --slide-design-h, --slide-aspect are set inline */
+
+:root {
+    --sidebar-w: 180px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    background: #1a1a2e;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* ===== Sidebar ===== */
+.sidebar {
+    width: var(--sidebar-w);
+    min-width: var(--sidebar-w);
+    background: #12122a;
+    border-right: 1px solid #2a2a4a;
+    overflow-y: auto;
+    padding: 12px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.sidebar-title {
+    color: #888;
+    font-size: 11px;
+    text-align: center;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.thumb {
+    cursor: pointer;
+    border: 2px solid transparent;
+    border-radius: 3px;
+    padding: 2px;
+    transition: border-color 0.15s;
+    position: relative;
+}
+.thumb:hover { border-color: #555; }
+.thumb.active { border-color: #5b9bd5; }
+.thumb-inner {
+    width: 100%;
+    aspect-ratio: var(--slide-aspect);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+    pointer-events: none;
+}
+.thumb-slide {
+    width: var(--slide-design-w);
+    height: var(--slide-design-h);
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform-origin: 0 0;
+    background: white;
+}
+.thumb-num {
+    position: absolute;
+    bottom: 2px;
+    right: 4px;
+    color: #888;
+    font-size: 10px;
+}
+
+/* ===== Main area ===== */
+.main {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    gap: 24px;
+    scroll-behavior: smooth;
+}
+.file-title {
+    display: none;
+}
+.slide-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+.slide-label {
+    display: none;
+}
+.slide-wrapper {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+.slide {
+    width: var(--slide-design-w);
+    height: var(--slide-design-h);
+    position: relative;
+    overflow: hidden;
+    background: white;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    border-radius: 2px;
+    transform-origin: center top;
+    flex-shrink: 0;
+}
+
+/* ===== Speaker notes (R8-bt-3) ===== */
+.slide-notes {
+    width: var(--slide-design-w);
+    margin-top: 8px;
+    padding: 10px 14px;
+    background: #1f1f1f;
+    color: #ddd;
+    border-left: 3px solid #888;
+    border-radius: 2px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 12pt;
+    line-height: 1.4;
+    box-sizing: border-box;
+}
+.slide-notes[dir="rtl"] {
+    border-left: none;
+    border-right: 3px solid #888;
+    text-align: right;
+}
+.slide-notes-label {
+    font-size: 10pt;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #888;
+    margin-bottom: 4px;
+}
+.slide-notes-body div { margin: 2px 0; }
+
+/* ===== Page counter ===== */
+.page-counter {
+    position: fixed;
+    bottom: 16px;
+    right: 24px;
+    background: rgba(0,0,0,0.6);
+    color: #ccc;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 13px;
+    z-index: 100;
+    pointer-events: none;
+    transition: opacity 0.3s;
+}
+
+/* ===== Fullscreen ===== */
+body.fullscreen .sidebar { display: none; }
+body.fullscreen .main {
+    padding: 0;
+    gap: 0;
+    overflow: hidden;
+    scroll-behavior: auto;
+}
+body.fullscreen .file-title { display: none; }
+body.fullscreen .slide-container {
+    width: 100vw;
+    height: 100vh;
+    justify-content: center;
+    display: none;
+    gap: 0;
+}
+body.fullscreen .slide-container.fs-active { display: flex; }
+body.fullscreen .slide-label { color: #444; font-size: 11px; }
+body.fullscreen .slide {
+    box-shadow: none;
+    border-radius: 0;
+}
+
+/* ===== Sidebar toggle button ===== */
+.sidebar-toggle {
+    position: fixed;
+    top: 8px;
+    left: 8px;
+    z-index: 200;
+    background: rgba(30,30,60,0.85);
+    color: #aaa;
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 14px;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.25s;
+}
+.sidebar-toggle:hover { color: #fff; border-color: #888; }
+/* Hover zone: top-left 60x60px area reveals the button */
+.toggle-zone {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 60px;
+    height: 60px;
+    z-index: 199;
+    display: none;
+}
+.toggle-zone:hover + .sidebar-toggle,
+.sidebar-toggle:hover {
+    opacity: 1;
+}
+body.sidebar-hidden .sidebar { display: none; }
+body.sidebar-hidden .sidebar-toggle { left: 8px; }
+/* Headless / automated browser — hide sidebar, toggle, and page counter */
+html.headless .sidebar,
+html.headless .sidebar-toggle,
+html.headless .toggle-zone,
+html.headless .page-counter { display: none !important; }
+
+/* ===== Narrow viewport: auto-hide sidebar ===== */
+@media (max-width: 900px) {
+    .sidebar { display: none; }
+    .sidebar-toggle { display: block; }
+    .toggle-zone { display: block; }
+    body.sidebar-visible .sidebar { display: flex; position: fixed; top: 0; left: 0; bottom: 0; z-index: 150; }
+    body.sidebar-visible .sidebar-toggle { left: calc(var(--sidebar-w) + 8px); opacity: 1; }
+    body.sidebar-visible .toggle-zone { display: none; }
+}
+
+/* ===== Elements ===== */
+.shape {
+    position: absolute;
+    overflow: visible;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+.shape.has-fill {
+    overflow: hidden;
+}
+.shape-text {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+.shape-text.valign-top { justify-content: flex-start; }
+.shape-text.valign-center { justify-content: center; }
+.shape-text.valign-bottom { justify-content: flex-end; }
+/* anchorCtr="1": shrink-wrap paragraphs so align-items:center can center the
+   text block horizontally (a width:100% .para would otherwise fill the frame). */
+.shape-text.anchor-ctr .para { width: auto; max-width: 100%; }
+/* Vertical text (writing-mode): the flex main axis is horizontal, so valign-*
+   (justify-content) anchors the text column horizontally — matching PowerPoint's
+   anchor="ctr". A width:100% .para would fill that axis and defeat the centering,
+   so shrink-wrap the paragraphs like anchor-ctr does. */
+.shape-text.has-vert-text .para { width: auto; max-width: 100%; }
+.para { width: 100%; line-height: 1; }
+.picture { position: absolute; overflow: hidden; }
+.picture img { width: 100%; height: 100%; object-fit: fill; }
+/* overflow:visible (not hidden) — with border-collapse:collapse the
+   rightmost/bottommost cell's outer 1pt border sits exactly on the
+   container edge; overflow:hidden would clip its outer half. Cell
+   content overflow is already handled by .slide-table td below. */
+.table-container { position: absolute; overflow: visible; }
+.slide-table { width: 100%; height: 100%; border-collapse: collapse; table-layout: fixed; }
+.slide-table td { padding: 4px 6px; vertical-align: top; overflow: hidden; font-size: 10pt; color: inherit; }
+.connector { position: absolute; pointer-events: none; }
+/* The connector's bounding box is a large rectangle for any diagonal/bent line,
+   so the box stays click-through (pointer-events:none above) — otherwise it would
+   swallow clicks meant for shapes beneath it. But pointer-events is inherited in
+   SVG, so leave the drawn stroke itself hittable: an interactive host (the editor)
+   can then select the connector by clicking the visible line, while the empty box
+   area still passes through. fill="none" means only the stroke receives events. */
+.connector svg line, .connector svg polyline, .connector svg path { pointer-events: stroke; }
+.group { position: absolute; }
+
+</style>
+<script>if(location.hash.indexOf('screenshot')>=0||navigator.webdriver||/HeadlessChrome/.test(navigator.userAgent))document.documentElement.classList.add('headless')</script>
+</head>
+<body>
+<div class="toggle-zone"></div><button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+<div class="sidebar">
+  <div class="sidebar-title">breadberry_pitch.pptx</div>
+  <div class="thumb" data-slide="1">
+    <div class="thumb-inner"></div>
+    <span class="thumb-num">1</span>
+  </div>
+  <div class="thumb" data-slide="2">
+    <div class="thumb-inner"></div>
+    <span class="thumb-num">2</span>
+  </div>
+</div>
+<div class="main">
+<h1 class="file-title">breadberry_pitch.pptx</h1>
+<div class="slide-container" data-slide="1">
+  <div class="slide-label">Slide 1</div>
+  <div class="slide-wrapper">
+    <div class="slide" style="background:#F7F5EE;font-family:'Calibri','游明朝','Hiragino Sans', 'Hiragino Mincho ProN', 'Yu Gothic', 'Yu Mincho', 'Noto Sans CJK JP', 'MS Gothic',sans-serif;color:#000000;">
+    <div class="shape" data-path="/slide[1]/shape[@id=100000]" style="left:48pt;top:28pt;width:600pt;height:24pt;background:transparent;padding:0pt 0pt 0pt 0pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:12pt;line-height:1.2"><span style="font-family:'Lato','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:12pt;font-weight:bold;color:#B9315C;letter-spacing:1.5pt">TEAM  /  breadberry</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[1]/shape[@id=100001]" style="left:46pt;top:59pt;width:680pt;height:67pt;background:transparent;padding:0pt 0pt 0pt 0pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:54pt;line-height:1.2"><span style="font-family:'Lato','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:54pt;font-weight:bold;color:#182D35">breadberry</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[1]/shape[@id=100002]" style="left:48pt;top:128pt;width:780pt;height:40pt;background:transparent;padding:0pt 0pt 0pt 0pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:28pt;line-height:1.2"><span style="font-family:'Yu Gothic','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:28pt;font-weight:bold;color:#182D35">初めての電子工作に、伴走するAI。</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[1]/shape[@id=100003]" style="left:811pt;top:55pt;width:101pt;height:101pt;background:#182D35;border-radius:6.06pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[1]/shape[@id=100004]" style="left:829pt;top:76pt;width:7pt;height:7pt;background:#71958B;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[1]/shape[@id=100005]" style="left:850pt;top:76pt;width:7pt;height:7pt;background:#71958B;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[1]/shape[@id=100006]" style="left:871pt;top:76pt;width:7pt;height:7pt;background:#71958B;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[1]/shape[@id=100007]" style="left:829pt;top:97pt;width:7pt;height:7pt;background:#71958B;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[1]/shape[@id=100008]" style="left:850pt;top:97pt;width:7pt;height:7pt;background:#71958B;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[1]/shape[@id=100009]" style="left:871pt;top:97pt;width:7pt;height:7pt;background:#71958B;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[1]/shape[@id=100010]" style="left:829pt;top:118pt;width:7pt;height:7pt;background:#71958B;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[1]/shape[@id=100011]" style="left:850pt;top:118pt;width:7pt;height:7pt;background:#71958B;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[1]/shape[@id=100012]" style="left:871pt;top:118pt;width:7pt;height:7pt;background:#71958B;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[1]/shape[@id=100013]" style="left:852pt;top:80pt;width:24pt;height:4pt;background:#F0BD63;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[1]/shape[@id=100014]" style="left:872pt;top:80pt;width:4pt;height:42pt;background:#F0BD63;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[1]/shape[@id=100015]" style="left:867pt;top:113pt;width:14pt;height:14pt;background:#F0BD63;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[1]/shape[@id=100016]" style="left:48pt;top:192pt;width:864pt;height:85pt;background:#E8EDE7;border-radius:5.1pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[1]/shape[@id=100017]" style="left:68pt;top:204pt;width:92pt;height:24pt;background:transparent;padding:0pt 0pt 0pt 0pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:14pt;line-height:1.2"><span style="font-family:'Yu Gothic','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:14pt;font-weight:bold;color:#52646A">顧客像</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[1]/shape[@id=100018]" style="left:175pt;top:201pt;width:710pt;height:31pt;background:transparent;padding:0pt 0pt 0pt 0pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:21pt;line-height:1.2"><span style="font-family:'Yu Gothic','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:21pt;font-weight:bold;color:#182D35">都内在住の20〜30代・電子工作を趣味で始めた人</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[1]/shape[@id=100019]" style="left:175pt;top:236pt;width:710pt;height:26pt;background:transparent;padding:0pt 0pt 0pt 0pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-family:'Yu Gothic','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:18pt;color:#52646A">社会人（新入社員を含む）・学生</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[1]/shape[@id=100020]" style="left:48pt;top:295pt;width:864pt;height:39pt;background:transparent;padding:0pt 0pt 0pt 0pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:26pt;line-height:1.2"><span style="font-family:'Yu Gothic','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:26pt;font-weight:bold;color:#182D35">趣味で始めたのに、最初の一歩が難しい。</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[1]/shape[@id=100021]" style="left:48pt;top:350pt;width:422pt;height:123pt;background:#FFFFFF;border-radius:7.38pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[1]/shape[@id=100022]" style="left:48pt;top:369pt;width:4pt;height:38pt;background:#B9315C;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[1]/shape[@id=100023]" style="left:69pt;top:362pt;width:42pt;height:25pt;background:transparent;padding:0pt 0pt 0pt 0pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:14pt;line-height:1.2"><span style="font-family:'Lato','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:14pt;font-weight:bold;color:#B9315C">01</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[1]/shape[@id=100024]" style="left:69pt;top:390pt;width:378pt;height:34pt;background:transparent;padding:0pt 0pt 0pt 0pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:25pt;line-height:1.2"><span style="font-family:'Yu Gothic','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:25pt;font-weight:bold;color:#182D35">設計ができない</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[1]/shape[@id=100025]" style="left:69pt;top:435pt;width:385pt;height:24pt;background:transparent;padding:0pt 0pt 0pt 0pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:16pt;line-height:1.2"><span style="font-family:'Yu Gothic','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:16pt;color:#52646A">作りたいものを、回路に落とせない。</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[1]/shape[@id=100026]" style="left:490pt;top:350pt;width:422pt;height:123pt;background:#FFFFFF;border-radius:7.38pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[1]/shape[@id=100027]" style="left:490pt;top:369pt;width:4pt;height:38pt;background:#B9315C;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[1]/shape[@id=100028]" style="left:511pt;top:362pt;width:42pt;height:25pt;background:transparent;padding:0pt 0pt 0pt 0pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:14pt;line-height:1.2"><span style="font-family:'Lato','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:14pt;font-weight:bold;color:#B9315C">02</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[1]/shape[@id=100029]" style="left:511pt;top:390pt;width:378pt;height:34pt;background:transparent;padding:0pt 0pt 0pt 0pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:25pt;line-height:1.2"><span style="font-family:'Yu Gothic','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:25pt;font-weight:bold;color:#182D35">部品を選べない</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[1]/shape[@id=100030]" style="left:511pt;top:435pt;width:385pt;height:24pt;background:transparent;padding:0pt 0pt 0pt 0pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:16pt;line-height:1.2"><span style="font-family:'Yu Gothic','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:16pt;color:#52646A">どの部品を購入すればよいかわからない。</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[1]/shape[@id=100031]" style="left:48pt;top:502pt;width:750pt;height:18pt;background:transparent;padding:0pt 0pt 0pt 0pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:12pt;line-height:1.2"><span style="font-family:'Yu Gothic','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:12pt;color:#52646A">電子工作の「わからない」を、一歩ずつ減らす。</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[1]/shape[@id=100032]" style="left:858pt;top:502pt;width:54pt;height:18pt;background:transparent;padding:0pt 0pt 0pt 0pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="text-align:right;font-size:11pt;line-height:1.2"><span style="font-family:'Lato','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:11pt;color:#52646A">01 / 02</span></div>
+</div></div>
+    </div>
+  </div>
+  <div class="slide-notes">
+    <div class="slide-notes-label">Notes</div>
+    <div class="slide-notes-body">
+      <div>チームbreadberryです。初めての電子工作に伴走するAIを提案します。対象は、都内在住の20〜30代で、趣味で電子工作を始めた社会人や学生、新入社員です。電子工作を始めても、設計ができない、どの部品を購入すればよいかわからないという壁があります。この最初のハードルを下げたいと考えました。</div>
+    </div>
+  </div>
+</div>
+<div class="slide-container" data-slide="2">
+  <div class="slide-label">Slide 2</div>
+  <div class="slide-wrapper">
+    <div class="slide" style="background:#F7F5EE;font-family:'Calibri','游明朝','Hiragino Sans', 'Hiragino Mincho ProN', 'Yu Gothic', 'Yu Mincho', 'Noto Sans CJK JP', 'MS Gothic',sans-serif;color:#000000;">
+    <div class="shape" data-path="/slide[2]/shape[@id=100033]" style="left:48pt;top:28pt;width:750pt;height:24pt;background:transparent;padding:0pt 0pt 0pt 0pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:12pt;line-height:1.2"><span style="font-family:'Lato','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:12pt;font-weight:bold;color:#B9315C;letter-spacing:1.5pt">breadberry  /  APPROACH</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100034]" style="left:48pt;top:67pt;width:864pt;height:48pt;background:transparent;padding:0pt 0pt 0pt 0pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:32pt;line-height:1.2"><span style="font-family:'Yu Gothic','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:32pt;font-weight:bold;color:#182D35">部品選びから結線まで、AIが伴走。</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100035]" style="left:48pt;top:137pt;width:407pt;height:254pt;background:#FFFFFF;border-radius:15.24pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100036]" style="left:505pt;top:137pt;width:407pt;height:254pt;background:#182D35;border-radius:15.24pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100037]" style="left:70pt;top:153pt;width:363pt;height:23pt;background:transparent;padding:0pt 0pt 0pt 0pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:14pt;line-height:1.2"><span style="font-family:'Yu Gothic','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:14pt;font-weight:bold;color:#B9315C">01  /  AIエージェント</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100038]" style="left:70pt;top:189pt;width:363pt;height:40pt;background:transparent;padding:0pt 0pt 0pt 0pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:26pt;line-height:1.2"><span style="font-family:'Yu Gothic','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:26pt;font-weight:bold;color:#182D35">必要な部品を教える</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100039]" style="left:70pt;top:239pt;width:363pt;height:58pt;background:transparent;padding:0pt 0pt 0pt 0pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:19pt;line-height:1.44"><span style="font-family:'Yu Gothic','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:19pt;color:#52646A">何を購入すればよいか、</span></div>
+<div class="para" style="font-size:19pt;line-height:1.44"><span style="font-family:'Yu Gothic','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:19pt;color:#52646A">部品選びをサポート。</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100040]" style="left:70pt;top:315pt;width:103pt;height:46pt;background:#E8EDE7;border-radius:2.76pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100041]" style="left:70pt;top:315pt;width:103pt;height:46pt;background:transparent;padding:0pt 0pt 0pt 0pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="text-align:center;font-size:17pt;line-height:1.2"><span style="font-family:'Yu Gothic','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:17pt;color:#52646A">ボード</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100042]" style="left:183pt;top:315pt;width:103pt;height:46pt;background:#E8EDE7;border-radius:2.76pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100043]" style="left:183pt;top:315pt;width:103pt;height:46pt;background:transparent;padding:0pt 0pt 0pt 0pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="text-align:center;font-size:17pt;line-height:1.2"><span style="font-family:'Yu Gothic','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:17pt;color:#52646A">部品</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100044]" style="left:296pt;top:315pt;width:136pt;height:46pt;background:#E8EDE7;border-radius:2.76pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100045]" style="left:296pt;top:315pt;width:136pt;height:46pt;background:transparent;padding:0pt 0pt 0pt 0pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="text-align:center;font-size:17pt;line-height:1.2"><span style="font-family:'Yu Gothic','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:17pt;color:#52646A">ケーブル</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100046]" style="left:468pt;top:247pt;width:25pt;height:25pt;overflow:visible"><div style="position:absolute;inset:0;clip-path:polygon(0 0,50% 0,100% 50%,50% 100%,0 100%,50% 50%);background:#B9315C"></div><div class="shape-text valign-center" style="position:relative;"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100047]" style="left:527pt;top:153pt;width:363pt;height:23pt;background:transparent;padding:0pt 0pt 0pt 0pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:14pt;line-height:1.2"><span style="font-family:'Yu Gothic','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:14pt;font-weight:bold;color:#F0BD63">02  /  CGガイド</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100048]" style="left:527pt;top:189pt;width:363pt;height:40pt;background:transparent;padding:0pt 0pt 0pt 0pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:25pt;line-height:1.2"><span style="font-family:'Yu Gothic','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:25pt;font-weight:bold;color:#FFFFFF">結線をひとつずつ教える</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100049]" style="left:527pt;top:239pt;width:363pt;height:27pt;background:transparent;padding:0pt 0pt 0pt 0pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:17pt;line-height:1.2"><span style="font-family:'Yu Gothic','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:17pt;color:#DEE8E5">「次にどこをつなぐか」を可視化。</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100050]" style="left:529pt;top:285pt;width:193pt;height:73pt;background:#E7ECE6;border-radius:4.38pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100051]" style="left:542pt;top:293pt;width:166pt;height:2pt;background:#B9315C;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100052]" style="left:542pt;top:346pt;width:166pt;height:2pt;background:#7293B4;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100053]" style="left:541pt;top:321pt;width:168pt;height:4pt;background:#C1CCC7;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100054]" style="left:544pt;top:305pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100055]" style="left:556pt;top:305pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100056]" style="left:568pt;top:305pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100057]" style="left:580pt;top:305pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100058]" style="left:592pt;top:305pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100059]" style="left:604pt;top:305pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100060]" style="left:616pt;top:305pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100061]" style="left:628pt;top:305pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100062]" style="left:640pt;top:305pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100063]" style="left:652pt;top:305pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100064]" style="left:664pt;top:305pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100065]" style="left:676pt;top:305pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100066]" style="left:688pt;top:305pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100067]" style="left:700pt;top:305pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100068]" style="left:544pt;top:313pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100069]" style="left:556pt;top:313pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100070]" style="left:568pt;top:313pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100071]" style="left:580pt;top:313pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100072]" style="left:592pt;top:313pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100073]" style="left:604pt;top:313pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100074]" style="left:616pt;top:313pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100075]" style="left:628pt;top:313pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100076]" style="left:640pt;top:313pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100077]" style="left:652pt;top:313pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100078]" style="left:664pt;top:313pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100079]" style="left:676pt;top:313pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100080]" style="left:688pt;top:313pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100081]" style="left:700pt;top:313pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100082]" style="left:544pt;top:331pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100083]" style="left:556pt;top:331pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100084]" style="left:568pt;top:331pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100085]" style="left:580pt;top:331pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100086]" style="left:592pt;top:331pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100087]" style="left:604pt;top:331pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100088]" style="left:616pt;top:331pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100089]" style="left:628pt;top:331pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100090]" style="left:640pt;top:331pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100091]" style="left:652pt;top:331pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100092]" style="left:664pt;top:331pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100093]" style="left:676pt;top:331pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100094]" style="left:688pt;top:331pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100095]" style="left:700pt;top:331pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100096]" style="left:544pt;top:339pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100097]" style="left:556pt;top:339pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100098]" style="left:568pt;top:339pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100099]" style="left:580pt;top:339pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100100]" style="left:592pt;top:339pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100101]" style="left:604pt;top:339pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100102]" style="left:616pt;top:339pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100103]" style="left:628pt;top:339pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100104]" style="left:640pt;top:339pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100105]" style="left:652pt;top:339pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100106]" style="left:664pt;top:339pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100107]" style="left:676pt;top:339pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100108]" style="left:688pt;top:339pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100109]" style="left:700pt;top:339pt;width:3pt;height:3pt;background:#8B9C95;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100110]" style="left:570pt;top:310pt;width:5pt;height:29pt;background:#B9315C;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100111]" style="left:570pt;top:333pt;width:101pt;height:5pt;background:#B9315C;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100112]" style="left:563pt;top:303pt;width:18pt;height:18pt;background:transparent;border:2pt solid #F0BD63;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100113]" style="left:662pt;top:328pt;width:18pt;height:18pt;background:transparent;border:2pt solid #F0BD63;border-radius:50%;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100114]" style="left:739pt;top:290pt;width:150pt;height:24pt;background:transparent;padding:0pt 0pt 0pt 0pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-family:'Yu Gothic','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:18pt;font-weight:bold;color:#FFFFFF">1本ずつ案内</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100115]" style="left:739pt;top:321pt;width:151pt;height:37pt;background:transparent;padding:0pt 0pt 0pt 0pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:12pt;line-height:1.2"><span style="font-family:'Yu Gothic','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:12pt;color:#BFD0CC">結線ガイドの</span></div>
+<div class="para" style="font-size:12pt;line-height:1.2"><span style="font-family:'Yu Gothic','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:12pt;color:#BFD0CC">イメージ</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100116]" style="left:48pt;top:412pt;width:864pt;height:81pt;background:#E8EDE7;border-radius:4.86pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:18pt;line-height:1.2"><span style="font-size:20pt">&nbsp;</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100117]" style="left:68pt;top:425pt;width:129pt;height:22pt;background:transparent;padding:0pt 0pt 0pt 0pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:14pt;line-height:1.2"><span style="font-family:'Yu Gothic','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:14pt;font-weight:bold;color:#52646A">技術的な工夫</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100118]" style="left:215pt;top:422pt;width:665pt;height:28pt;background:transparent;padding:0pt 0pt 0pt 0pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:21pt;line-height:1.2"><span style="font-family:'Yu Gothic','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:21pt;font-weight:bold;color:#182D35">手取り足取り教える体験を目指して、</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100119]" style="left:215pt;top:452pt;width:665pt;height:28pt;background:transparent;padding:0pt 0pt 0pt 0pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:21pt;line-height:1.2"><span style="font-family:'Yu Gothic','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:21pt;font-weight:bold;color:#182D35">部品・結線のCGモデル化にチャレンジ。</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100120]" style="left:48pt;top:502pt;width:750pt;height:18pt;background:transparent;padding:0pt 0pt 0pt 0pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="font-size:11pt;line-height:1.2"><span style="font-family:'Yu Gothic','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:11pt;color:#52646A">使用技術：Google Cloud Run / Firestore / Next.js / Gemini API / GMI Cloud / Tailwind CSS</span></div>
+</div></div>
+    <div class="shape" data-path="/slide[2]/shape[@id=100121]" style="left:858pt;top:502pt;width:54pt;height:18pt;background:transparent;padding:0pt 0pt 0pt 0pt;overflow:visible"><div class="shape-text valign-center"><div class="para" style="text-align:right;font-size:11pt;line-height:1.2"><span style="font-family:'Lato','PingFang SC','Microsoft YaHei','Noto Sans CJK SC','Hiragino Sans GB',sans-serif;font-size:11pt;color:#52646A">02 / 02</span></div>
+</div></div>
+    </div>
+  </div>
+  <div class="slide-notes">
+    <div class="slide-notes-label">Notes</div>
+    <div class="slide-notes-body">
+      <div>アプローチは2つです。まず、必要な部品を教えてくれるAIエージェントが部品選びをサポートします。次に、CGで結線をひとつずつ案内します。技術的には、手取り足取り教えるような体験を目指して、CGモデル化にチャレンジしました。図は結線ガイドのコンセプトを説明する模式図で、実装画面や実際の回路図ではありません。</div>
+    </div>
+  </div>
+</div>
+</div>
+<div class="page-counter">1 / 2</div>
+<script>
+// OfficeCli HTML Preview Script
+(function() {
+    const main = document.querySelector('.main');
+    const sidebar = document.querySelector('.sidebar');
+    const counter = document.querySelector('.page-counter');
+    let currentSlide = 0;
+    let isFullscreen = false;
+
+    // ===== Live DOM queries (SSE may add/remove elements) =====
+    function getContainers() { return [...document.querySelectorAll('.main > .slide-container')]; }
+    function getThumbs() { return [...document.querySelectorAll('.sidebar > .thumb')]; }
+    function getTotal() { return getContainers().length; }
+
+    // ===== Responsive scaling =====
+    function scaleSlides() {
+        // 40px breathing room for interactive viewing; headless captures fill the
+        // viewport (the screenshot path sizes it to the slide) so they take none.
+        const headless = document.documentElement.classList.contains('headless');
+        const availW = main.clientWidth - (headless ? 0 : 40);
+        const slides = document.querySelectorAll('.main > .slide-container .slide');
+        // A lone headless slide is a single-slide screenshot: scale it to fill the
+        // viewport in BOTH directions (up or down) so the capture is flush at the
+        // requested resolution regardless of the slide's physical size. Interactive
+        // and multi-slide views only ever shrink to fit.
+        const fill = headless && slides.length === 1;
+        slides.forEach(slide => {
+            const notes = slide.closest('.slide-container')?.querySelector('.slide-notes');
+            const designW = slide.offsetWidth;
+            if (availW > 0 && (fill || designW > availW)) {
+                const s = availW / designW;
+                slide.style.transform = `scale(${s})`;
+                slide.style.transformOrigin = 'center top';
+                const designH = slide.offsetHeight;
+                slide.parentElement.style.height = (designH * s) + 'px';
+                slide.parentElement.style.width = (designW * s) + 'px';
+                if (notes) notes.style.width = (designW * s) + 'px';
+            } else {
+                slide.style.transform = '';
+                slide.parentElement.style.height = '';
+                slide.parentElement.style.width = '';
+                if (notes) notes.style.width = '';
+            }
+        });
+    }
+    scaleSlides();
+    window.scaleSlides = scaleSlides;
+    window.addEventListener('resize', scaleSlides);
+
+    // ===== Sidebar thumbnails =====
+    function setActiveThumb(idx) {
+        getThumbs().forEach((t, i) => t.classList.toggle('active', i === idx));
+        currentSlide = idx;
+        if (counter) counter.textContent = `${idx + 1} / ${getTotal()}`;
+    }
+
+    // Event delegation for thumb clicks (handles SSE-added thumbs)
+    if (sidebar) {
+        sidebar.addEventListener('click', function(e) {
+            const thumb = e.target.closest('.thumb');
+            if (!thumb) return;
+            const thumbs = getThumbs();
+            const idx = thumbs.indexOf(thumb);
+            if (idx < 0) return;
+            if (isFullscreen) { showFullscreenSlide(idx); return; }
+            const containers = getContainers();
+            if (containers[idx]) {
+                containers[idx].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            setActiveThumb(idx);
+        });
+    }
+
+    // Track visible slide on scroll (normal mode) — use MutationObserver to auto-observe new slides
+    let scrollObserver;
+    if (main) {
+        scrollObserver = new IntersectionObserver(entries => {
+            if (isFullscreen) return;
+            const containers = getContainers();
+            entries.forEach(e => {
+                if (e.isIntersecting && e.intersectionRatio > 0.3) {
+                    const idx = containers.indexOf(e.target);
+                    if (idx >= 0) setActiveThumb(idx);
+                }
+            });
+        }, { root: main, threshold: 0.3 });
+        getContainers().forEach(c => scrollObserver.observe(c));
+
+        // Auto-observe new slide-containers added to main
+        new MutationObserver(mutations => {
+            mutations.forEach(m => {
+                m.addedNodes.forEach(node => {
+                    if (node.nodeType === 1 && node.classList.contains('slide-container')) {
+                        scrollObserver.observe(node);
+                    }
+                });
+            });
+        }).observe(main, { childList: true });
+    }
+
+    // ===== Fullscreen mode =====
+    function showFullscreenSlide(idx) {
+        const containers = getContainers();
+        const total = containers.length;
+        idx = Math.max(0, Math.min(idx, total - 1));
+        containers.forEach((c, i) => c.classList.toggle('fs-active', i === idx));
+        setActiveThumb(idx);
+        const slide = containers[idx]?.querySelector('.slide');
+        if (slide) {
+            const vw = window.innerWidth, vh = window.innerHeight - 30;
+            const sw = slide.scrollWidth || slide.offsetWidth;
+            const sh = slide.scrollHeight || slide.offsetHeight;
+            const s = Math.min(vw / sw, vh / sh, 1);
+            slide.style.transform = `scale(${s})`;
+            slide.style.transformOrigin = 'center top';
+        }
+    }
+    function enterFullscreen() {
+        isFullscreen = true;
+        document.body.classList.add('fullscreen');
+        showFullscreenSlide(currentSlide);
+    }
+    function exitFullscreen() {
+        isFullscreen = false;
+        document.body.classList.remove('fullscreen');
+        getContainers().forEach(c => { c.classList.remove('fs-active'); c.style.display = ''; });
+        scaleSlides();
+        getContainers()[currentSlide]?.scrollIntoView({ block: 'center' });
+    }
+
+    // ===== Keyboard navigation =====
+    document.addEventListener('keydown', e => {
+        if (e.key === 'f' || e.key === 'F') {
+            e.preventDefault();
+            isFullscreen ? exitFullscreen() : enterFullscreen();
+            return;
+        }
+        if (e.key === 'Escape' && isFullscreen) {
+            e.preventDefault();
+            exitFullscreen();
+            return;
+        }
+        const next = e.key === 'ArrowDown' || e.key === ' ' || e.key === 'ArrowRight';
+        const prev = e.key === 'ArrowUp' || e.key === 'ArrowLeft';
+        if (!next && !prev) return;
+        e.preventDefault();
+
+        const total = getTotal();
+        if (isFullscreen) {
+            showFullscreenSlide(currentSlide + (next ? 1 : -1));
+        } else {
+            const target = next
+                ? Math.min(currentSlide + 1, total - 1)
+                : Math.max(currentSlide - 1, 0);
+            const containers = getContainers();
+            if (containers[target]) {
+                containers[target].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            setActiveThumb(target);
+        }
+    });
+
+    // ===== Populate & scale thumbnail slides via cloneNode (zero base64 duplication) =====
+    function buildThumbs() {
+        const slides = document.querySelectorAll('.main > .slide-container .slide');
+        const inners = document.querySelectorAll('.thumb-inner');
+        slides.forEach((slide, i) => {
+            if (i >= inners.length) return;
+            const inner = inners[i];
+            if (inner.querySelector('.thumb-slide')) return;
+            const clone = slide.cloneNode(true);
+            clone.className = 'thumb-slide';
+            clone.style.transform = '';
+            // Remove IDs from cloned elements to avoid getElementById conflicts (e.g. 3D canvas)
+            clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+            // Remove cloned <script> tags (module scripts won't re-execute but keep DOM clean)
+            clone.querySelectorAll('script').forEach(el => el.remove());
+            inner.appendChild(clone);
+        });
+        scaleThumbs();
+    }
+    function scaleThumbs() {
+        document.querySelectorAll('.thumb-inner').forEach(inner => {
+            const thumbSlide = inner.querySelector('.thumb-slide');
+            if (!thumbSlide) return;
+            const thumbW = inner.clientWidth;
+            const slideW = thumbSlide.scrollWidth || thumbSlide.offsetWidth;
+            if (slideW > 0 && thumbW > 0) {
+                thumbSlide.style.transform = `scale(${thumbW / slideW})`;
+                thumbSlide.style.transformOrigin = '0 0';
+            }
+        });
+    }
+    buildThumbs();
+    window.buildThumbs = buildThumbs;
+    window.scaleThumbs = scaleThumbs;
+    window.addEventListener('resize', scaleThumbs);
+
+    // ===== Sidebar toggle (exposed globally for onclick) =====
+    window.toggleSidebar = function() {
+        document.body.classList.toggle('sidebar-visible');
+        document.body.classList.toggle('sidebar-hidden');
+        // Re-scale after sidebar toggle changes main area width
+        requestAnimationFrame(() => {
+            scaleSlides();
+            buildThumbs();
+            scaleThumbs();
+        });
+    };
+
+    // Init
+    if (getTotal() > 0) setActiveThumb(0);
+})();
+
+</script>
+<script>
+(function() {
+    var _katexRetries = 0;
+    function fallbackKatex() {
+        document.querySelectorAll('.katex-formula:not(.katex-rendered)').forEach(function(el) {
+            el.textContent = el.dataset.formula;
+            el.style.fontFamily = 'monospace';
+            el.style.color = '#666';
+            el.classList.add('katex-rendered');
+        });
+    }
+    function renderKatex() {
+        var pending = document.querySelectorAll('.katex-formula:not(.katex-rendered)');
+        if (pending.length === 0) return;
+        if (typeof katex === 'undefined') {
+            // Lazy-load on first demand — handles watch mode where the initial
+            // doc had no formulas (KaTeX tags omitted from head), then a
+            // formula arrived via SSE patch.
+            if (!window._katexLoading) {
+                window._katexLoading = true;
+                // CONSISTENCY(katex-mirror): mirror-first, CDN retry, then fallback.
+                var link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = 'https://d.officecli.ai/assets/katex-0.16.11/katex.min.css';
+                link.onerror = function() { if (!this.dataset.f) { this.dataset.f = 1; this.href = 'https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css'; } else { this.remove(); } };
+                document.head.appendChild(link);
+                var script = document.createElement('script');
+                script.src = 'https://d.officecli.ai/assets/katex-0.16.11/katex.min.js';
+                script.onload = renderKatex;
+                script.onerror = function() { var s2 = document.createElement('script'); s2.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js'; s2.onload = renderKatex; s2.onerror = fallbackKatex; document.head.appendChild(s2); };
+                document.head.appendChild(script);
+                return;
+            }
+            if (++_katexRetries > 20) { fallbackKatex(); return; }
+            setTimeout(renderKatex, 100); return;
+        }
+        pending.forEach(function(el) {
+            try {
+                katex.render(el.dataset.formula, el, { throwOnError: false, displayMode: el.dataset.display === '1' });
+                el.classList.add('katex-rendered');
+            } catch(e) { el.textContent = el.dataset.formula + ' (Error: ' + e.message + '. See https://katex.org/docs/supported.html for supported syntax.)'; }
+        });
+    }
+    // Initial render
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderKatex);
+    else renderKatex();
+    // Re-render when DOM changes (watch mode incremental updates)
+    new MutationObserver(function() { renderKatex(); }).observe(document.body, { childList: true, subtree: true });
+})();
+</script>
+</body>
+</html>

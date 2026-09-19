@@ -37,12 +37,14 @@ import {
   billOfMaterials,
   boards,
   catalog,
+  partKinds,
+  isAnalog,
   compileCircuit,
   validateCircuit,
   type Board,
   type Project,
 } from "@/lib/circuit";
-import { demoProject } from "@/lib/demo";
+import { demoProject, type Example } from "@/lib/demo";
 import Schematic from "./schematic";
 const BoardScene = dynamic(() => import("./board-scene"), {
   ssr: false,
@@ -179,7 +181,7 @@ export default function Studio() {
     setTab("3d");
     setReset((s) => s + 1);
   }
-  function sample(example: "climate" | "led") {
+  function sample(example: Example) {
     applyProject(demoProject(selectedBoard, example));
     setExamples(false);
     setError("");
@@ -442,6 +444,38 @@ export default function Studio() {
                 ][phase]
               : "アイデアから、部品選び・配線・コードまで。"}
           </div>
+          <details className="parts-catalog">
+            <summary>対応するセンサー・部品（{partKinds.length}種類）</summary>
+            <p>
+              部品を選ぶと入力欄にセットします。3.3V回路・最大6部品。モジュールは端子名と実物の仕様を確認してください。
+            </p>
+            <div className="catalog-grid">
+              {partKinds.map((kind) => {
+                const unavailable =
+                  selectedBoard === "raspberry-pi" && isAnalog(kind);
+                return (
+                  <button
+                    type="button"
+                    key={kind}
+                    disabled={busy || unavailable}
+                    title={
+                      unavailable
+                        ? "Raspberry Pi 4/5はADC非搭載です"
+                        : catalog[kind].note
+                    }
+                    onClick={() =>
+                      setPrompt(
+                        `${catalog[kind].name}を使う回路と動作確認用のコードを作成してください。`,
+                      )
+                    }
+                  >
+                    {catalog[kind].name}
+                    {unavailable ? "（ADCが必要）" : ""}
+                  </button>
+                );
+              })}
+            </div>
+          </details>
         </form>
       </section>
       {error && !settings && (
@@ -494,6 +528,12 @@ export default function Studio() {
                   </button>
                   <button onClick={() => sample("led")}>
                     <Zap size={15} /> LEDブリンク
+                  </button>
+                  <button onClick={() => sample("temperature")}>
+                    <Thermometer size={15} /> DS18B20 温度計
+                  </button>
+                  <button onClick={() => sample("display")}>
+                    <Zap size={15} /> OLEDディスプレイ
                   </button>
                 </div>
               )}

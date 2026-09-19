@@ -11,7 +11,7 @@ import {
   type Board,
 } from "../../src/lib/circuit";
 for (const board of Object.keys(boards) as Board[])
-  for (const example of ["climate", "led"] as const)
+  for (const example of ["climate", "led", "temperature", "display"] as const)
     test(`${board} ${example}: valid nets, unique real holes and matching BOM`, () => {
       const c = validateCircuit(demoCircuit(board, example));
       const { steps, wires, pinHoles } = compileCircuit(c);

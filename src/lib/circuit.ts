@@ -83,6 +83,15 @@ export const boards: Record<
     },
   },
 };
+function i2cModule(name: string, color: string, note: string) {
+  return {
+    name,
+    pins: ["VCC", "GND", "SCL", "SDA"],
+    offsets: [0, 1, 2, 3],
+    color,
+    note: `3.3V対応・I2C設定済み・プルアップ内蔵の変換基板を使用。4信号を端子名で対応させて配線してください。図の並びは接続用の模式配置です。実物の印字を優先し、ピン順が違う場合はジャンパ線で引き出してください。${note}`,
+  } as const;
+}
 export const catalog = {
   led: {
     name: "LED",
@@ -126,8 +135,78 @@ export const catalog = {
     color: "#3b82f6",
     note: "3.3 V 対応、プルアップ内蔵の4ピン変換基板。製品の印字を優先してください。",
   },
+  bme280: i2cModule(
+    "BME280 温湿度・気圧モジュール",
+    "#b76de0",
+    "I2Cアドレス0x76。BMP280と異なり湿度も測れます。",
+  ),
+  bmp280: i2cModule(
+    "BMP280 温度・気圧モジュール",
+    "#648ee8",
+    "I2Cアドレス0x76。湿度は測れません。",
+  ),
+  sht31: i2cModule("SHT31 温湿度モジュール", "#31b5a3", "I2Cアドレス0x44。"),
+  ssd1306: i2cModule(
+    "SSD1306 OLEDディスプレイ",
+    "#345275",
+    "128×64、I2Cアドレス0x3C、リセット回路内蔵の4端子モジュール。SPI版は対象外です。",
+  ),
+  ds18b20: {
+    name: "DS18B20 温度センサー",
+    pins: ["GND", "DQ", "VDD"],
+    offsets: [0, 1, 2],
+    color: "#303746",
+    note: "TO-92の平らな面を手前、脚を下にして左からGND / DQ / VDD。VDDは3.3V、DQは4.7kΩで3.3Vへプルアップ。寄生電源方式は使用しません。",
+  },
+  potentiometer: {
+    name: "可変抵抗",
+    pins: ["1", "W", "3"],
+    offsets: [0, 1, 2],
+    color: "#367bc7",
+    note: "10kΩの3端子可変抵抗。1=3.3V、3=GND、摺動端子W=ADC入力。端子の位置は製品仕様で確認。Pi 4/5はADC非搭載のため対象外です。",
+  },
+  ntc: {
+    name: "NTC サーミスタ",
+    pins: ["1", "2"],
+    offsets: [0, 1],
+    color: "#d97745",
+    note: "極性なし。10kΩ（25℃）を想定。3.3Vと10kΩ固定抵抗で分圧してADCで読み取ります。温度換算には実物のB定数・校正が必要です。Pi 4/5は対象外です。",
+  },
+  reed: {
+    name: "リードスイッチ",
+    pins: ["1", "2"],
+    offsets: [0, 4],
+    color: "#87bdb0",
+    note: "2端子・常開（NO）・無電圧接点タイプ。内部プルアップ対応GPIOとGNDの間に接続。磁石で開閉します。ガラス管の脚を根元で曲げないでください。",
+  },
+  tilt: {
+    name: "傾斜スイッチ",
+    pins: ["1", "2"],
+    offsets: [0, 1],
+    color: "#c6a856",
+    note: "2端子・無電圧接点のボール式。内部プルアップ対応GPIOとGNDの間に接続。向きによるON/OFFとチャタリングを考慮してください。",
+  },
 } as const;
 export type Kind = keyof typeof catalog;
+export const partKinds = Object.keys(catalog) as [Kind, ...Kind[]];
+export const i2cAddresses: Partial<Record<Kind, number>> = {
+  bh1750: 0x23,
+  bme280: 0x76,
+  bmp280: 0x76,
+  sht31: 0x44,
+  ssd1306: 0x3c,
+};
+export const isI2c = (kind: Kind) => i2cAddresses[kind] !== undefined;
+export const isAnalog = (kind: Kind) =>
+  ["ldr", "ntc", "potentiometer"].includes(kind);
+const isSwitch = (kind: Kind) => ["button", "reed", "tilt"].includes(kind);
+export function resistanceOhms(value: string): number {
+  if (!/^(\d+(\.\d+)?)\s*(k|M)?(Ω|ohm)?$/.test(value)) return NaN;
+  return (
+    parseFloat(value) *
+    (value.includes("k") ? 1000 : value.includes("M") ? 1e6 : 1)
+  );
+}
 export const circuitSchema = z.object({
   title: z.string().min(1).max(80),
   description: z.string().min(1).max(600),
@@ -136,7 +215,7 @@ export const circuitSchema = z.object({
     .array(
       z.object({
         id: z.string().regex(/^[A-Z][A-Z0-9]{0,7}$/),
-        kind: z.enum(["led", "resistor", "dht22", "ldr", "button", "bh1750"]),
+        kind: z.enum(partKinds),
         value: z.string().max(60),
         purpose: z.string().max(200),
       }),
@@ -312,6 +391,23 @@ export function validateCircuit(input: unknown): Circuit {
     if (gpios.slice(i + 1).some((p) => root(`board.${p}`) === net))
       throw new Error("GPIO同士を直結できません。");
   }
+  const adc =
+    c.board === "esp32"
+      ? ["GPIO32", "GPIO33", "GPIO34", "GPIO35"]
+      : c.board === "pico"
+        ? ["GP26", "GP27", "GP28"]
+        : [];
+  const connectedTo = (endpoint: string, pins: string[]) =>
+    pins.some((g) => root(`board.${g}`) === root(endpoint));
+  const hasResistor = (a: string, b: string, ohms: number) =>
+    c.parts.some(
+      (r) =>
+        r.kind === "resistor" &&
+        resistanceOhms(r.value) === ohms &&
+        ((root(`${r.id}.1`) === root(a) && root(`${r.id}.2`) === root(b)) ||
+          (root(`${r.id}.2`) === root(a) && root(`${r.id}.1`) === root(b))),
+    );
+  const busAddresses = new Set<string>();
   for (const p of c.parts) {
     const nets = catalog[p.kind].pins
       .filter((pin) => pin !== "NC")
@@ -321,14 +417,12 @@ export function validateCircuit(input: unknown): Circuit {
     for (const pin of catalog[p.kind].pins)
       if (pin !== "NC" && !degree[`${p.id}.${pin}`])
         throw new Error(`${p.id}.${pin} が未接続です。`);
-    if (
-      p.kind === "resistor" &&
-      !/^(\d+(\.\d+)?)\s*(k|M)?(Ω|ohm)?$/.test(p.value)
-    )
+    if (p.kind === "resistor" && !(resistanceOhms(p.value) > 0))
       throw new Error("抵抗値は 330Ω や 10kΩ の形式で指定してください。");
-    if (p.kind === "dht22" || p.kind === "bh1750") {
+    if (p.kind === "dht22" || isI2c(p.kind) || p.kind === "ds18b20") {
       if (
-        root(`${p.id}.VCC`) !== root("board.3V3") ||
+        root(`${p.id}.${p.kind === "ds18b20" ? "VDD" : "VCC"}`) !==
+          root("board.3V3") ||
         root(`${p.id}.GND`) !== root("board.GND")
       )
         throw new Error(`${p.id} の電源配線を確認してください。`);
@@ -368,7 +462,7 @@ export function validateCircuit(input: unknown): Circuit {
       )
         throw new Error("LEDを抵抗経由でGPIOに接続してください。");
     }
-    if (p.kind === "button") {
+    if (isSwitch(p.kind)) {
       const nets = [root(`${p.id}.1`), root(`${p.id}.2`)];
       const signal = nets.find((n) => n !== root("board.GND"));
       const outputPins = gpios.filter(
@@ -379,11 +473,16 @@ export function validateCircuit(input: unknown): Circuit {
         !outputPins.some((g) => root(`board.${g}`) === signal)
       )
         throw new Error(
-          "ボタンは内部プルアップ対応GPIOとGNDの間に接続してください。",
+          `${catalog[p.kind].name}は内部プルアップ対応GPIOとGNDの間に接続してください。`,
         );
     }
-    if (p.kind === "dht22" || p.kind === "bh1750") {
-      const signals = p.kind === "dht22" ? ["DATA"] : ["SCL", "SDA"];
+    if (p.kind === "dht22" || isI2c(p.kind) || p.kind === "ds18b20") {
+      const signals =
+        p.kind === "dht22"
+          ? ["DATA"]
+          : p.kind === "ds18b20"
+            ? ["DQ"]
+            : ["SCL", "SDA"];
       for (const signal of signals)
         if (
           !gpios
@@ -394,7 +493,7 @@ export function validateCircuit(input: unknown): Circuit {
         )
           throw new Error(`${p.id}.${signal} は双方向GPIOに接続してください。`);
       if (
-        p.kind === "bh1750" &&
+        isI2c(p.kind) &&
         c.board === "raspberry-pi" &&
         (root(`${p.id}.SCL`) !== root("board.GPIO3") ||
           root(`${p.id}.SDA`) !== root("board.GPIO2"))
@@ -403,7 +502,7 @@ export function validateCircuit(input: unknown): Circuit {
           "Raspberry Pi I2C1はSCL=GPIO3、SDA=GPIO2を使用してください。",
         );
     }
-    if (p.kind === "ldr") {
+    if (p.kind === "ldr" || p.kind === "ntc") {
       const adc =
         c.board === "esp32"
           ? ["GPIO32", "GPIO33", "GPIO34", "GPIO35"]
@@ -427,20 +526,39 @@ export function validateCircuit(input: unknown): Circuit {
         !divider ||
         !adc.some((pin) => root(`board.${pin}`) === signal)
       )
-        throw new Error("CdSには3.3V・抵抗・ADC入力の分圧回路が必要です。");
+        throw new Error(
+          `${catalog[p.kind].name}には3.3V・抵抗・ADC入力の分圧回路が必要です。`,
+        );
+      if (
+        p.kind === "ntc" &&
+        (resistanceOhms(p.value) !== 10000 ||
+          !hasResistor(`${p.id}.2`, "board.GND", 10000))
+      )
+        throw new Error(
+          "NTCは10kΩ、端子1=3.3V、端子2=ADCと10kΩ抵抗経由のGNDにしてください。",
+        );
     }
-    if (p.kind === "dht22") {
-      const pullup = c.parts.some(
-        (r) =>
-          r.kind === "resistor" &&
-          ["10kΩ", "10000Ω", "10k", "10000"].includes(r.value) &&
-          ((root(`${r.id}.1`) === root(`${p.id}.DATA`) &&
-            root(`${r.id}.2`) === root("board.3V3")) ||
-            (root(`${r.id}.2`) === root(`${p.id}.DATA`) &&
-              root(`${r.id}.1`) === root("board.3V3"))),
+    if (p.kind === "dht22" && !hasResistor(`${p.id}.DATA`, "board.3V3", 10000))
+      throw new Error("DHT22 DATAには10kΩのプルアップが必要です。");
+    if (p.kind === "ds18b20" && !hasResistor(`${p.id}.DQ`, "board.3V3", 4700))
+      throw new Error("DS18B20 DQには4.7kΩのプルアップが必要です。");
+    if (
+      p.kind === "potentiometer" &&
+      (resistanceOhms(p.value) !== 10000 ||
+        root(`${p.id}.1`) !== root("board.3V3") ||
+        root(`${p.id}.3`) !== root("board.GND") ||
+        !connectedTo(`${p.id}.W`, adc))
+    )
+      throw new Error(
+        "可変抵抗は10kΩ、1=3.3V、3=GND、W=ADC入力にしてください。",
       );
-      if (!pullup)
-        throw new Error("DHT22 DATAには10kΩのプルアップが必要です。");
+    if (isI2c(p.kind)) {
+      const key = `${root(`${p.id}.SDA`)}|${root(`${p.id}.SCL`)}|${i2cAddresses[p.kind]}`;
+      if (busAddresses.has(key))
+        throw new Error(
+          "同じI2Cバスでアドレスが重複しています。別のセンサーかバスを選んでください。",
+        );
+      busAddresses.add(key);
     }
   }
   compileCircuit(c);

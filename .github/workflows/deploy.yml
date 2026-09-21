@@ -1,0 +1,46 @@
+name: Deploy to Cloud Run
+
+on:
+  pull_request:
+    branches: [main]
+    types: [closed]
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      GOOGLE_CLOUD_PROJECT: ${{ vars.GOOGLE_CLOUD_PROJECT }}
+      REGION: ${{ vars.GCP_REGION || 'asia-northeast1' }}
+      SERVICE: ${{ vars.CLOUD_RUN_SERVICE || 'breadberry' }}
+      REPOSITORY: ${{ vars.ARTIFACT_REPOSITORY || 'breadberry' }}
+      SERVICE_ACCOUNT: ${{ vars.CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT }}
+      GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+      GMI_MODEL: ${{ vars.GMI_MODEL }}
+      APP_ORIGIN: ${{ vars.APP_ORIGIN }}
+    steps:
+      - name: Check out merged main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Deploy
+        run: make deploy

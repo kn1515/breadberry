@@ -178,6 +178,62 @@ make deploy
 
 `make deploy` は `.env.local` を読み込みません。モデルを変更する場合は `GEMINI_MODEL=gemini-3.8-flash make deploy` のように環境変数で指定してください。Gemini 2.5 Flashはモデル一覧に表示されても、新規ユーザーの生成リクエストが404で拒否される場合があります。
 
+### GitHub ActionsでPRマージ時にデプロイ
+
+`.github/workflows/deploy.yml` は、`main` 向けPRがマージされたときだけ `make deploy` を実行します。GitHub Actions用のサービスアカウント鍵は作成せず、GitHub OIDCとWorkload Identity Federation（WIF）で短時間の認証情報を発行します。
+
+初回だけ、デプロイ用サービスアカウントとWIFプロバイダを設定します。`YOUR_PROJECT_ID` と `YOUR_GITHUB_OWNER` はそれぞれ置き換えてください。
+
+```bash
+export GOOGLE_CLOUD_PROJECT=YOUR_PROJECT_ID
+export GITHUB_OWNER=YOUR_GITHUB_OWNER
+export GITHUB_REPOSITORY=breadberry
+export DEPLOY_SA=breadberry-github-deploy
+
+gcloud iam service-accounts create "$DEPLOY_SA" --project "$GOOGLE_CLOUD_PROJECT"
+gcloud projects add-iam-policy-binding "$GOOGLE_CLOUD_PROJECT" \
+  --member="serviceAccount:${DEPLOY_SA}@${GOOGLE_CLOUD_PROJECT}.iam.gserviceaccount.com" \
+  --role=roles/cloudbuild.builds.editor
+gcloud projects add-iam-policy-binding "$GOOGLE_CLOUD_PROJECT" \
+  --member="serviceAccount:${DEPLOY_SA}@${GOOGLE_CLOUD_PROJECT}.iam.gserviceaccount.com" \
+  --role=roles/run.admin
+gcloud iam service-accounts add-iam-policy-binding \
+  "breadberry-runtime@${GOOGLE_CLOUD_PROJECT}.iam.gserviceaccount.com" \
+  --member="serviceAccount:${DEPLOY_SA}@${GOOGLE_CLOUD_PROJECT}.iam.gserviceaccount.com" \
+  --role=roles/iam.serviceAccountUser
+
+gcloud iam workload-identity-pools create github --location=global \
+  --display-name="GitHub Actions" --project "$GOOGLE_CLOUD_PROJECT"
+gcloud iam workload-identity-pools providers create-oidc github \
+  --location=global --workload-identity-pool=github \
+  --display-name="GitHub Actions" \
+  --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository" \
+  --attribute-condition="assertion.repository=='${GITHUB_OWNER}/${GITHUB_REPOSITORY}'" \
+  --issuer-uri="https://token.actions.githubusercontent.com" \
+  --project "$GOOGLE_CLOUD_PROJECT"
+
+export PROJECT_NUMBER="$(gcloud projects describe "$GOOGLE_CLOUD_PROJECT" --format='value(projectNumber)')"
+gcloud iam service-accounts add-iam-policy-binding \
+  "${DEPLOY_SA}@${GOOGLE_CLOUD_PROJECT}.iam.gserviceaccount.com" \
+  --role=roles/iam.workloadIdentityUser \
+  --member="principalSet://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/github/attribute.repository/${GITHUB_OWNER}/${GITHUB_REPOSITORY}"
+```
+
+GitHubリポジトリの **Settings > Secrets and variables > Actions > Variables** に次を設定します。Cloud Run実行用の秘密値は従来どおりSecret Managerを参照するため、GitHubには登録しません。
+
+| 変数                                        | 値                                                                                       |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `GOOGLE_CLOUD_PROJECT`                      | Google CloudプロジェクトID                                                               |
+| `GCP_WORKLOAD_IDENTITY_PROVIDER`            | `projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/github/providers/github` |
+| `GCP_DEPLOY_SERVICE_ACCOUNT`                | `breadberry-github-deploy@YOUR_PROJECT_ID.iam.gserviceaccount.com`                       |
+| `CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT`         | `breadberry-runtime@YOUR_PROJECT_ID.iam.gserviceaccount.com`                             |
+| `GCP_REGION`                                | 任意。未指定時は `asia-northeast1`                                                       |
+| `CLOUD_RUN_SERVICE`                         | 任意。未指定時は `breadberry`                                                            |
+| `ARTIFACT_REPOSITORY`                       | 任意。未指定時は `breadberry`                                                            |
+| `GEMINI_MODEL` / `GMI_MODEL` / `APP_ORIGIN` | 任意。ローカルの同名環境変数と同じ用途                                                   |
+
+`production` Environmentを作成して承認者を設定すると、マージ後のデプロイ前にGitHub上で承認を必須にできます。Cloud Build実行用サービスアカウントには、従来どおりArtifact Registryへの書き込み権限が必要です。
+
 非公開のまま自分で確認するには、まずlocalhostを許可してプロキシを起動します：
 
 ```bash
@@ -214,10 +270,10 @@ firebase deploy --only firestore --project "$GOOGLE_CLOUD_PROJECT"
 
 ## 対応範囲と設計
 
-| 対象               | 対応内容                                                           |
-| ------------------ | ------------------------------------------------------------------ |
+| 対象               | 対応内容                                                              |
+| ------------------ | --------------------------------------------------------------------- |
 | ESP32              | ESP32-WROOMの30ピンDevKit V1を想定。S3/C3や38ピン基板とは異なる    |
-| Raspberry Pi Pico  | RP2040のPico。MicroPython                                          |
+| Raspberry Pi Pico  | RP2040のPico。MicroPython                                            |
 | Raspberry Pi 4 / 5 | 40ピンGPIOヘッダー。BCM番号と物理番号を区別。Linux上のPython       |
 | 部品               | LED、抵抗、DHT22、押しボタン、BH1750、CdS、および下表の追加9種類（計15種類） |
 | アナログ部品       | CdS・NTC・可変抵抗はESP32 ADC1 / Pico ADCを使用。Pi 4/5はADC非搭載のため対象外 |

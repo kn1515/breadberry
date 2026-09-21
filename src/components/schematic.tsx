@@ -1,5 +1,6 @@
 "use client";
 import { boards, catalog, type Circuit } from "@/lib/circuit";
+import { ledColors, resolveLedColor } from "@/lib/led";
 export default function Schematic({ circuit }: { circuit: Circuit }) {
   const usedPins = Object.keys(boards[circuit.board].pins).filter((pin) =>
     circuit.wires.some((w) => [w.from, w.to].includes(`board.${pin}`)),
@@ -105,7 +106,13 @@ export default function Schematic({ circuit }: { circuit: Circuit }) {
                   cx={ports[`${p.id}.${pin}`][0]}
                   cy={ports[`${p.id}.${pin}`][1]}
                   r="4"
-                  fill={pin === "NC" ? "#64748b" : catalog[p.kind].color}
+                  fill={
+                    pin === "NC"
+                      ? "#64748b"
+                      : p.kind === "led"
+                        ? ledColors[resolveLedColor(p)].color
+                        : catalog[p.kind].color
+                  }
                 />
                 <text
                   x={ports[`${p.id}.${pin}`][0] + (j % 2 ? -12 : 12)}

@@ -1,6 +1,13 @@
 "use client";
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
+import { ledColors } from "@/lib/led";
 import {
   ArrowDown,
   ArrowDownToLine,
@@ -678,7 +685,18 @@ export default function Studio() {
                       ) : p.kind === "breadboard" ? (
                         <span className="mini-breadboard" />
                       ) : p.kind === "led" ? (
-                        <span className="mini-led" />
+                        <span
+                          className="mini-led"
+                          style={
+                            {
+                              "--led-color":
+                                ledColors[p.ledColor ?? "green"].color,
+                              "--led-base":
+                                ledColors[p.ledColor ?? "green"].base,
+                            } as CSSProperties
+                          }
+                          aria-label={`${ledColors[p.ledColor ?? "green"].label} LED`}
+                        />
                       ) : p.kind === "resistor" ? (
                         <span className="mini-resistor" />
                       ) : p.kind === "wire" ? (

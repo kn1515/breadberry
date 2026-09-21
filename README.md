@@ -197,6 +197,15 @@ gcloud projects add-iam-policy-binding "$GOOGLE_CLOUD_PROJECT" \
 gcloud projects add-iam-policy-binding "$GOOGLE_CLOUD_PROJECT" \
   --member="serviceAccount:${DEPLOY_SA}@${GOOGLE_CLOUD_PROJECT}.iam.gserviceaccount.com" \
   --role=roles/run.admin
+gcloud projects add-iam-policy-binding "$GOOGLE_CLOUD_PROJECT" \
+  --member="serviceAccount:${DEPLOY_SA}@${GOOGLE_CLOUD_PROJECT}.iam.gserviceaccount.com" \
+  --role=roles/serviceusage.serviceUsageConsumer
+gcloud storage buckets add-iam-policy-binding "gs://${GOOGLE_CLOUD_PROJECT}_cloudbuild" \
+  --member="serviceAccount:${DEPLOY_SA}@${GOOGLE_CLOUD_PROJECT}.iam.gserviceaccount.com" \
+  --role=roles/storage.legacyBucketWriter
+gcloud storage buckets add-iam-policy-binding "gs://${GOOGLE_CLOUD_PROJECT}_cloudbuild" \
+  --member="serviceAccount:${DEPLOY_SA}@${GOOGLE_CLOUD_PROJECT}.iam.gserviceaccount.com" \
+  --role=roles/storage.objectAdmin
 gcloud iam service-accounts add-iam-policy-binding \
   "breadberry-runtime@${GOOGLE_CLOUD_PROJECT}.iam.gserviceaccount.com" \
   --member="serviceAccount:${DEPLOY_SA}@${GOOGLE_CLOUD_PROJECT}.iam.gserviceaccount.com" \

@@ -214,6 +214,13 @@ gcloud iam service-accounts add-iam-policy-binding \
   --member="serviceAccount:${DEPLOY_SA}@${GOOGLE_CLOUD_PROJECT}.iam.gserviceaccount.com" \
   --role=roles/iam.serviceAccountUser
 
+# Cloud Build の実行アカウントを使用する権限（Cloud Run 実行用とは別）
+BUILD_SA="$(gcloud builds get-default-service-account --project "$GOOGLE_CLOUD_PROJECT")"
+gcloud iam service-accounts add-iam-policy-binding "$BUILD_SA" \
+  --project "$GOOGLE_CLOUD_PROJECT" \
+  --member="serviceAccount:${DEPLOY_SA}@${GOOGLE_CLOUD_PROJECT}.iam.gserviceaccount.com" \
+  --role=roles/iam.serviceAccountUser --condition=None
+
 gcloud iam workload-identity-pools create github --location=global \
   --display-name="GitHub Actions" --project "$GOOGLE_CLOUD_PROJECT"
 gcloud iam workload-identity-pools providers create-oidc github \
@@ -232,6 +239,10 @@ gcloud iam service-accounts add-iam-policy-binding \
 ```
 
 `gcloud builds submit` は、既定のソース保存バケットが対象プロジェクトに属することをバケット一覧で確認します。そのため、バケット単位の書き込み権限に加えて、プロジェクト単位で `storage.buckets.list` を含む `roles/storage.bucketViewer` が必要です。`The user is forbidden from accessing the bucket` が出る場合は、`serviceusage.serviceUsageConsumer` だけでなく、このロールもデプロイ用サービスアカウントに付いているか確認してください。ロールの権限は [Cloud Storage の公式ドキュメント](https://docs.cloud.google.com/storage/docs/access-control/iam-roles) を参照してください。
+
+`caller does not have permission to act as service account` が出る場合は、デプロイ用アカウントに **Cloud Build 実行アカウントに対する** `roles/iam.serviceAccountUser` が不足しています。`roles/cloudbuild.builds.editor` や Cloud Run 実行用アカウントへの権限付与だけでは足りません。上記の `BUILD_SA` の取得と権限付与を、対象サービスアカウントの IAM ポリシーを変更できる管理者として実行し、GitHub Actions の失敗したジョブを再実行してください。プロジェクト全体への Service Account User 付与は不要です。
+
+`scripts/deploy.sh` は Cloud Build の既定アカウントを使用します。既定値はプロジェクト設定によって異なるため、メールアドレスを推測せず `gcloud builds get-default-service-account` で確認します。旧 Cloud Build アカウント（`PROJECT_NUMBER@cloudbuild.gserviceaccount.com`）の場合は、このアカウントへの IAM バインディングを追加できず、上記の Cloud Build 用権限付与は不要です。詳細は [Cloud Build の既定サービスアカウント変更](https://docs.cloud.google.com/build/docs/cloud-build-service-account-updates) を参照してください。
 
 GitHubリポジトリの **Settings > Secrets and variables > Actions > Variables** に次を設定します。Cloud Run実行用の秘密値は従来どおりSecret Managerを参照するため、GitHubには登録しません。
 

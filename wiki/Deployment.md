@@ -118,6 +118,13 @@ gcloud iam service-accounts add-iam-policy-binding \
   --member="serviceAccount:${DEPLOY_SA}@${GOOGLE_CLOUD_PROJECT}.iam.gserviceaccount.com" \
   --role=roles/iam.serviceAccountUser
 
+# Cloud Build の実行アカウントを使用する権限（Cloud Run 実行用とは別）
+BUILD_SA="$(gcloud builds get-default-service-account --project "$GOOGLE_CLOUD_PROJECT")"
+gcloud iam service-accounts add-iam-policy-binding "$BUILD_SA" \
+  --project "$GOOGLE_CLOUD_PROJECT" \
+  --member="serviceAccount:${DEPLOY_SA}@${GOOGLE_CLOUD_PROJECT}.iam.gserviceaccount.com" \
+  --role=roles/iam.serviceAccountUser --condition=None
+
 gcloud iam workload-identity-pools create github --location=global \
   --display-name="GitHub Actions" --project "$GOOGLE_CLOUD_PROJECT"
 gcloud iam workload-identity-pools providers create-oidc github \
@@ -134,6 +141,10 @@ gcloud iam service-accounts add-iam-policy-binding \
   --role=roles/iam.workloadIdentityUser \
   --member="principalSet://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/github/attribute.repository/${GITHUB_OWNER}/${GITHUB_REPOSITORY}"
 ```
+
+`caller does not have permission to act as service account` が出る場合は、デプロイ用アカウントに **Cloud Build 実行アカウントに対する** `roles/iam.serviceAccountUser` が不足しています。`roles/cloudbuild.builds.editor` や Cloud Run 実行用アカウントへの権限付与だけでは足りません。上記の `BUILD_SA` の取得と権限付与を、対象サービスアカウントの IAM ポリシーを変更できる管理者として実行し、GitHub Actions の失敗したジョブを再実行してください。プロジェクト全体への Service Account User 付与は不要です。
+
+`scripts/deploy.sh` は Cloud Build の既定アカウントを使用します。既定値はプロジェクト設定によって異なるため、メールアドレスを推測せず `gcloud builds get-default-service-account` で確認します。旧 Cloud Build アカウント（`PROJECT_NUMBER@cloudbuild.gserviceaccount.com`）の場合は、このアカウントへの IAM バインディングを追加できず、上記の Cloud Build 用権限付与は不要です。詳細は [Cloud Build の既定サービスアカウント変更](https://docs.cloud.google.com/build/docs/cloud-build-service-account-updates) を参照してください。
 
 GitHub リポジトリの **Settings > Secrets and variables > Actions > Variables** に次を設定します。Cloud Run 実行用の秘密値は従来どおり Secret Manager を参照するため、GitHub には登録しません。
 

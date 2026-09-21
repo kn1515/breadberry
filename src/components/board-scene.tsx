@@ -17,6 +17,7 @@ import {
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { movePart, nearestLayoutHole, partBounds } from "@/lib/layout";
+import { ledColors, resolveLedColor } from "@/lib/led";
 import {
   boards,
   resistorBands,
@@ -252,6 +253,7 @@ function Part({
         : 0;
   });
   const def = catalog[part.kind];
+  const led = ledColors[resolveLedColor(part)];
   const pins = def.pins.map((p) =>
     layoutHolePosition(holes[`${part.id}.${p}`]),
   );
@@ -289,8 +291,8 @@ function Part({
           <mesh position={[x, 0.74, z]} castShadow>
             <capsuleGeometry args={[0.16, 0.15, 6, 16]} />
             <meshStandardMaterial
-              color="#34d399"
-              emissive="#10b981"
+              color={led.color}
+              emissive={led.emissive}
               emissiveIntensity={0.4}
               transparent
               opacity={0.87}
@@ -299,7 +301,7 @@ function Part({
           </mesh>
           <mesh position={[x, 0.55, z]}>
             <cylinderGeometry args={[0.2, 0.2, 0.055, 16]} />
-            <meshStandardMaterial color="#1d9d77" />
+            <meshStandardMaterial color={led.base} />
           </mesh>
         </>
       ) : isI2c(part.kind) ? (

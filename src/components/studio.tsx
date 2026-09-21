@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDown,
   ArrowDownToLine,
-  ArrowRight,
   ArrowUpRight,
   Box,
   Check,
@@ -37,8 +36,6 @@ import {
   billOfMaterials,
   boards,
   catalog,
-  partKinds,
-  isAnalog,
   compileCircuit,
   validateCircuit,
   type Board,
@@ -46,6 +43,8 @@ import {
 } from "@/lib/circuit";
 import { demoProject, type Example } from "@/lib/demo";
 import Schematic from "./schematic";
+import CircuitChat from "./circuit-chat";
+import { MAX_MESSAGES } from "@/lib/conversation";
 const BoardScene = dynamic(() => import("./board-scene"), {
   ssr: false,
   loading: () => (
@@ -89,6 +88,8 @@ export default function Studio() {
   const [selectedBoard, setSelectedBoard] = useState<Board>("esp32");
   const [prompt, setPrompt] = useState("");
   const [busy, setBusy] = useState(false);
+  const generating = useRef(false);
+  const [newDesign, setNewDesign] = useState(false);
   const [phase, setPhase] = useState(0);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -175,6 +176,9 @@ export default function Studio() {
   function applyProject(p: Project) {
     validateCircuit(p.circuit);
     setProject(p);
+    setNewDesign(false);
+    setPrompt("");
+    setError("");
     setSelectedBoard(p.circuit.board);
     setStep(compileCircuit(p.circuit).steps.length);
     setPlaying(false);
@@ -182,6 +186,7 @@ export default function Studio() {
     setReset((s) => s + 1);
   }
   function sample(example: Example) {
+    if (generating.current) return;
     applyProject(demoProject(selectedBoard, example));
     setExamples(false);
     setError("");
@@ -210,6 +215,11 @@ export default function Studio() {
     }
   }
   async function generate() {
+    const requestPrompt = prompt.trim();
+    if (generating.current || !requestPrompt || requestPrompt.length > 2000)
+      return;
+    if (!newDesign && (project.messages?.length ?? 0) >= MAX_MESSAGES) return;
+    generating.current = true;
     setBusy(true);
     setError("");
     setNotice("");
@@ -222,19 +232,39 @@ export default function Studio() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, board: selectedBoard }),
+        body: JSON.stringify({
+          prompt: requestPrompt,
+          board: selectedBoard,
+          ...(newDesign
+            ? {}
+            : {
+                context: {
+                  circuit: project.circuit,
+                  messages: project.messages ?? [],
+                },
+              }),
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       applyProject(data);
       if (data.storage === "browser") {
-        saveLocal(data);
-        setNotice(data.warning);
+        try {
+          saveLocal(data);
+          setNotice(
+            data.warning || "回路と会話履歴をこのブラウザに保存しました。",
+          );
+        } catch {
+          setNotice(
+            "回路の生成は完了しましたが、ブラウザに保存できません。JSONをダウンロードしてください。",
+          );
+        }
       } else setNotice("回路を生成し、Firestoreに保存しました。");
       workspace.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "生成に失敗しました。");
     } finally {
+      generating.current = false;
       setBusy(false);
     }
   }
@@ -260,6 +290,7 @@ export default function Studio() {
     }
   }
   async function openHistory() {
+    if (generating.current) return;
     setHistory(true);
     setHistoryError("");
     setSaved(
@@ -284,6 +315,7 @@ export default function Studio() {
     }
   }
   async function openProject(item: Saved) {
+    if (generating.current) return;
     try {
       const p = item.local
         ? readLocal().find((p) => p.id === item.id)
@@ -293,6 +325,7 @@ export default function Studio() {
             return d;
           });
       if (!p) throw new Error("保存データがありません。");
+      if (generating.current) return;
       applyProject(p);
       setHistory(false);
       setNotice("保存したプロジェクトを開きました。");
@@ -349,7 +382,9 @@ export default function Studio() {
           <a href="#workspace" className="nav-active">
             ワークスペース
           </a>
-          <button onClick={() => void openHistory()}>プロジェクト</button>
+          <button disabled={busy} onClick={() => void openHistory()}>
+            プロジェクト
+          </button>
           <a href="#how-it-works">
             使い方 <ArrowUpRight size={13} />
           </a>
@@ -357,6 +392,7 @@ export default function Studio() {
         <div className="header-actions">
           <button
             className="mobile-projects icon-button"
+            disabled={busy}
             aria-label="プロジェクト"
             onClick={() => void openHistory()}
           >
@@ -377,115 +413,6 @@ export default function Studio() {
           </button>
         </div>
       </header>
-      <section className="intro reveal">
-        <form
-          className="prompt-card"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void generate();
-          }}
-        >
-          <div className="prompt-heading">
-            <span>
-              <Sparkles size={17} /> どんなものを、つくりますか？
-            </span>
-            <span className="ai-label">AI DESIGNER</span>
-          </div>
-          <label htmlFor="prompt" className="sr-only">
-            作りたいもの
-          </label>
-          <textarea
-            id="prompt"
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="例：お部屋の温度と湿度を測って、暑くなったらLEDで知らせたい"
-            minLength={8}
-            maxLength={2000}
-            required
-            disabled={busy}
-          />
-          <div className="prompt-bottom">
-            <div className="select-wrap">
-              <Cpu size={14} />
-              <select
-                aria-label="使用する基板"
-                value={selectedBoard}
-                onChange={(e) => setSelectedBoard(e.target.value as Board)}
-                disabled={busy}
-              >
-                {Object.entries(boards).map(([key, b]) => (
-                  <option key={key} value={key}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown size={12} />
-            </div>
-            <button
-              className="primary-button"
-              disabled={busy || prompt.trim().length < 8}
-            >
-              {busy ? (
-                <LoaderCircle className="spin" size={15} />
-              ) : (
-                <Sparkles size={15} />
-              )}{" "}
-              {busy ? "設計しています" : "回路を生成"}
-              <ArrowRight size={16} />
-            </button>
-          </div>
-          <div className="prompt-caption">
-            <span className="status-dot online" />
-            {busy
-              ? [
-                  "Geminiが回路を設計しています…",
-                  "接続データを生成しています…",
-                  "接続検査と補助レビューを進めています…",
-                ][phase]
-              : "アイデアから、部品選び・配線・コードまで。"}
-          </div>
-          <details className="parts-catalog">
-            <summary>対応するセンサー・部品（{partKinds.length}種類）</summary>
-            <p>
-              部品を選ぶと入力欄にセットします。3.3V回路・最大6部品。モジュールは端子名と実物の仕様を確認してください。
-            </p>
-            <div className="catalog-grid">
-              {partKinds.map((kind) => {
-                const unavailable =
-                  selectedBoard === "raspberry-pi" && isAnalog(kind);
-                return (
-                  <button
-                    type="button"
-                    key={kind}
-                    disabled={busy || unavailable}
-                    title={
-                      unavailable
-                        ? "Raspberry Pi 4/5はADC非搭載です"
-                        : catalog[kind].note
-                    }
-                    onClick={() =>
-                      setPrompt(
-                        `${catalog[kind].name}を使う回路と動作確認用のコードを作成してください。`,
-                      )
-                    }
-                  >
-                    {catalog[kind].name}
-                    {unavailable ? "（ADCが必要）" : ""}
-                  </button>
-                );
-              })}
-            </div>
-          </details>
-        </form>
-      </section>
-      {error && !settings && (
-        <div className="alert error" role="alert">
-          {error}
-          <button aria-label="閉じる" onClick={() => setError("")}>
-            <X size={16} />
-          </button>
-        </div>
-      )}
       {notice && (
         <div className="alert notice" role="status">
           {notice}
@@ -515,6 +442,7 @@ export default function Studio() {
             <div className="examples-wrap">
               <button
                 className="text-button"
+                disabled={busy}
                 onClick={() => setExamples((s) => !s)}
               >
                 <Plus size={15} />
@@ -909,6 +837,19 @@ export default function Studio() {
               </p>
             </div>
           </aside>
+          <CircuitChat
+            messages={project.messages ?? []}
+            prompt={prompt}
+            setPrompt={setPrompt}
+            selectedBoard={selectedBoard}
+            setSelectedBoard={setSelectedBoard}
+            busy={busy}
+            phase={phase}
+            error={settings ? "" : error}
+            newDesign={newDesign}
+            setNewDesign={setNewDesign}
+            onSubmit={() => void generate()}
+          />
         </div>
         <div className="workspace-status">
           <span>

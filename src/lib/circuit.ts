@@ -1,3 +1,4 @@
+import type { ChatMessage } from "./conversation";
 import { z } from "zod";
 
 export const boardSchema = z.enum(["esp32", "pico", "raspberry-pi"]);
@@ -250,6 +251,7 @@ export type Project = {
   circuit: Circuit;
   createdAt: string;
   source: "demo" | "gemini";
+  messages?: ChatMessage[];
   review: { status: "reviewed" | "unavailable" | "demo"; text: string };
   storage: "firestore" | "browser";
 };

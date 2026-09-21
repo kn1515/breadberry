@@ -19,6 +19,19 @@ Next.js / TypeScript / Tailwind CSS / Three.js（React Three Fiber）/ Gemini AP
 
 3Dの形状をAIに自由に出力させるのではなく、**Geminiの回路ネットリストからあらかじめ定義した部品形状を決定的に配置**します。部品表・穴番号・3D・接続図・工程は同じデータを参照します。
 
+## チャットで回路を修正する
+
+画面右側の「回路設計チャット」に変更内容を入力して「回路を修正」を押します。表示中の回路と、それまでの会話をGeminiに渡し、部品表・3D・回路図・コード・組み立て工程を更新します。サンプルや以前の保存データからも修正を始められます。
+
+- 「抵抗を470Ωにして」→「LEDの点滅を1秒間隔にして」のように繰り返し送信できます。Ctrl / ⌘ + Enterでも送信できます。
+- 「新しい回路」を選ぶと、次の送信で表示中の回路・会話を引き継がずに生成します。
+- 成功した修正ごとに、会話履歴を含むプロジェクトを新しいIDで保存します。「プロジェクト」から開くと、その時点の回路と履歴を復元します。古いプロジェクトの履歴は空として扱います。
+- 生成失敗時は回路・履歴・入力を保持し、再試行できます。生成中の二重送信や回路の切り替えを防止します。
+- Firestore保存失敗時はブラウザ保存へ切り替えます。ブラウザ保存は従来どおり最新20件までです。JSONエクスポートにも会話履歴を含みます。
+- 1回の入力は1〜2000文字、1つの会話は最大50往復です。既存の日次生成上限は修正にも適用されます。スマートフォンではチャットを回路の下に表示します。
+
+`POST /api/generate` は従来の `{ prompt, board }` に加え、任意の `context: { circuit, messages }` を受け取ります。`messages` は `{ role: "user" | "assistant", content: string }` の配列です。入力サイズ・会話・修正元の回路を検査し、生成結果も従来の接続検査を通してから保存します。応答の `messages` に今回の依頼と生成された回路の説明を追加します。
+
 ## セットアップ
 
 Node.js 24 と npm が必要です。
@@ -292,3 +305,4 @@ GitHub Actionsでも実行します。APIキー・Google Cloudプロジェクト
 - [DS18B20データシート（Analog Devices）](https://www.analog.com/media/en/technical-documentation/data-sheets/ds18b20.pdf)：電源、端子、1-Wireプルアップ。
 - [BME280の配線](https://learn.adafruit.com/adafruit-bme280-humidity-barometric-pressure-temperature-sensor-breakout/pinouts)、[BMP280の配線](https://learn.adafruit.com/adafruit-bmp280-barometric-pressure-plus-temperature-sensor-breakout/pinouts)、[SHT31の配線](https://learn.adafruit.com/adafruit-sht31-d-temperature-and-humidity-sensor-breakout/pinouts)：電源・I2C信号の参考。Adafruit基板の外形・端子配列を3Dモデルで再現するものではありません。
 - [MicroPythonの1-Wire](https://docs.micropython.org/en/latest/esp8266/tutorial/onewire.html)、[SSD1306ドライバ](https://docs.micropython.org/en/latest/esp8266/tutorial/ssd1306.html)：サンプルコードのAPI・ドライバ。
+

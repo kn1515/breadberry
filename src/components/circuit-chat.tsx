@@ -74,11 +74,6 @@ export default function CircuitChat({
           新しい回路
         </button>
       </div>
-      <p className="chat-context">
-        {newDesign
-          ? "次の送信で新しい回路と会話を開始します。"
-          : "表示中の回路と会話を引き継いで修正します。"}
-      </p>
       <div
         className="chat-messages"
         ref={transcript}

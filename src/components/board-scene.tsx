@@ -17,6 +17,7 @@ import {
   isI2c,
   compileCircuit,
   holePosition,
+  layoutHolePosition,
   boardPinPosition,
   type Circuit,
   type Point,
@@ -243,7 +244,9 @@ function Part({
         : 0;
   });
   const def = catalog[part.kind];
-  const pins = def.pins.map((p) => holePosition(holes[`${part.id}.${p}`]));
+  const pins = def.pins.map((p) =>
+    layoutHolePosition(holes[`${part.id}.${p}`]),
+  );
   const x = (pins[0][0] + pins[pins.length - 1][0]) / 2,
     z = pins[0][2];
   return (

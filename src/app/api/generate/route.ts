@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
-import { validateCircuit, type Project } from "@/lib/circuit";
+import { validateDraft, type Project } from "@/lib/circuit";
 import { appendExchange, generateRequestSchema } from "@/lib/conversation";
 import { generateCircuit, reviewCircuit, ServiceError } from "@/lib/ai";
 import {
@@ -27,9 +27,7 @@ export async function POST(req: NextRequest) {
       );
     if (input.data.context) {
       try {
-        input.data.context.circuit = validateCircuit(
-          input.data.context.circuit,
-        );
+        input.data.context.circuit = validateDraft(input.data.context.circuit);
       } catch {
         throw new ServiceError(
           "修正元の回路データが不正です。プロジェクトを開き直してください。",

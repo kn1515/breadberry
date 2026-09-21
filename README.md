@@ -362,3 +362,17 @@ GitHub Actionsでも実行します。APIキー・Google Cloudプロジェクト
 - [BME280の配線](https://learn.adafruit.com/adafruit-bme280-humidity-barometric-pressure-temperature-sensor-breakout/pinouts)、[BMP280の配線](https://learn.adafruit.com/adafruit-bmp280-barometric-pressure-plus-temperature-sensor-breakout/pinouts)、[SHT31の配線](https://learn.adafruit.com/adafruit-sht31-d-temperature-and-humidity-sensor-breakout/pinouts)：電源・I2C信号の参考。Adafruit基板の外形・端子配列を3Dモデルで再現するものではありません。
 - [MicroPythonの1-Wire](https://docs.micropython.org/en/latest/esp8266/tutorial/onewire.html)、[SSD1306ドライバ](https://docs.micropython.org/en/latest/esp8266/tutorial/ssd1306.html)：サンプルコードのAPI・ドライバ。
 
+
+## Viewer / Editor とレイアウトチェック
+
+ワークスペース上部の **Viewer · 閲覧** / **Editor · 編集** で切り替えます。
+
+- Viewer: 3D表示、回路図、コード、組み立てアニメーションを確認できます。
+- Editor: カタログの全15種類から部品を追加し、平面ボード上でドラッグ、穴クリック、または「配置する穴」の選択で移動できます。配置は穴にスナップし、先頭ピンを基準にします。「向きを反転」でピンの並びを反転できます。電源レールとマイコン本体は配置対象外です。
+- 値・仕様の変更、部品の削除、配線の追加・削除、元に戻す／やり直すに対応します。部品削除時には接続された配線も削除します。
+- 「レイアウトチェック」で同じ穴の使用、モデル本体の重なり、範囲外、異なるネットの導通列共有、ジャンパ用の空き穴不足を表示します。チェック後は編集に合わせて結果が更新されます。a–eとf–jの同じ番号の穴は、それぞれ内部で導通するものとして扱います。
+- 配置は3D、配線の挿し穴、組み立て手順、JSONにも反映されます。手動配置データがない従来の回路は以前の配置を維持します。
+- 手動編集では最大30部品・60配線の途中状態を保存できます。既存の自動回路検査・AI生成は最大6部品・24配線です。上限を超える場合も物理配置チェックは動作し、回路検査は上限超過を表示します。
+- 「保存」は接続済みならFirestoreへ、未接続またはクラウド保存失敗時はブラウザへ保存します。配置・未接続部品・会話履歴を含めてプロジェクト一覧から再開できます。最初の手動編集では元のプロジェクトとは別のIDになります。
+
+レイアウトチェックは表示モデルと導通列に基づく簡易検査です。実部品の寸法、公差、定格や回路の動作を保証しません。手動編集ではファームウェアを自動更新せず、以前の補助レビューは無効化します。AIへの修正依頼には編集途中の回路も渡せますが、生成結果には従来の電気的検査を適用します。

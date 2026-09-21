@@ -1,5 +1,6 @@
 import type { ChatMessage } from "./conversation";
 import { z } from "zod";
+import { ledColorNames } from "./led";
 
 export const boardSchema = z.enum(["esp32", "pico", "raspberry-pi"]);
 export type Board = z.infer<typeof boardSchema>;
@@ -218,6 +219,7 @@ export const circuitSchema = z.object({
         id: z.string().regex(/^[A-Z][A-Z0-9]{0,7}$/),
         kind: z.enum(partKinds),
         value: z.string().max(60),
+        ledColor: z.enum(ledColorNames).optional(),
         purpose: z.string().max(200),
         placement: z
           .object({

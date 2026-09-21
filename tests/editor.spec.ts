@@ -1,4 +1,6 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+import * as THREE from "three";
+import { holePosition } from "../src/lib/circuit";
 
 test("editor places catalog parts, checks layout, undoes changes and reopens a saved draft", async ({
   page,
@@ -66,29 +68,105 @@ test("editor places catalog parts, checks layout, undoes changes and reopens a s
   ).toBe(true);
 });
 
-test("pointer drag and hole click update placements, with no mutation in viewer", async ({
+// Project known scene coordinates into real canvas pixels; dispatch actual pointer events.
+async function sceneGeometry(page: Page, top: boolean) {
+  const canvas = page.locator(".editor-scene canvas");
+  await expect(canvas).toBeVisible();
+  await expect(page.locator('[data-part-label="D1"]')).toBeVisible();
+  await canvas.scrollIntoViewIfNeeded();
+  const box = (await canvas.boundingBox())!;
+  const camera = new THREE.PerspectiveCamera(
+    39,
+    box.width / box.height,
+    0.1,
+    1000,
+  );
+  camera.position.set(
+    ...((top ? [0, 15, -0.2] : [7.8, 10.2, 9.8]) as [number, number, number]),
+  );
+  camera.lookAt(0, 0.3, -0.6);
+  camera.updateMatrixWorld();
+  const screen = (point: THREE.Vector3) => {
+    const p = point.clone().project(camera);
+    return {
+      x: box.x + ((p.x + 1) * box.width) / 2,
+      y: box.y + ((1 - p.y) * box.height) / 2,
+    };
+  };
+  const worldHole = (hole: string) => {
+    const p = holePosition(hole);
+    return new THREE.Vector3(p[0], p[1], p[2] + 1);
+  };
+  const start = worldHole("b1").add(new THREE.Vector3(0.12, 0.56, 0));
+  const raycaster = new THREE.Raycaster();
+  const ndc = start.clone().project(camera);
+  raycaster.setFromCamera(new THREE.Vector2(ndc.x, ndc.y), camera);
+  const grab = raycaster.ray.intersectPlane(
+    new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.18),
+    new THREE.Vector3(),
+  )!;
+  const offset = grab.sub(worldHole("b1"));
+  return {
+    canvas,
+    start: screen(start),
+    drop: (hole: string) => screen(worldHole(hole).add(offset)),
+    hole: (hole: string) => screen(worldHole(hole)),
+  };
+}
+
+for (const top of [false, true])
+  test(`3D model drag in ${top ? "top" : "perspective"} view previews, commits and undoes placement`, async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(
+      isMobile,
+      "Mouse drag is tested on desktop; touch uses the same pointer handler.",
+    );
+    await page.goto("/");
+    await page.getByRole("button", { name: "Editor · 編集" }).click();
+    if (top)
+      await page
+        .getByRole("button", { name: "真上から編集", exact: true })
+        .click();
+    const geometry = await sceneGeometry(page, top);
+    // Select a different part first to prove the mesh itself selects D1.
+    await page.getByLabel("編集する部品").selectOption("R1");
+    await geometry.canvas.scrollIntoViewIfNeeded();
+    const refreshed = await sceneGeometry(page, top);
+    const target = refreshed.drop("g18");
+    await page.mouse.move(refreshed.start.x, refreshed.start.y);
+    await page.mouse.down();
+    await expect(page.getByLabel("編集する部品")).toHaveValue("D1");
+    await page.mouse.move(target.x, target.y, { steps: 10 });
+    await expect(page.locator(".editor-scene")).toContainText("D1 → G18");
+    await expect(page.getByLabel("配置する穴")).toHaveValue("b1");
+    await page.mouse.up();
+    await expect(page.getByLabel("配置する穴")).toHaveValue("g18");
+    await page.getByRole("button", { name: "元に戻す", exact: true }).click();
+    await expect(page.getByLabel("配置する穴")).toHaveValue("b1");
+    await page.getByRole("button", { name: "やり直す", exact: true }).click();
+    await expect(page.getByLabel("配置する穴")).toHaveValue("g18");
+  });
+
+test("Escape cancels a 3D drag and clicking a 3D hole moves the selected part", async ({
   page,
   isMobile,
 }) => {
-  test.skip(
-    isMobile,
-    "Touch placement is covered by the accessible hole selector in the mobile test.",
-  );
+  test.skip(isMobile, "Mouse drag is tested on desktop.");
   await page.goto("/");
   await page.getByRole("button", { name: "Editor · 編集" }).click();
-  const firstPart = page.locator(".editor-part").first();
-  const rect = await firstPart.locator("rect").boundingBox();
-  const target = await page.locator('[data-hole="g18"]').boundingBox();
-  await page.mouse.move(rect!.x + rect!.width / 2, rect!.y + rect!.height / 2);
+  await page.getByRole("button", { name: "真上から編集", exact: true }).click();
+  const g = await sceneGeometry(page, true);
+  const target = g.drop("g18");
+  await page.mouse.move(g.start.x, g.start.y);
   await page.mouse.down();
-  await page.mouse.move(
-    target!.x + target!.width / 2,
-    target!.y + target!.height / 2,
-    { steps: 8 },
-  );
+  await page.mouse.move(target.x, target.y, { steps: 10 });
+  await page.keyboard.press("Escape");
   await page.mouse.up();
-  await expect(page.getByLabel("配置する穴")).toHaveValue("g18");
-  await page.locator('[data-hole="h22"]').click();
+  await expect(page.getByLabel("配置する穴")).toHaveValue("b1");
+  const hole = g.hole("h22");
+  await page.mouse.click(hole.x, hole.y);
   await expect(page.getByLabel("配置する穴")).toHaveValue("h22");
 });
 
@@ -158,4 +236,39 @@ test("draft save rejects unauthenticated and cross-origin writes", async ({
       })
     ).status(),
   ).toBe(403);
+});
+
+test("touch dragging edits the 3D model on mobile", async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(!isMobile, "Touch input test uses the mobile viewport.");
+  await page.goto("/");
+  await page.getByRole("button", { name: "Editor · 編集" }).click();
+  await page.getByRole("button", { name: "真上から編集", exact: true }).click();
+  const g = await sceneGeometry(page, true);
+  const target = g.drop("g18");
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: [{ ...g.start, id: 1 }],
+  });
+  for (let i = 1; i <= 10; i++)
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [
+        {
+          x: g.start.x + ((target.x - g.start.x) * i) / 10,
+          y: g.start.y + ((target.y - g.start.y) * i) / 10,
+          id: 1,
+        },
+      ],
+    });
+  await expect(page.locator(".editor-scene")).toContainText("D1 → G18");
+  await cdp.send("Input.dispatchTouchEvent", {
+    type: "touchEnd",
+    touchPoints: [],
+  });
+  await expect(page.getByLabel("配置する穴")).toHaveValue("g18");
+  await cdp.detach();
 });

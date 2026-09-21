@@ -15,6 +15,10 @@ import {
   Cpu,
   Download,
   FolderOpen,
+  CircleHelp,
+  Eye,
+  PencilRuler,
+  Save,
   Layers3,
   LoaderCircle,
   Maximize2,
@@ -116,6 +120,7 @@ export default function Studio() {
   const [historyError, setHistoryError] = useState("");
   const stepList = useRef<HTMLDivElement>(null);
   const workspace = useRef<HTMLElement>(null);
+  const activityBar = useRef<HTMLElement>(null);
   const circuit = project.circuit;
   const compiled = useMemo(() => compileCircuit(circuit), [circuit]);
   const bom = useMemo(() => billOfMaterials(circuit), [circuit]);
@@ -179,6 +184,33 @@ export default function Studio() {
       document.body.style.overflow = old;
     };
   }, [settings, history]);
+  useEffect(() => {
+    if (!examples) return;
+    const dismiss = (event: PointerEvent) => {
+      if (
+        !activityBar.current
+          ?.querySelector(".examples-wrap")
+          ?.contains(event.target as Node)
+      )
+        setExamples(false);
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setExamples(false);
+        activityBar.current
+          ?.querySelector<HTMLButtonElement>(
+            "[aria-controls=activity-examples]",
+          )
+          ?.focus();
+      }
+    };
+    document.addEventListener("pointerdown", dismiss);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("pointerdown", dismiss);
+      document.removeEventListener("keydown", escape);
+    };
+  }, [examples]);
   function applyProject(p: Project) {
     p = {
       ...p,
@@ -270,7 +302,7 @@ export default function Studio() {
             "回路の生成は完了しましたが、ブラウザに保存できません。JSONをダウンロードしてください。",
           );
         }
-      } else setNotice("回路を生成し、Firestoreに保存しました。");
+      } else setNotice("回路を生成し、保存しました。");
       workspace.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "生成に失敗しました。");
@@ -309,7 +341,7 @@ export default function Studio() {
   async function save() {
     if (generating.current) return;
     if (project.storage === "firestore") {
-      setNotice("このプロジェクトはFirestoreに保存済みです。");
+      setNotice("このプロジェクトは保存済みです。");
       return;
     }
     generating.current = true;
@@ -329,7 +361,7 @@ export default function Studio() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
         setProject(data);
-        setNotice("編集した回路と配置をFirestoreに保存しました。");
+        setNotice("編集した回路と配置を保存しました。");
       } else {
         saveLocal(project);
         setNotice("このブラウザに保存しました。プロジェクト一覧から開けます。");
@@ -437,26 +469,7 @@ export default function Studio() {
           </span>
           breadberry<span className="beta">BETA</span>
         </a>
-        <nav>
-          <a href="#workspace" className="nav-active">
-            ワークスペース
-          </a>
-          <button disabled={busy || saving} onClick={() => void openHistory()}>
-            プロジェクト
-          </button>
-          <a href="#how-it-works">
-            使い方 <ArrowUpRight size={13} />
-          </a>
-        </nav>
         <div className="header-actions">
-          <button
-            className="mobile-projects icon-button"
-            disabled={busy || saving}
-            aria-label="プロジェクト"
-            onClick={() => void openHistory()}
-          >
-            <FolderOpen size={18} />
-          </button>
           <button
             className="settings-button"
             onClick={() => {
@@ -481,6 +494,133 @@ export default function Studio() {
         </div>
       )}
       <section id="workspace" ref={workspace} className="workspace reveal">
+        <aside
+          ref={activityBar}
+          className="activity-bar"
+          aria-label="アクティビティバー"
+        >
+          <nav className="activity-group" aria-label="移動">
+            <a
+              className="activity-button"
+              href="#workspace"
+              title="ワークスペース"
+            >
+              <CircuitBoard size={18} />
+              <span>ワークスペース</span>
+            </a>
+            <button
+              className="activity-button"
+              disabled={busy || saving}
+              aria-haspopup="dialog"
+              onClick={() => void openHistory()}
+            >
+              <FolderOpen size={18} />
+              <span>プロジェクト</span>
+            </button>
+          </nav>
+          <div
+            className="activity-group"
+            role="group"
+            aria-label="ワークスペースモード"
+          >
+            {(["viewer", "editor"] as const).map((value) => (
+              <button
+                key={value}
+                className="activity-button"
+                disabled={busy || saving}
+                aria-label={
+                  value === "viewer" ? "Viewer · 閲覧" : "Editor · 編集"
+                }
+                title={
+                  value === "viewer"
+                    ? "3Dと組み立て手順"
+                    : "部品の追加・移動・配線"
+                }
+                aria-pressed={mode === value}
+                onClick={() => {
+                  setMode(value);
+                  setPlaying(false);
+                  setStep(compiled.steps.length);
+                }}
+              >
+                {value === "viewer" ? (
+                  <Eye size={18} />
+                ) : (
+                  <PencilRuler size={18} />
+                )}
+                <span>{value === "viewer" ? "Viewer" : "Editor"}</span>
+              </button>
+            ))}
+          </div>
+          <div
+            className="activity-group"
+            role="group"
+            aria-label="回路ファイル"
+          >
+            <div className="examples-wrap">
+              <button
+                className="activity-button"
+                disabled={busy || saving}
+                aria-expanded={examples}
+                aria-controls="activity-examples"
+                onClick={() => setExamples((s) => !s)}
+              >
+                <Plus size={18} />
+                <span>サンプル</span>
+              </button>
+              {examples && (
+                <div className="examples-menu" id="activity-examples">
+                  <button onClick={() => sample("climate")}>
+                    <Thermometer size={15} /> 温湿度センサー
+                  </button>
+                  <button onClick={() => sample("led")}>
+                    <Zap size={15} /> LEDブリンク
+                  </button>
+                  <button onClick={() => sample("temperature")}>
+                    <Thermometer size={15} /> DS18B20 温度計
+                  </button>
+                  <button onClick={() => sample("display")}>
+                    <Zap size={15} /> OLEDディスプレイ
+                  </button>
+                </div>
+              )}
+            </div>
+            <button
+              className="activity-button"
+              disabled={busy || saving}
+              onClick={() => void save()}
+            >
+              {saving ? (
+                <LoaderCircle size={18} className="spin" />
+              ) : (
+                <Save size={18} />
+              )}
+              <span>保存</span>
+            </button>
+            <button
+              className="activity-button"
+              onClick={() =>
+                download(
+                  "breadberry-circuit.json",
+                  JSON.stringify(project, null, 2),
+                )
+              }
+            >
+              <Download size={18} />
+              <span>エクスポート</span>
+            </button>
+          </div>
+          <nav className="activity-group activity-help" aria-label="サポート">
+            <a
+              className="activity-button"
+              href="#how-it-works"
+              title="使い方を見る"
+            >
+              <CircleHelp size={18} />
+              <span>ヘルプ</span>
+            </a>
+          </nav>
+        </aside>
         <div className="workspace-heading">
           <div className="project-heading">
             <span className="project-icon">
@@ -504,55 +644,6 @@ export default function Studio() {
                   ? "サンプル"
                   : "AI生成"}
             </span>
-          </div>
-          <div className="project-actions">
-            <div className="examples-wrap">
-              <button
-                className="text-button"
-                disabled={busy || saving}
-                onClick={() => setExamples((s) => !s)}
-              >
-                <Plus size={15} />
-                <span>サンプル</span>
-                <ChevronDown size={12} />
-              </button>
-              {examples && (
-                <div className="examples-menu">
-                  <button onClick={() => sample("climate")}>
-                    <Thermometer size={15} /> 温湿度センサー
-                  </button>
-                  <button onClick={() => sample("led")}>
-                    <Zap size={15} /> LEDブリンク
-                  </button>
-                  <button onClick={() => sample("temperature")}>
-                    <Thermometer size={15} /> DS18B20 温度計
-                  </button>
-                  <button onClick={() => sample("display")}>
-                    <Zap size={15} /> OLEDディスプレイ
-                  </button>
-                </div>
-              )}
-            </div>
-            <button
-              className="text-button"
-              disabled={busy || saving}
-              onClick={() => void save()}
-            >
-              <FolderOpen size={15} />
-              <span>保存</span>
-            </button>
-            <button
-              className="export-button"
-              onClick={() =>
-                download(
-                  "breadberry-circuit.json",
-                  JSON.stringify(project, null, 2),
-                )
-              }
-            >
-              <Download size={14} />
-              <span>エクスポート</span>
-            </button>
           </div>
         </div>
         <div className="workbench">
@@ -624,31 +715,6 @@ export default function Studio() {
             </div>
           </aside>
           <div className="canvas-panel">
-            <div
-              className="mode-switch"
-              role="group"
-              aria-label="ワークスペースモード"
-            >
-              {(["viewer", "editor"] as const).map((value) => (
-                <button
-                  key={value}
-                  disabled={busy || saving}
-                  aria-pressed={mode === value}
-                  onClick={() => {
-                    setMode(value);
-                    setPlaying(false);
-                    setStep(compiled.steps.length);
-                  }}
-                >
-                  {value === "viewer" ? "Viewer · 閲覧" : "Editor · 編集"}
-                </button>
-              ))}
-              <span>
-                {mode === "editor"
-                  ? "部品の追加・移動・配線"
-                  : "3Dと組み立て手順"}
-              </span>
-            </div>
             {mode === "editor" ? (
               <LayoutEditor
                 key={editorSession}
@@ -980,7 +1046,7 @@ export default function Studio() {
                 : `Gemini · GMI ${project.review.status === "reviewed" ? "レビュー済み" : "レビュー未実施"}`}
             <i />
             {project.storage === "firestore"
-              ? "Firestore に保存済み"
+              ? "保存済み"
               : "ブラウザでプレビュー"}
           </span>
         </div>

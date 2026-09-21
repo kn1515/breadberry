@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
         ...project,
         storage: "browser",
         warning:
-          "Firestoreへの保存に失敗しました。回路をJSONでダウンロードして保管してください。",
+          "保存に失敗しました。回路をJSONでダウンロードして保管してください。",
       });
     }
   } catch (e) {

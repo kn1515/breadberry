@@ -114,7 +114,10 @@ test("successful generation updates circuit and reports Firestore persistence", 
   await expect(
     page.getByRole("heading", { name: "AIで作ったデスクライト", exact: true }),
   ).toBeVisible();
-  await expect(page.getByRole("status")).toContainText("Firestoreに保存");
+  await expect(page.getByRole("status")).toHaveText(
+    "回路を生成し、保存しました。",
+  );
+  await expect(page.locator(".workspace-status")).toContainText("保存済み");
   await expect(page.getByRole("slider")).toHaveValue("5");
 });
 

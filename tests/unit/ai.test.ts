@@ -60,3 +60,50 @@ test("missing Gemini is explicit; GMI failure never reports reviewed", async () 
     if (oldGmi !== undefined) process.env.GMI_API_KEY = oldGmi;
   }
 });
+
+test("revisions include the current circuit and earlier conversation", async () => {
+  const oldFetch = globalThis.fetch;
+  const oldKey = process.env.GEMINI_API_KEY;
+  process.env.GEMINI_API_KEY = "test-key";
+  const original = demoCircuit("esp32", "led");
+  const revised = structuredClone(original);
+  revised.parts.find((p) => p.kind === "resistor")!.value = "470Ω";
+  const messages = [
+    { role: "user" as const, content: "LEDを点滅させたい" },
+    { role: "assistant" as const, content: "LEDの回路を作成しました。" },
+  ];
+  globalThis.fetch = async (_url, init) => {
+    const body = JSON.parse(String(init?.body));
+    const context = JSON.parse(body.contents[0].parts[0].text);
+    assert.deepEqual(context.currentCircuit, original);
+    assert.deepEqual(context.conversation, messages);
+    assert.equal(context.request, "抵抗を470Ωにして");
+    assert.match(
+      body.systemInstruction.parts[0].text,
+      /Preserve unrelated components/,
+    );
+    return Response.json({
+      candidates: [
+        {
+          finishReason: "STOP",
+          content: { parts: [{ text: JSON.stringify(revised) }] },
+        },
+      ],
+    });
+  };
+  try {
+    const result = await generateCircuit("抵抗を470Ωにして", "esp32", {
+      circuit: original,
+      messages,
+    });
+    assert.equal(
+      result.parts.find((p) => p.kind === "resistor")!.value,
+      "470Ω",
+    );
+    assert.deepEqual(result.wires, original.wires);
+  } finally {
+    globalThis.fetch = oldFetch;
+    if (oldKey === undefined) delete process.env.GEMINI_API_KEY;
+    else process.env.GEMINI_API_KEY = oldKey;
+  }
+});

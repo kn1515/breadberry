@@ -59,7 +59,7 @@ test("unconfigured services and API authorization are explicit", async ({
 }) => {
   await page.goto("/");
   await page.getByLabel("作りたいもの").fill("部屋の温度と湿度を測りたい");
-  await page.getByRole("button", { name: "回路を生成", exact: true }).click();
+  await page.getByRole("button", { name: "回路を修正", exact: true }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.getByRole("dialog")).toContainText("未設定");
   const response = await request.post("/api/generate", {
@@ -110,7 +110,7 @@ test("successful generation updates circuit and reports Firestore persistence", 
   await page.goto("/");
   await page.getByLabel("使用する基板").selectOption("pico");
   await page.getByLabel("作りたいもの").fill("PicoでLEDを点滅する回路を作って");
-  await page.getByRole("button", { name: "回路を生成", exact: true }).click();
+  await page.getByRole("button", { name: "回路を修正", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "AIで作ったデスクライト", exact: true }),
   ).toBeVisible();

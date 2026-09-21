@@ -118,9 +118,7 @@ test("successful generation updates circuit and reports Firestore persistence", 
   await expect(page.getByRole("slider")).toHaveValue("5");
 });
 
-test("expanded catalog respects board capabilities and new samples render", async ({
-  page,
-}) => {
+test("expanded catalog respects board capabilities", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
@@ -139,10 +137,23 @@ test("expanded catalog respects board capabilities and new samples render", asyn
     page.getByRole("button", { name: "可変抵抗", exact: true }),
   ).toBeEnabled();
   await page.locator(".parts-catalog summary").click();
-  for (const [name, title, steps, code] of [
-    ["OLEDディスプレイ", "OLEDにメッセージを表示", "5", "SSD1306_I2C"],
-    ["DS18B20 温度計", "DS18B20でつくる温度計", "7", "ds18x20"],
-  ]) {
+  expect(errors).toEqual([]);
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(page.viewportSize()!.width + 1);
+});
+
+for (const [name, title, steps, code] of [
+  ["OLEDディスプレイ", "OLEDにメッセージを表示", "5", "SSD1306_I2C"],
+  ["DS18B20 温度計", "DS18B20でつくる温度計", "7", "ds18x20"],
+]) {
+  test(`${name}: sample renders, steps navigate and firmware matches`, async ({
+    page,
+  }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto("/");
+    await page.getByLabel("使用する基板").selectOption("pico");
     await page.getByRole("button", { name: "サンプル", exact: true }).click();
     await page.getByRole("button", { name, exact: true }).click();
     await expect(
@@ -157,9 +168,9 @@ test("expanded catalog respects board capabilities and new samples render", asyn
     await page.getByRole("tab", { name: "コード", exact: true }).click();
     await expect(page.locator("pre")).toContainText(code);
     await page.getByRole("tab", { name: /ブレッドボード/ }).click();
-  }
-  expect(errors).toEqual([]);
-  expect(
-    await page.evaluate(() => document.documentElement.scrollWidth),
-  ).toBeLessThanOrEqual(page.viewportSize()!.width + 1);
-});
+    expect(errors).toEqual([]);
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBeLessThanOrEqual(page.viewportSize()!.width + 1);
+  });
+}

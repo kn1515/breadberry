@@ -144,7 +144,7 @@ gcloud projects add-iam-policy-binding "$GOOGLE_CLOUD_PROJECT" \
   --member="serviceAccount:${RUNTIME_SA}" --role=roles/datastore.user
 ```
 
-Cloud Buildで使うビルド用サービスアカウントには、対象Artifact Registryへの書き込みとビルドログの書き込み権限が必要です。実行アカウントは組織設定により異なります。デプロイするユーザーにはCloud Runのデプロイ権限と `breadberry-runtime` に対するService Account User権限が必要です。
+Cloud Buildで使うビルド用サービスアカウントには、対象Artifact Registryへの書き込みとビルドログの書き込み権限が必要です。実行アカウントは組織設定により異なります。デプロイするユーザーにはCloud Runのデプロイ権限、対象Artifact Registryリポジトリへの `roles/artifactregistry.reader`、`breadberry-runtime` に対するService Account User権限が必要です。
 
 ### 3. Secret Manager
 
@@ -197,6 +197,10 @@ gcloud projects add-iam-policy-binding "$GOOGLE_CLOUD_PROJECT" \
 gcloud projects add-iam-policy-binding "$GOOGLE_CLOUD_PROJECT" \
   --member="serviceAccount:${DEPLOY_SA}@${GOOGLE_CLOUD_PROJECT}.iam.gserviceaccount.com" \
   --role=roles/run.admin
+gcloud artifacts repositories add-iam-policy-binding "${REPOSITORY:-breadberry}" \
+  --project "$GOOGLE_CLOUD_PROJECT" --location "${REGION:-asia-northeast1}" \
+  --member="serviceAccount:${DEPLOY_SA}@${GOOGLE_CLOUD_PROJECT}.iam.gserviceaccount.com" \
+  --role=roles/artifactregistry.reader --condition=None
 gcloud projects add-iam-policy-binding "$GOOGLE_CLOUD_PROJECT" \
   --member="serviceAccount:${DEPLOY_SA}@${GOOGLE_CLOUD_PROJECT}.iam.gserviceaccount.com" \
   --role=roles/serviceusage.serviceUsageConsumer
@@ -239,6 +243,8 @@ gcloud iam service-accounts add-iam-policy-binding \
 ```
 
 `gcloud builds submit` は、既定のソース保存バケットが対象プロジェクトに属することをバケット一覧で確認します。そのため、バケット単位の書き込み権限に加えて、プロジェクト単位で `storage.buckets.list` を含む `roles/storage.bucketViewer` が必要です。`The user is forbidden from accessing the bucket` が出る場合は、`serviceusage.serviceUsageConsumer` だけでなく、このロールもデプロイ用サービスアカウントに付いているか確認してください。ロールの権限は [Cloud Storage の公式ドキュメント](https://docs.cloud.google.com/storage/docs/access-control/iam-roles) を参照してください。
+
+ビルド後の `gcloud run deploy` で `artifactregistry.repositories.downloadArtifacts` が拒否される場合は、エラーに表示されたデプロイ用サービスアカウントに、対象リポジトリの `roles/artifactregistry.reader` が付いているか確認してください。Cloud Build実行アカウントの書き込み権限とは別に必要です。上記の `gcloud artifacts repositories add-iam-policy-binding` を、対象リポジトリのIAMポリシーを変更できる管理者として実行し、GitHub Actionsの失敗したジョブを再実行してください。`REGION` / `REPOSITORY` は、GitHub Actionsの `GCP_REGION` / `ARTIFACT_REPOSITORY` と同じ値にします。詳細は [Cloud Runのデプロイに必要なロール](https://docs.cloud.google.com/run/docs/deploying#required_roles) を参照してください。
 
 `caller does not have permission to act as service account` が出る場合は、デプロイ用アカウントに **Cloud Build 実行アカウントに対する** `roles/iam.serviceAccountUser` が不足しています。`roles/cloudbuild.builds.editor` や Cloud Run 実行用アカウントへの権限付与だけでは足りません。上記の `BUILD_SA` の取得と権限付与を、対象サービスアカウントの IAM ポリシーを変更できる管理者として実行し、GitHub Actions の失敗したジョブを再実行してください。プロジェクト全体への Service Account User 付与は不要です。
 

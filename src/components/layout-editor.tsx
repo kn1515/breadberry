@@ -1,6 +1,7 @@
 "use client";
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   boards,
   catalog,
@@ -31,6 +32,7 @@ export default function LayoutEditor({
   const [past, setPast] = useState<Circuit[]>([]);
   const [future, setFuture] = useState<Circuit[]>([]);
   const [checked, setChecked] = useState(false);
+  const [resultsOpen, setResultsOpen] = useState(false);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [view, setView] = useState<"perspective" | "top">("perspective");
@@ -114,7 +116,13 @@ export default function LayoutEditor({
         >
           やり直す
         </button>
-        <button className="editor-check" onClick={() => setChecked(true)}>
+        <button
+          className="editor-check"
+          onClick={() => {
+            setChecked(true);
+            setResultsOpen(true);
+          }}
+        >
           レイアウトチェック
         </button>
       </div>
@@ -326,30 +334,41 @@ export default function LayoutEditor({
           ))}
         </ul>
       </details>
-      {checked && (
-        <div className="editor-results" role="status">
-          <strong>
-            {issues.length
-              ? `要確認: ${issues.length}件`
-              : "レイアウトチェック: 問題は見つかりませんでした"}
-          </strong>
-          <ul>
-            {issues.map((issue, i) => (
-              <li key={`${issue.code}-${i}`}>
-                {issue.message}
-                {issue.parts[0] && (
-                  <button onClick={() => setSelected(issue.parts[0])}>
-                    部品を選択
-                  </button>
-                )}
-              </li>
-            ))}
-          </ul>
-          <p>
-            表示モデルと導通列の検査です。実物の寸法・定格・動作を保証するものではありません。
-          </p>
-        </div>
-      )}
+      {resultsOpen &&
+        createPortal(
+          <div className="editor-results" role="status">
+            <div className="editor-results-header">
+              <strong>
+                {issues.length
+                  ? `要確認: ${issues.length}件`
+                  : "レイアウトチェック: 問題は見つかりませんでした"}
+              </strong>
+              <button
+                type="button"
+                aria-label="レイアウトチェック結果を閉じる"
+                onClick={() => setResultsOpen(false)}
+              >
+                閉じる
+              </button>
+            </div>
+            <ul>
+              {issues.map((issue, i) => (
+                <li key={`${issue.code}-${i}`}>
+                  {issue.message}
+                  {issue.parts[0] && (
+                    <button onClick={() => setSelected(issue.parts[0])}>
+                      部品を選択
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+            <p>
+              表示モデルと導通列の検査です。実物の寸法・定格・動作を保証するものではありません。
+            </p>
+          </div>,
+          document.body,
+        )}
     </section>
   );
 }

@@ -2395,7 +2395,8 @@ main > .ambient {
   flex-wrap: wrap;
 }
 .mode-switch button,
-.layout-editor button {
+.layout-editor button,
+.editor-results button {
   padding: 8px 12px;
   border: 1px solid #475569;
   border-radius: 7px;
@@ -2499,11 +2500,29 @@ main > .ambient {
   padding: 3px 8px;
 }
 .editor-results {
-  margin-top: 16px;
+  position: fixed;
+  left: max(16px, env(safe-area-inset-left));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 100;
+  width: min(380px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
   padding: 14px;
   border: 1px solid #6366f1;
   border-radius: 8px;
+  background: #101e30;
+  color: #cbd5e1;
+  box-shadow: 0 8px 32px #0006;
   font-size: 12px;
+}
+.editor-results-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.editor-results-header button {
+  flex-shrink: 0;
 }
 .workbench:has(.layout-editor) {
   grid-template-columns: minmax(150px, 0.65fr) minmax(0, 2.5fr) minmax(

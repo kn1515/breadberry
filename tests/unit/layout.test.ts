@@ -110,3 +110,25 @@ test("incomplete and empty drafts survive JSON round trips; unsafe shapes are re
     }),
   );
 });
+
+test("3D coordinates snap to signal holes and reject off-board or non-finite drops", async () => {
+  const { nearestLayoutHole, movePart } = await import("../../src/lib/layout");
+  const { holePosition } = await import("../../src/lib/circuit");
+  for (const col of "abcdefghij")
+    for (const row of [1, 15, 30]) {
+      const [x, , z] = holePosition(`${col}${row}`);
+      assert.equal(nearestLayoutHole(x + 0.03, z - 0.02), `${col}${row}`);
+    }
+  for (const [x, z] of [
+    [4, 0],
+    [0, 1.9],
+    [NaN, 0],
+    [0, Infinity],
+  ])
+    assert.equal(nearestLayoutHole(x, z), null);
+  const c = demoCircuit();
+  const moved = movePart(c, c.parts[0].id, "g20");
+  assert.equal(moved.parts[0].placement?.hole, "g20");
+  assert.equal(c.parts[0].placement, undefined);
+  assert.deepEqual(moved.wires, c.wires);
+});

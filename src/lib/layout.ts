@@ -2,6 +2,7 @@ import {
   catalog,
   compileCircuit,
   layoutHolePosition,
+  holePosition,
   partPinHoles,
   placementFor,
   validateCircuit,
@@ -194,6 +195,34 @@ export function removePart(circuit: Circuit, id: string): Circuit {
       .filter((p) => p.id !== id),
     wires: circuit.wires.filter(
       (w) => !w.from.startsWith(`${id}.`) && !w.to.startsWith(`${id}.`),
+    ),
+  };
+}
+
+/** Snap local X/Z coordinates to a signal hole; rails and off-board drops are excluded. */
+export function nearestLayoutHole(x: number, z: number): string | null {
+  if (
+    !Number.isFinite(x) ||
+    !Number.isFinite(z) ||
+    Math.abs(x) > 3.6 ||
+    Math.abs(z) > 1.4
+  )
+    return null;
+  const row = Math.max(1, Math.min(30, Math.round(x / 0.24 + 15.5)));
+  const col = [..."abcdefghij"].reduce((a, b) =>
+    Math.abs(holePosition(`${a}1`)[2] - z) <=
+    Math.abs(holePosition(`${b}1`)[2] - z)
+      ? a
+      : b,
+  );
+  return `${col}${row}`;
+}
+
+export function movePart(circuit: Circuit, id: string, hole: string): Circuit {
+  return {
+    ...circuit,
+    parts: circuit.parts.map((p, i) =>
+      p.id === id ? { ...p, placement: { ...placementFor(p, i), hole } } : p,
     ),
   };
 }

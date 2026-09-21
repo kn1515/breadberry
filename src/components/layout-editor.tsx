@@ -1,20 +1,21 @@
 "use client";
-import { useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
+import { useMemo, useState } from "react";
 import {
   boards,
   catalog,
   compileCircuit,
-  holePosition,
-  layoutHolePosition,
   partKinds,
   placementFor,
   type Circuit,
   type Kind,
 } from "@/lib/circuit";
-import { addPart, checkLayout, partBounds, removePart } from "@/lib/layout";
+import { addPart, checkLayout, movePart, removePart } from "@/lib/layout";
 
-const sx = (x: number) => 420 + x * 90;
-const sy = (z: number) => 215 + z * 90;
+const BoardScene = dynamic(() => import("./board-scene"), {
+  ssr: false,
+  loading: () => <div className="scene-fallback">3Dエディターを準備中</div>,
+});
 
 export default function LayoutEditor({
   circuit,
@@ -32,8 +33,8 @@ export default function LayoutEditor({
   const [checked, setChecked] = useState(false);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  const drag = useRef<{ id: string; x: number; y: number } | null>(null);
-  const [dragHole, setDragHole] = useState<string | null>(null);
+  const [view, setView] = useState<"perspective" | "top">("perspective");
+  const [reset, setReset] = useState(0);
   const issues = useMemo(
     () => (checked ? checkLayout(circuit) : []),
     [circuit, checked],
@@ -57,37 +58,12 @@ export default function LayoutEditor({
     onChange(next);
   }
   function move(id: string, hole: string) {
-    change({
-      ...circuit,
-      parts: circuit.parts.map((p, i) =>
-        p.id === id ? { ...p, placement: { ...placementFor(p, i), hole } } : p,
-      ),
-    });
-  }
-  function nearest(event: React.PointerEvent<SVGSVGElement>) {
-    const matrix = event.currentTarget.getScreenCTM();
-    if (!matrix) return null;
-    const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(
-      matrix.inverse(),
-    );
     if (
-      point.x < sx(-3.6) ||
-      point.x > sx(3.6) ||
-      point.y < sy(-1.4) ||
-      point.y > sy(1.4)
+      circuit.parts.some(
+        (p, i) => p.id === id && placementFor(p, i).hole !== hole,
+      )
     )
-      return null;
-    const row = Math.max(
-      1,
-      Math.min(30, Math.round((point.x - 420) / 90 / 0.24 + 15.5)),
-    );
-    const col = [..."abcdefghij"].reduce((a, b) =>
-      Math.abs(sy(holePosition(`${a}1`)[2]) - point.y) <
-      Math.abs(sy(holePosition(`${b}1`)[2]) - point.y)
-        ? a
-        : b,
-    );
-    return `${col}${row}`;
+      change(movePart(circuit, id, hole));
   }
   return (
     <section className="layout-editor" aria-label="レイアウトエディター">
@@ -142,175 +118,42 @@ export default function LayoutEditor({
           レイアウトチェック
         </button>
       </div>
-      <p className="editor-help">
-        部品をドラッグ、または部品を選んで穴をクリックして移動。配置は3D・組み立てガイドにも反映されます。最大30部品。配線を変えた場合はコードも確認してください。
+      <p className="editor-help" id="editor-3d-help">
+        3Dの部品をクリックして選択し、ドラッグして移動します。空いている穴のクリックでも移動できます。背景のドラッグで回転、スクロールでズーム。Escで移動をキャンセル。配線を変えた場合はコードも確認してください。
       </p>
-      <svg
-        className="editor-board"
-        viewBox="0 0 840 430"
-        aria-label="パーツ配置ボード"
-        onPointerMove={(e) => {
-          if (drag.current) setDragHole(nearest(e));
-        }}
-        onPointerCancel={() => {
-          drag.current = null;
-          setDragHole(null);
-        }}
-        onPointerUp={(e) => {
-          const start = drag.current;
-          drag.current = null;
-          setDragHole(null);
-          if (
-            start &&
-            Math.hypot(e.clientX - start.x, e.clientY - start.y) > 5
-          ) {
-            const hole = nearest(e);
-            if (hole) move(start.id, hole);
-          }
-        }}
+      <div className="editor-scene-toolbar">
+        <button
+          aria-pressed={view === "top"}
+          onClick={() => setView((v) => (v === "top" ? "perspective" : "top"))}
+        >
+          真上から編集
+        </button>
+        <button onClick={() => setReset((value) => value + 1)}>
+          視点をリセット
+        </button>
+        <span>
+          選択: {part ? `${part.id} · ${catalog[part.kind].name}` : "なし"}
+        </span>
+      </div>
+      <div
+        className="editor-scene"
+        aria-label="3D配置エディター"
+        aria-describedby="editor-3d-help"
       >
-        <rect x="44" y="18" width="752" height="394" rx="16" fill="#dbe2ea" />
-        <rect x="82" y="208" width="676" height="14" rx="4" fill="#8190a5" />
-        {Array.from({ length: 30 }, (_, i) => (
-          <text
-            key={i}
-            x={sx((i + 1 - 15.5) * 0.24)}
-            y="62"
-            textAnchor="middle"
-            fill="#334155"
-            fontSize="10"
-          >
-            {i + 1}
-          </text>
-        ))}
-        {[..."abcdefghij"].map((col) => (
-          <g key={col}>
-            <text
-              x="63"
-              y={sy(holePosition(`${col}1`)[2]) + 4}
-              fill="#334155"
-              fontSize="12"
-            >
-              {col.toUpperCase()}
-            </text>
-            {Array.from({ length: 30 }, (_, i) => {
-              const hole = `${col}${i + 1}`,
-                p = holePosition(hole);
-              return (
-                <circle
-                  key={hole}
-                  cx={sx(p[0])}
-                  cy={sy(p[2])}
-                  r="5"
-                  fill="#56667d"
-                  data-hole={hole}
-                  onClick={() => {
-                    if (selected && !disabled) move(selected, hole);
-                  }}
-                >
-                  <title>{hole.toUpperCase()}</title>
-                </circle>
-              );
-            })}
-          </g>
-        ))}
-        {compiled.wires
-          .filter(
-            (w) => !w.from.startsWith("board.") && !w.to.startsWith("board."),
-          )
-          .map((w) => (
-            <line
-              key={w.id}
-              x1={sx(w.start.position[0])}
-              y1={sy(w.start.position[2])}
-              x2={sx(w.end.position[0])}
-              y2={sy(w.end.position[2])}
-              stroke={w.color}
-              strokeWidth="3"
-              pointerEvents="none"
-            />
-          ))}
-        {circuit.parts.map((p, i) => {
-          const b = partBounds(circuit, i),
-            active = p.id === selected;
-          const invalid = issues.some((issue) => issue.parts.includes(p.id));
-          return (
-            <g
-              key={p.id}
-              role="button"
-              aria-label={`部品 ${p.id} を選択`}
-              aria-pressed={active}
-              tabIndex={disabled ? -1 : 0}
-              onKeyDown={(e) => {
-                if (!disabled && (e.key === "Enter" || e.key === " ")) {
-                  e.preventDefault();
-                  setSelected(p.id);
-                }
-              }}
-              onPointerDown={(e) => {
-                if (disabled) return;
-                e.preventDefault();
-                e.stopPropagation();
-                setSelected(p.id);
-                drag.current = { id: p.id, x: e.clientX, y: e.clientY };
-                e.currentTarget.setPointerCapture(e.pointerId);
-              }}
-              onClick={() => !disabled && setSelected(p.id)}
-              className="editor-part"
-            >
-              <rect
-                x={sx(b.x - b.width / 2)}
-                y={sy(b.z - b.depth / 2)}
-                width={b.width * 90}
-                height={b.depth * 90}
-                rx="5"
-                fill={catalog[p.kind].color}
-                fillOpacity=".85"
-                stroke={invalid ? "#dc2626" : active ? "#4f46e5" : "#334155"}
-                strokeWidth={active || invalid ? 3 : 1}
-              />
-              {catalog[p.kind].pins.map((pin) => {
-                const pos = layoutHolePosition(
-                  compiled.pinHoles[`${p.id}.${pin}`],
-                );
-                return (
-                  <circle
-                    key={pin}
-                    cx={sx(pos[0])}
-                    cy={sy(pos[2])}
-                    r="3"
-                    fill="#0f172a"
-                  />
-                );
-              })}
-              <text
-                x={sx(b.x)}
-                y={sy(b.z - b.depth / 2) - 6}
-                textAnchor="middle"
-                fill="#172033"
-                fontSize="12"
-                fontWeight="bold"
-              >
-                {p.id}
-              </text>
-              <title>
-                {catalog[p.kind].name} · {p.value}
-              </title>
-            </g>
-          );
-        })}
-        {dragHole && (
-          <circle
-            cx={sx(holePosition(dragHole)[0])}
-            cy={sy(holePosition(dragHole)[2])}
-            r="9"
-            fill="none"
-            stroke="#4f46e5"
-            strokeWidth="3"
-            pointerEvents="none"
-          />
-        )}
-      </svg>
+        <BoardScene
+          circuit={circuit}
+          step={compiled.steps.length}
+          view={view}
+          reset={reset}
+          editor={{
+            selected,
+            onSelect: setSelected,
+            onMove: move,
+            disabled,
+            invalidParts: issues.flatMap((issue) => issue.parts),
+          }}
+        />
+      </div>
       <fieldset className="editor-properties" disabled={disabled}>
         <legend>選択中のパーツ</legend>
         <label>

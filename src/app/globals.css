@@ -2460,26 +2460,6 @@ main > .ambient {
   color: #94a3b8;
   margin: 12px 0;
 }
-.editor-board {
-  display: block;
-  width: 100%;
-  min-height: 230px;
-  touch-action: none;
-  user-select: none;
-}
-.editor-board circle[data-hole] {
-  cursor: crosshair;
-}
-.editor-part {
-  cursor: grab;
-}
-.editor-part:focus {
-  outline: none;
-}
-.editor-part:focus rect {
-  stroke: #4f46e5;
-  stroke-width: 4px;
-}
 .editor-properties {
   border: 1px solid #334155;
   border-radius: 8px;
@@ -2546,7 +2526,40 @@ main > .ambient {
   .layout-editor {
     padding: 10px;
   }
-  .editor-board {
-    min-height: 180px;
+}
+
+.editor-scene-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.editor-scene-toolbar span {
+  font-size: 12px;
+  color: #a5b4fc;
+}
+.editor-scene-toolbar button[aria-pressed="true"] {
+  background: #4f46e5;
+}
+.editor-scene {
+  height: 480px;
+  min-width: 0;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  background: #101e30;
+}
+.editor-scene > div {
+  width: 100%;
+  height: 100%;
+}
+.editor-scene canvas {
+  touch-action: none;
+}
+@media (max-width: 640px) {
+  .editor-scene {
+    height: 360px;
   }
 }

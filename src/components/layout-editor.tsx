@@ -12,6 +12,13 @@ import {
   type Kind,
 } from "@/lib/circuit";
 import { addPart, checkLayout, movePart, removePart } from "@/lib/layout";
+import {
+  ledColorNames,
+  ledColors,
+  resolveLedColor,
+  withLedColor,
+  type LedColor,
+} from "@/lib/led";
 
 const BoardScene = dynamic(() => import("./board-scene"), {
   ssr: false,
@@ -29,6 +36,7 @@ export default function LayoutEditor({
 }) {
   const [selected, setSelected] = useState(circuit.parts[0]?.id ?? "");
   const [kind, setKind] = useState<Kind>("led");
+  const [newLedColor, setNewLedColor] = useState<LedColor>("green");
   const [past, setPast] = useState<Circuit[]>([]);
   const [future, setFuture] = useState<Circuit[]>([]);
   const [checked, setChecked] = useState(false);
@@ -85,10 +93,32 @@ export default function LayoutEditor({
             ))}
           </select>
         </label>
+        {kind === "led" && (
+          <label>
+            LEDの色
+            <select
+              aria-label="追加するLEDの色"
+              value={newLedColor}
+              disabled={disabled}
+              onChange={(e) => setNewLedColor(e.target.value as LedColor)}
+            >
+              {ledColorNames.map((color) => (
+                <option key={color} value={color}>
+                  {ledColors[color].label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <button
           disabled={disabled || circuit.parts.length >= 30}
           onClick={() => {
             const next = addPart(circuit, kind);
+            if (kind === "led") {
+              next.parts = next.parts.map((p, i) =>
+                i === next.parts.length - 1 ? withLedColor(p, newLedColor) : p,
+              );
+            }
             change(next);
             setSelected(next.parts.at(-1)!.id);
           }}
@@ -181,6 +211,31 @@ export default function LayoutEditor({
         </label>
         {part && placement && (
           <>
+            {part.kind === "led" && (
+              <label>
+                LEDの色
+                <select
+                  aria-label="LEDの色"
+                  value={resolveLedColor(part)}
+                  onChange={(e) =>
+                    change({
+                      ...circuit,
+                      parts: circuit.parts.map((p) =>
+                        p.id === part.id
+                          ? withLedColor(p, e.target.value as LedColor)
+                          : p,
+                      ),
+                    })
+                  }
+                >
+                  {ledColorNames.map((color) => (
+                    <option key={color} value={color}>
+                      {ledColors[color].label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <label>
               先頭ピンの穴
               <select

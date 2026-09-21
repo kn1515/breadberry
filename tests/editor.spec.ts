@@ -200,17 +200,20 @@ test("manual save sends a draft to Firestore and reports local fallback on failu
   await page.getByRole("button", { name: "Editor · 編集" }).click();
   await page.getByLabel("配置する穴").selectOption("g15");
   await page.getByRole("button", { name: "保存", exact: true }).click();
-  await expect(page.locator(".workspace-status")).toContainText(
-    "Firestore に保存済み",
+  await expect(page.locator(".workspace-status")).toContainText("保存済み");
+  await expect(page.getByRole("status")).toHaveText(
+    "編集した回路と配置を保存しました。",
   );
   expect(saved.circuit.parts[0].placement.hole).toBe("g15");
   expect(saved.messages).toEqual([]);
   fail = true;
   await page.getByLabel("配置する穴").selectOption("g18");
-  await expect(page.locator(".workspace-status")).not.toContainText(
-    "Firestore に保存済み",
-  );
+  await expect(page.locator(".workspace-status")).not.toContainText("保存済み");
   await page.getByRole("button", { name: "保存", exact: true }).click();
+  await expect(page.getByRole("status")).toHaveText(
+    "クラウドに保存できなかったため、このブラウザに保存しました。",
+  );
+  expect(saved.circuit.parts[0].placement.hole).toBe("g18");
   await expect
     .poll(async () =>
       page.evaluate(

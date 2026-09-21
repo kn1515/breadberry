@@ -346,6 +346,17 @@ GitHub Actionsでも実行します。APIキー・Google Cloudプロジェクト
 - `src/app/api/`：生成・保存データ取得・接続状態・ヘルスチェック
 - `Dockerfile` / `scripts/deploy.sh`：Docker・Cloud Run起動
 
+## Wiki
+
+詳細なドキュメントは `wiki/` ディレクトリにあります。GitHub の Wiki タブにそのまま転載できます。
+
+- [Home](wiki/Home.md)：概要と機能
+- [Getting Started](wiki/Getting-Started.md)：セットアップと使い方
+- [Supported Hardware](wiki/Supported-Hardware.md)：対応基板・部品・制約
+- [Architecture](wiki/Architecture.md)：システム構成・API・データ構造
+- [Deployment](wiki/Deployment.md)：Docker / Cloud Run / GitHub Actions
+- [Development](wiki/Development.md)：開発・テスト・プロジェクト構成
+
 ## 参照資料
 
 - [Gemini 構造化出力](https://ai.google.dev/gemini-api/docs/structured-output) / [generateContent API](https://ai.google.dev/api/generate-content)

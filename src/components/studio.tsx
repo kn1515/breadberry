@@ -38,12 +38,15 @@ import {
   catalog,
   compileCircuit,
   validateCircuit,
+  validateDraft,
+  type Circuit,
   type Board,
   type Project,
 } from "@/lib/circuit";
 import { demoProject, type Example } from "@/lib/demo";
 import Schematic from "./schematic";
 import CircuitChat from "./circuit-chat";
+import LayoutEditor from "./layout-editor";
 import { MAX_MESSAGES } from "@/lib/conversation";
 const BoardScene = dynamic(() => import("./board-scene"), {
   ssr: false,
@@ -88,6 +91,9 @@ export default function Studio() {
   const [selectedBoard, setSelectedBoard] = useState<Board>("esp32");
   const [prompt, setPrompt] = useState("");
   const [busy, setBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [mode, setMode] = useState<"viewer" | "editor">("viewer");
+  const [editorSession, setEditorSession] = useState(0);
   const generating = useRef(false);
   const [newDesign, setNewDesign] = useState(false);
   const [phase, setPhase] = useState(0);
@@ -174,7 +180,12 @@ export default function Studio() {
     };
   }, [settings, history]);
   function applyProject(p: Project) {
-    validateCircuit(p.circuit);
+    p = {
+      ...p,
+      circuit: p.edited ? validateDraft(p.circuit) : validateCircuit(p.circuit),
+    };
+    setMode("viewer");
+    setEditorSession((s) => s + 1);
     setProject(p);
     setNewDesign(false);
     setPrompt("");
@@ -277,16 +288,64 @@ export default function Studio() {
       ),
     );
   }
-  function save() {
+  function editCircuit(next: Circuit) {
+    if (generating.current) return;
+    setProject((previous) => ({
+      ...previous,
+      id: previous.edited ? previous.id : crypto.randomUUID(),
+      circuit: next,
+      edited: true,
+      source: "manual",
+      storage: "browser",
+      review: {
+        status: "unavailable",
+        text: "手動編集後の補助レビューは未実施です。コードは自動更新されません。",
+      },
+    }));
+    setNotice("");
+    setStep(compileCircuit(next).steps.length);
+    setPlaying(false);
+  }
+  async function save() {
+    if (generating.current) return;
+    if (project.storage === "firestore") {
+      setNotice("このプロジェクトはFirestoreに保存済みです。");
+      return;
+    }
+    generating.current = true;
+    setSaving(true);
+    setError("");
     try {
-      if (project.storage === "firestore") {
-        setNotice("このプロジェクトはFirestoreに保存済みです。");
-        return;
+      if (project.edited && config?.active && config.firestore) {
+        const res = await fetch("/api/projects", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: project.id,
+            circuit: project.circuit,
+            messages: project.messages ?? [],
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        setProject(data);
+        setNotice("編集した回路と配置をFirestoreに保存しました。");
+      } else {
+        saveLocal(project);
+        setNotice("このブラウザに保存しました。プロジェクト一覧から開けます。");
       }
-      saveLocal(project);
-      setNotice("このブラウザに保存しました。プロジェクト一覧から開けます。");
     } catch {
-      setError("ブラウザに保存できません。JSONをダウンロードしてください。");
+      try {
+        saveLocal(project);
+        setNotice(
+          "クラウドに保存できなかったため、このブラウザに保存しました。",
+        );
+      } catch {
+        setError("保存できません。JSONをダウンロードしてください。");
+      }
+    } finally {
+      generating.current = false;
+      setSaving(false);
     }
   }
   async function openHistory() {
@@ -382,7 +441,7 @@ export default function Studio() {
           <a href="#workspace" className="nav-active">
             ワークスペース
           </a>
-          <button disabled={busy} onClick={() => void openHistory()}>
+          <button disabled={busy || saving} onClick={() => void openHistory()}>
             プロジェクト
           </button>
           <a href="#how-it-works">
@@ -392,7 +451,7 @@ export default function Studio() {
         <div className="header-actions">
           <button
             className="mobile-projects icon-button"
-            disabled={busy}
+            disabled={busy || saving}
             aria-label="プロジェクト"
             onClick={() => void openHistory()}
           >
@@ -430,19 +489,27 @@ export default function Studio() {
             <div>
               <div className="project-breadcrumb">
                 WORKSPACE <span>/</span>{" "}
-                {project.source === "demo" ? "SAMPLE PROJECT" : "YOUR PROJECT"}
+                {project.edited
+                  ? "手動編集した回路"
+                  : project.source === "demo"
+                    ? "SAMPLE PROJECT"
+                    : "YOUR PROJECT"}
               </div>
               <h2>{circuit.title}</h2>
             </div>
             <span className="project-badge">
-              {project.source === "demo" ? "サンプル" : "AI生成"}
+              {project.edited
+                ? "手動編集した回路"
+                : project.source === "demo"
+                  ? "サンプル"
+                  : "AI生成"}
             </span>
           </div>
           <div className="project-actions">
             <div className="examples-wrap">
               <button
                 className="text-button"
-                disabled={busy}
+                disabled={busy || saving}
                 onClick={() => setExamples((s) => !s)}
               >
                 <Plus size={15} />
@@ -466,7 +533,11 @@ export default function Studio() {
                 </div>
               )}
             </div>
-            <button className="text-button" onClick={save}>
+            <button
+              className="text-button"
+              disabled={busy || saving}
+              onClick={() => void save()}
+            >
               <FolderOpen size={15} />
               <span>保存</span>
             </button>
@@ -553,215 +624,257 @@ export default function Studio() {
             </div>
           </aside>
           <div className="canvas-panel">
-            <div className="canvas-toolbar">
-              <div className="view-tabs" role="tablist" aria-label="回路の表示">
+            <div
+              className="mode-switch"
+              role="group"
+              aria-label="ワークスペースモード"
+            >
+              {(["viewer", "editor"] as const).map((value) => (
                 <button
-                  role="tab"
-                  aria-selected={tab === "3d"}
-                  onClick={() => setTab("3d")}
-                  className={tab === "3d" ? "selected" : ""}
+                  key={value}
+                  disabled={busy || saving}
+                  aria-pressed={mode === value}
+                  onClick={() => {
+                    setMode(value);
+                    setPlaying(false);
+                    setStep(compiled.steps.length);
+                  }}
                 >
-                  <Box size={14} />
-                  ブレッドボード<span>3D</span>
+                  {value === "viewer" ? "Viewer · 閲覧" : "Editor · 編集"}
                 </button>
-                <button
-                  role="tab"
-                  aria-selected={tab === "schematic"}
-                  onClick={() => setTab("schematic")}
-                  className={tab === "schematic" ? "selected" : ""}
-                >
-                  <Workflow size={14} />
-                  回路図
-                </button>
-                <button
-                  role="tab"
-                  aria-selected={tab === "code"}
-                  onClick={() => setTab("code")}
-                  className={tab === "code" ? "selected" : ""}
-                >
-                  <Code2 size={14} />
-                  コード
-                </button>
-              </div>
-              <span className="toolbar-hint">
-                <span className="status-dot online" />
-                3.3 V
+              ))}
+              <span>
+                {mode === "editor"
+                  ? "部品の追加・移動・配線"
+                  : "3Dと組み立て手順"}
               </span>
             </div>
-            <div className="canvas-content">
-              {tab === "3d" ? (
-                <>
-                  <div className="scene-tags">
-                    <span>
-                      <span className="status-dot online" />
-                      {boards[circuit.board].name}
-                    </span>
-                    <span>400穴ブレッドボード</span>
-                  </div>
-                  <BoardScene
-                    circuit={circuit}
-                    step={step}
-                    view={view}
-                    reset={reset}
-                  />
-                  <div className="scene-tools">
+            {mode === "editor" ? (
+              <LayoutEditor
+                key={editorSession}
+                circuit={circuit}
+                onChange={editCircuit}
+                disabled={busy || saving}
+              />
+            ) : (
+              <>
+                <div className="canvas-toolbar">
+                  <div
+                    className="view-tabs"
+                    role="tablist"
+                    aria-label="回路の表示"
+                  >
                     <button
-                      title="表示をリセット"
-                      aria-label="表示をリセット"
-                      onClick={() => setReset((r) => r + 1)}
+                      role="tab"
+                      aria-selected={tab === "3d"}
+                      onClick={() => setTab("3d")}
+                      className={tab === "3d" ? "selected" : ""}
                     >
-                      <RotateCcw size={16} />
+                      <Box size={14} />
+                      ブレッドボード<span>3D</span>
                     </button>
                     <button
-                      title="真上から表示"
-                      aria-label="真上から表示"
-                      aria-pressed={view === "top"}
-                      className={view === "top" ? "active" : ""}
-                      onClick={() =>
-                        setView((v) => (v === "top" ? "perspective" : "top"))
-                      }
+                      role="tab"
+                      aria-selected={tab === "schematic"}
+                      onClick={() => setTab("schematic")}
+                      className={tab === "schematic" ? "selected" : ""}
                     >
-                      <Layers3 size={16} />
+                      <Workflow size={14} />
+                      回路図
                     </button>
                     <button
-                      title="全画面"
-                      aria-label="全画面"
-                      onClick={() => {
-                        if (document.fullscreenElement)
-                          void document.exitFullscreen();
-                        else
-                          void workspace.current
-                            ?.requestFullscreen?.()
-                            .catch(() =>
-                              setNotice(
-                                "このブラウザは全画面表示に対応していません。",
-                              ),
-                            );
-                      }}
+                      role="tab"
+                      aria-selected={tab === "code"}
+                      onClick={() => setTab("code")}
+                      className={tab === "code" ? "selected" : ""}
                     >
-                      <Maximize2 size={16} />
+                      <Code2 size={14} />
+                      コード
                     </button>
                   </div>
-                  <div className="scene-footer">
-                    <span>
-                      <span className="mouse-icon" />
-                      ドラッグで回転 · スクロールでズーム
-                    </span>
-                    <span>配線ガイド · 実寸ではありません</span>
-                  </div>
-                </>
-              ) : tab === "schematic" ? (
-                <Schematic circuit={circuit} />
-              ) : (
-                <div className="code-view">
-                  <div>
-                    <span>
-                      {circuit.firmwareLanguage === "python"
-                        ? "main.py"
-                        : "sketch.ino"}
-                    </span>
-                    <button
-                      className="text-button"
-                      onClick={() =>
-                        download(
-                          circuit.firmwareLanguage === "python"
-                            ? "main.py"
-                            : "sketch.ino",
-                          circuit.firmware,
-                          "text/plain",
-                        )
-                      }
-                    >
-                      <Download size={14} />
-                      ダウンロード
-                    </button>
-                  </div>
-                  <pre>
-                    <code>{circuit.firmware}</code>
-                  </pre>
-                  <p>
-                    必要なライブラリ・実行環境は下の設計メモをご確認ください。コードは自動実行されません。
-                  </p>
-                </div>
-              )}
-            </div>
-            <div className="playback">
-              <button
-                className="play-button"
-                onClick={togglePlay}
-                aria-label={playing ? "一時停止" : "組み立てを再生"}
-              >
-                {playing ? (
-                  <Pause size={17} fill="currentColor" />
-                ) : (
-                  <Play size={17} fill="currentColor" />
-                )}
-              </button>
-              <div className="playback-track">
-                <div>
-                  <strong>
-                    {step === compiled.steps.length
-                      ? "回路のできあがり。"
-                      : step === 0
-                        ? "さあ、組み立てましょう。"
-                        : current.title}
-                  </strong>
-                  <span>
-                    <b>{String(step).padStart(2, "0")}</b> /{" "}
-                    {String(compiled.steps.length).padStart(2, "0")} STEPS
+                  <span className="toolbar-hint">
+                    <span className="status-dot online" />
+                    3.3 V
                   </span>
                 </div>
-                <input
-                  aria-label="組み立て工程"
-                  type="range"
-                  min={0}
-                  max={compiled.steps.length}
-                  value={step}
-                  onChange={(e) => {
-                    setStep(Number(e.target.value));
-                    setPlaying(false);
-                  }}
-                  style={
-                    {
-                      "--progress": `${(step / compiled.steps.length) * 100}%`,
-                    } as React.CSSProperties
-                  }
-                />
-              </div>
-              <button
-                className="icon-button"
-                aria-label="前の工程"
-                disabled={step === 0}
-                onClick={() => {
-                  setStep((s) => s - 1);
-                  setPlaying(false);
-                }}
-              >
-                <ChevronLeft size={17} />
-              </button>
-              <button
-                className="icon-button"
-                aria-label="次の工程"
-                disabled={step === compiled.steps.length}
-                onClick={() => {
-                  setStep((s) => s + 1);
-                  setPlaying(false);
-                }}
-              >
-                <ChevronRight size={17} />
-              </button>
-              <select
-                aria-label="再生速度"
-                value={speed}
-                onChange={(e) => setSpeed(Number(e.target.value))}
-              >
-                <option value={0.5}>0.5×</option>
-                <option value={1}>1×</option>
-                <option value={2}>2×</option>
-              </select>
-            </div>
+                <div className="canvas-content">
+                  {tab === "3d" ? (
+                    <>
+                      <div className="scene-tags">
+                        <span>
+                          <span className="status-dot online" />
+                          {boards[circuit.board].name}
+                        </span>
+                        <span>400穴ブレッドボード</span>
+                      </div>
+                      <BoardScene
+                        circuit={circuit}
+                        step={step}
+                        view={view}
+                        reset={reset}
+                      />
+                      <div className="scene-tools">
+                        <button
+                          title="表示をリセット"
+                          aria-label="表示をリセット"
+                          onClick={() => setReset((r) => r + 1)}
+                        >
+                          <RotateCcw size={16} />
+                        </button>
+                        <button
+                          title="真上から表示"
+                          aria-label="真上から表示"
+                          aria-pressed={view === "top"}
+                          className={view === "top" ? "active" : ""}
+                          onClick={() =>
+                            setView((v) =>
+                              v === "top" ? "perspective" : "top",
+                            )
+                          }
+                        >
+                          <Layers3 size={16} />
+                        </button>
+                        <button
+                          title="全画面"
+                          aria-label="全画面"
+                          onClick={() => {
+                            if (document.fullscreenElement)
+                              void document.exitFullscreen();
+                            else
+                              void workspace.current
+                                ?.requestFullscreen?.()
+                                .catch(() =>
+                                  setNotice(
+                                    "このブラウザは全画面表示に対応していません。",
+                                  ),
+                                );
+                          }}
+                        >
+                          <Maximize2 size={16} />
+                        </button>
+                      </div>
+                      <div className="scene-footer">
+                        <span>
+                          <span className="mouse-icon" />
+                          ドラッグで回転 · スクロールでズーム
+                        </span>
+                        <span>配線ガイド · 実寸ではありません</span>
+                      </div>
+                    </>
+                  ) : tab === "schematic" ? (
+                    <Schematic circuit={circuit} />
+                  ) : (
+                    <div className="code-view">
+                      <div>
+                        <span>
+                          {circuit.firmwareLanguage === "python"
+                            ? "main.py"
+                            : "sketch.ino"}
+                        </span>
+                        <button
+                          className="text-button"
+                          onClick={() =>
+                            download(
+                              circuit.firmwareLanguage === "python"
+                                ? "main.py"
+                                : "sketch.ino",
+                              circuit.firmware,
+                              "text/plain",
+                            )
+                          }
+                        >
+                          <Download size={14} />
+                          ダウンロード
+                        </button>
+                      </div>
+                      <pre>
+                        <code>{circuit.firmware}</code>
+                      </pre>
+                      <p>
+                        必要なライブラリ・実行環境は下の設計メモをご確認ください。コードは自動実行されません。
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <div className="playback">
+                  <button
+                    className="play-button"
+                    onClick={togglePlay}
+                    aria-label={playing ? "一時停止" : "組み立てを再生"}
+                  >
+                    {playing ? (
+                      <Pause size={17} fill="currentColor" />
+                    ) : (
+                      <Play size={17} fill="currentColor" />
+                    )}
+                  </button>
+                  <div className="playback-track">
+                    <div>
+                      <strong>
+                        {step === compiled.steps.length
+                          ? "回路のできあがり。"
+                          : step === 0
+                            ? "さあ、組み立てましょう。"
+                            : (current?.title ?? "パーツを追加してください")}
+                      </strong>
+                      <span>
+                        <b>{String(step).padStart(2, "0")}</b> /{" "}
+                        {String(compiled.steps.length).padStart(2, "0")} STEPS
+                      </span>
+                    </div>
+                    <input
+                      aria-label="組み立て工程"
+                      type="range"
+                      min={0}
+                      max={compiled.steps.length}
+                      value={step}
+                      onChange={(e) => {
+                        setStep(Number(e.target.value));
+                        setPlaying(false);
+                      }}
+                      style={
+                        {
+                          "--progress": `${(step / Math.max(1, compiled.steps.length)) * 100}%`,
+                        } as React.CSSProperties
+                      }
+                    />
+                  </div>
+                  <button
+                    className="icon-button"
+                    aria-label="前の工程"
+                    disabled={step === 0}
+                    onClick={() => {
+                      setStep((s) => s - 1);
+                      setPlaying(false);
+                    }}
+                  >
+                    <ChevronLeft size={17} />
+                  </button>
+                  <button
+                    className="icon-button"
+                    aria-label="次の工程"
+                    disabled={step === compiled.steps.length}
+                    onClick={() => {
+                      setStep((s) => s + 1);
+                      setPlaying(false);
+                    }}
+                  >
+                    <ChevronRight size={17} />
+                  </button>
+                  <select
+                    aria-label="再生速度"
+                    value={speed}
+                    onChange={(e) => setSpeed(Number(e.target.value))}
+                  >
+                    <option value={0.5}>0.5×</option>
+                    <option value={1}>1×</option>
+                    <option value={2}>2×</option>
+                  </select>
+                </div>
+              </>
+            )}
           </div>
-          <aside className="guide-panel">
+          <aside className="guide-panel" hidden={mode === "editor"}>
             <div className="panel-title">
               <span>
                 <Layers3 size={15} />
@@ -843,7 +956,7 @@ export default function Studio() {
             setPrompt={setPrompt}
             selectedBoard={selectedBoard}
             setSelectedBoard={setSelectedBoard}
-            busy={busy}
+            busy={busy || saving}
             phase={phase}
             error={settings ? "" : error}
             newDesign={newDesign}
@@ -854,13 +967,17 @@ export default function Studio() {
         <div className="workspace-status">
           <span>
             <span className="status-dot online" />
-            接続データの整合性チェック済み
+            {project.edited
+              ? "手動編集あり · Editorでレイアウトを確認してください"
+              : "接続データの整合性チェック済み"}
             <span className="status-sub"> · 実機動作は未検証</span>
           </span>
           <span>
-            {project.source === "demo"
-              ? "サンプル回路"
-              : `Gemini · GMI ${project.review.status === "reviewed" ? "レビュー済み" : "レビュー未実施"}`}
+            {project.edited
+              ? "手動編集した回路"
+              : project.source === "demo"
+                ? "サンプル回路"
+                : `Gemini · GMI ${project.review.status === "reviewed" ? "レビュー済み" : "レビュー未実施"}`}
             <i />
             {project.storage === "firestore"
               ? "Firestore に保存済み"

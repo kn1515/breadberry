@@ -219,6 +219,12 @@ export const circuitSchema = z.object({
         kind: z.enum(partKinds),
         value: z.string().max(60),
         purpose: z.string().max(200),
+        placement: z
+          .object({
+            hole: z.string().regex(/^[a-j]([1-9]|[12][0-9]|30)$/),
+            reversed: z.boolean(),
+          })
+          .optional(),
       }),
     )
     .min(1)
@@ -250,8 +256,9 @@ export type Project = {
   id: string;
   circuit: Circuit;
   createdAt: string;
-  source: "demo" | "gemini";
+  source: "demo" | "gemini" | "manual";
   messages?: ChatMessage[];
+  edited?: boolean;
   review: { status: "reviewed" | "unavailable" | "demo"; text: string };
   storage: "firestore" | "browser";
 };
@@ -288,14 +295,54 @@ export function boardPinPosition(board: Board, pin: string): Point {
     ];
   return [(Math.ceil(n / 2) - 10.5) * 0.21, 0.3, n % 2 ? -3.1 : -3.4];
 }
-export function compileCircuit(c: Circuit) {
-  const pinHoles: Record<string, string> = {};
-  c.parts.forEach((p, i) =>
-    catalog[p.kind].pins.forEach((pin, j) => {
-      pinHoles[`${p.id}.${pin}`] = `b${1 + i * 5 + catalog[p.kind].offsets[j]}`;
+/** Editor drafts may be incomplete, but must be safe to render and serialize. */
+export const draftCircuitSchema = circuitSchema.extend({
+  parts: circuitSchema.shape.parts.unwrap().array().max(30),
+  wires: circuitSchema.shape.wires.unwrap().array().max(60),
+});
+export function validateDraft(input: unknown): Circuit {
+  const c = draftCircuitSchema.parse(input);
+  if (new Set(c.parts.map((p) => p.id)).size !== c.parts.length)
+    throw new Error("部品IDが重複しています。");
+  const endpoints = new Set(
+    Object.keys(boards[c.board].pins).map((pin) => `board.${pin}`),
+  );
+  c.parts.forEach((p) =>
+    catalog[p.kind].pins.forEach((pin) => {
+      if (pin !== "NC") endpoints.add(`${p.id}.${pin}`);
     }),
   );
-  const used: Record<string, number> = {};
+  if (c.wires.some((w) => !endpoints.has(w.from) || !endpoints.has(w.to)))
+    throw new Error("存在しないピンへの配線があります。");
+  return c;
+}
+export function placementFor(part: Circuit["parts"][number], index: number) {
+  return part.placement ?? { hole: `b${1 + index * 5}`, reversed: false };
+}
+export function partPinHoles(c: Circuit) {
+  const holes: Record<string, string> = {};
+  c.parts.forEach((part, index) => {
+    const placement = placementFor(part, index);
+    catalog[part.kind].pins.forEach((pin, j) => {
+      holes[`${part.id}.${pin}`] =
+        `${placement.hole[0]}${Number(placement.hole.slice(1)) + (placement.reversed ? -1 : 1) * catalog[part.kind].offsets[j]}`;
+    });
+  });
+  return holes;
+}
+/** Also renders an out-of-bounds draft so users can see and repair it. */
+export function layoutHolePosition(hole: string): Point {
+  const col = hole.charCodeAt(0) - 97;
+  return [
+    (Number(hole.slice(1)) - 15.5) * 0.24,
+    0.18,
+    (col - 4.5) * 0.24 + (col < 5 ? -0.18 : 0.18),
+  ];
+}
+export function compileCircuit(c: Circuit) {
+  const pinHoles = partPinHoles(c);
+  const occupied = new Set(Object.values(pinHoles));
+  const allocationIssues: string[] = [];
   const endpoint = (key: string) => {
     if (key.startsWith("board."))
       return {
@@ -307,12 +354,20 @@ export function compileCircuit(c: Circuit) {
       };
     const hole = pinHoles[key];
     if (!hole) throw new Error(`存在しないピン: ${key}`);
-    const count = used[key] ?? 0;
-    used[key] = count + 1;
-    const jumperHole = `${["e", "d", "c", "a"][count] ?? "e"}${hole.slice(1)}`;
+    const columns =
+      hole[0] <= "e" ? ["e", "d", "c", "a", "b"] : ["j", "i", "h", "f", "g"];
+    const free = columns
+      .map((col) => `${col}${hole.slice(1)}`)
+      .find((h) => !occupied.has(h));
+    if (!free)
+      allocationIssues.push(
+        `${key}: 導通列にジャンパ線を挿す空き穴がありません。`,
+      );
+    const jumperHole = free ?? hole;
+    occupied.add(jumperHole);
     return {
       label: `${jumperHole.toUpperCase()} → ${key}`,
-      position: holePosition(jumperHole),
+      position: layoutHolePosition(jumperHole),
     };
   };
   const wires = c.wires.map((w, i) => ({
@@ -339,7 +394,7 @@ export function compileCircuit(c: Circuit) {
       to: w.end.label,
     })),
   ];
-  return { pinHoles, wires, steps };
+  return { pinHoles, wires, steps, allocationIssues };
 }
 
 // A wire-only union-find represents actual breadboard nets. Components do not

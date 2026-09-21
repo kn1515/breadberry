@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { boardSchema, circuitSchema, type Circuit } from "./circuit";
+import { boardSchema, draftCircuitSchema, type Circuit } from "./circuit";
 
 export const MAX_MESSAGES = 100;
 export const messageSchema = z.object({
@@ -12,7 +12,7 @@ export const generateRequestSchema = z.object({
   board: boardSchema,
   context: z
     .object({
-      circuit: circuitSchema,
+      circuit: draftCircuitSchema,
       messages: z.array(messageSchema).max(MAX_MESSAGES - 2),
     })
     .optional(),

@@ -200,6 +200,9 @@ gcloud projects add-iam-policy-binding "$GOOGLE_CLOUD_PROJECT" \
 gcloud projects add-iam-policy-binding "$GOOGLE_CLOUD_PROJECT" \
   --member="serviceAccount:${DEPLOY_SA}@${GOOGLE_CLOUD_PROJECT}.iam.gserviceaccount.com" \
   --role=roles/serviceusage.serviceUsageConsumer
+gcloud projects add-iam-policy-binding "$GOOGLE_CLOUD_PROJECT" \
+  --member="serviceAccount:${DEPLOY_SA}@${GOOGLE_CLOUD_PROJECT}.iam.gserviceaccount.com" \
+  --role=roles/storage.bucketViewer
 gcloud storage buckets add-iam-policy-binding "gs://${GOOGLE_CLOUD_PROJECT}_cloudbuild" \
   --member="serviceAccount:${DEPLOY_SA}@${GOOGLE_CLOUD_PROJECT}.iam.gserviceaccount.com" \
   --role=roles/storage.legacyBucketWriter
@@ -227,6 +230,8 @@ gcloud iam service-accounts add-iam-policy-binding \
   --role=roles/iam.workloadIdentityUser \
   --member="principalSet://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/github/attribute.repository/${GITHUB_OWNER}/${GITHUB_REPOSITORY}"
 ```
+
+`gcloud builds submit` は、既定のソース保存バケットが対象プロジェクトに属することをバケット一覧で確認します。そのため、バケット単位の書き込み権限に加えて、プロジェクト単位で `storage.buckets.list` を含む `roles/storage.bucketViewer` が必要です。`The user is forbidden from accessing the bucket` が出る場合は、`serviceusage.serviceUsageConsumer` だけでなく、このロールもデプロイ用サービスアカウントに付いているか確認してください。ロールの権限は [Cloud Storage の公式ドキュメント](https://docs.cloud.google.com/storage/docs/access-control/iam-roles) を参照してください。
 
 GitHubリポジトリの **Settings > Secrets and variables > Actions > Variables** に次を設定します。Cloud Run実行用の秘密値は従来どおりSecret Managerを参照するため、GitHubには登録しません。
 

@@ -156,17 +156,19 @@ Cloud Buildで使うビルド用サービスアカウントには、対象Artifa
 
 ### 3. Secret Manager
 
-次の4個のシークレットをGoogle Cloud Consoleで作成し、値を登録します。
+デプロイ前に、次の6個のシークレットをGoogle Cloud Consoleで作成し、値を登録します。
 
 - `breadberry-gemini-key`：Gemini APIキー
 - `breadberry-gmi-key`：GMI Cloud APIキー
 - `breadberry-session-secret`：`openssl rand -hex 32` で生成する値
 - `breadberry-access-token`：アプリ利用者に渡す共通アクセスコード
+- `breadberry-digikey-client-id`：DigiKey Production AppのClient ID
+- `breadberry-digikey-client-secret`：DigiKey Production AppのClient Secret
 
 各シークレットに実行アカウントの読み取り権限を付けます。
 
 ```bash
-for SECRET in breadberry-gemini-key breadberry-gmi-key breadberry-session-secret breadberry-access-token; do
+for SECRET in breadberry-gemini-key breadberry-gmi-key breadberry-session-secret breadberry-access-token breadberry-digikey-client-id breadberry-digikey-client-secret; do
   gcloud secrets add-iam-policy-binding "$SECRET" --project "$GOOGLE_CLOUD_PROJECT" \
     --member="serviceAccount:${RUNTIME_SA}" --role=roles/secretmanager.secretAccessor
 done
@@ -182,7 +184,7 @@ make deploy
 
 `APP_ORIGIN` を指定して実行すると、そのURLを操作の送信元として許可します（末尾 `/` なし）。未指定の場合はCloud Runに設定済みの値を保持します。他の追加済み環境変数も再デプロイ時に保持します。
 
-シークレット参照も `--update-secrets` で更新するため、Cloud Runに別途設定したDigiKeyなどの参照を保持します。DigiKey未設定の環境でも、既存の4個のシークレットでデプロイできます。
+`scripts/deploy.sh` はDigiKeyを含む上記6個のシークレットを `--update-secrets` でCloud Runの実行時環境変数に自動登録します。各シークレットの参照は `latest` に更新し、それ以外の追加シークレット参照は保持します。DigiKeyの2個もデプロイ前に作成・権限付与が必要です。`DIGIKEY_SANDBOX` は既定で `false` を登録します。
 
 一度Cloud RunのURLを `APP_ORIGIN` に設定済みなら、以降は `make deploy` だけで再デプロイできます。毎回 `gcloud run services update --update-env-vars APP_ORIGIN=...` を実行する必要はありません。URLを変更する場合や、localhost用の設定から戻す場合にだけ更新してください。
 
@@ -447,7 +449,7 @@ GitHub Actionsでも実行します。APIキー・Google Cloudプロジェクト
 
 ### Cloud RunでDigiKeyの認証情報を設定する
 
-初回のCloud Runデプロイ後、以下を一度設定します。GitHub ActionsのSecretsやビルド時の環境変数に認証情報を登録する必要はありません。`make deploy` は `.env.local` / `.env` に書いたDigiKeyの値をCloud Runへ転送しません。
+この変更を初めてデプロイする前に、以下のシークレット作成と権限付与を済ませます。GitHub ActionsのSecretsやビルド時の環境変数に認証情報を登録する必要はありません。`make deploy` は `.env.local` / `.env` に書いたDigiKeyの値をCloud Runへ転送しません。
 
 1. 同じGoogle CloudプロジェクトのSecret Managerで次の2個を作成し、DigiKeyのProduction Appの値を保存します。
 
@@ -466,18 +468,11 @@ GitHub Actionsでも実行します。APIキー・Google Cloudプロジェクト
    done
    ```
 
-3. Cloud Runの環境変数にシークレットを割り当てます。下の `:1` は作成したシークレットのバージョン番号です。既存のシークレットを使う場合は対象の番号に置き換えてください。`SERVICE` / `REGION` を変更している場合も、デプロイ時と同じ値を指定します。
+3. `make deploy` を実行するか、PRを `main` にマージしてGitHub Actionsでデプロイします。`.github/workflows/deploy.yml` → `make deploy` → `scripts/deploy.sh` の順で実行され、上表のシークレット参照（`:latest`）と `DIGIKEY_SANDBOX=false` がCloud Runへ自動登録されます。Cloud Runコンソールでの手動割り当ては不要です。`cloudbuild.yaml` はDockerイメージのビルドを担当し、DigiKeyの認証情報は渡しません。
 
-   ```bash
-   gcloud run services update "${SERVICE:-breadberry}" \
-     --project "$GOOGLE_CLOUD_PROJECT" --region "${REGION:-asia-northeast1}" \
-     --update-secrets 'DIGIKEY_CLIENT_ID=breadberry-digikey-client-id:1,DIGIKEY_CLIENT_SECRET=breadberry-digikey-client-secret:1' \
-     --update-env-vars 'DIGIKEY_SANDBOX=false'
-   ```
+キーを更新したときは、同じ名前のシークレットに新しいバージョンを登録して再デプロイします。既存APIキーと同じく `latest` を参照するため、手動で固定したバージョンも次のデプロイ時には `latest` に更新されます。Sandboxを使う検証環境を手動デプロイする場合は `DIGIKEY_SANDBOX=true make deploy` を指定してください。
 
-   コンソールで設定する場合は、Cloud Runの対象サービスの「コンテナ → 変数とシークレット → シークレットを参照」で上表の環境変数名・シークレット・バージョンを指定し、通常の環境変数に `DIGIKEY_SANDBOX=false` を追加して再デプロイします。
-
-以降の `make deploy` とPRマージ時のGitHub Actionsによる再デプロイでは、この参照設定・バージョンを保持します。キーを更新したときは新しいシークレットバージョンを作成し、上記の参照番号を更新してください。設定後はアプリの接続設定でDigiKeyが「設定済み」と表示されることを確認します（認証の成否は購入一覧での検索時に確認されます）。
+ローカル開発には `.env.local`（Docker Composeでは `.env`）に `DIGIKEY_CLIENT_ID` / `DIGIKEY_CLIENT_SECRET` を設定します。設定後はアプリの接続設定でDigiKeyが「設定済み」と表示されることを確認します（認証の成否は購入一覧での検索時に確認されます）。
 
 参考: [Cloud Runのシークレット設定](https://docs.cloud.google.com/run/docs/configuring/services/secrets)、[gcloud run deployのシークレット更新オプション](https://docs.cloud.google.com/sdk/gcloud/reference/run/deploy)。
 

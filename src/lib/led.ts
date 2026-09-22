@@ -9,6 +9,7 @@ export const ledColorNames = [
   "pink",
 ] as const;
 export type LedColor = (typeof ledColorNames)[number];
+export const ledModelUrl = (color: LedColor) => `/models/led/led-${color}.gltf`;
 
 export const ledColors = {
   green: {

@@ -1,6 +1,6 @@
 import type { ChatMessage } from "./conversation";
 import { z } from "zod";
-import { ledColorNames } from "./led";
+import { ledColorNames, resolveLedColor, type LedColor } from "./led";
 
 export const boardSchema = z.enum(["esp32", "pico", "raspberry-pi"]);
 export type Board = z.infer<typeof boardSchema>;
@@ -626,10 +626,17 @@ export function validateCircuit(input: unknown): Circuit {
 export function billOfMaterials(c: Circuit) {
   const grouped = new Map<
     string,
-    { name: string; value: string; quantity: number; kind: string }
+    {
+      name: string;
+      value: string;
+      quantity: number;
+      kind: string;
+      ledColor?: LedColor;
+    }
   >();
   for (const p of c.parts) {
-    const key = `${p.kind}:${p.value}`;
+    const ledColor = p.kind === "led" ? resolveLedColor(p) : undefined;
+    const key = `${p.kind}:${p.value}:${ledColor ?? ""}`;
     const row = grouped.get(key);
     if (row) row.quantity++;
     else
@@ -638,6 +645,7 @@ export function billOfMaterials(c: Circuit) {
         value: p.value,
         quantity: 1,
         kind: p.kind,
+        ...(ledColor ? { ledColor } : {}),
       });
   }
   return [

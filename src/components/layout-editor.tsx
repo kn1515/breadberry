@@ -24,6 +24,9 @@ const BoardScene = dynamic(() => import("./board-scene"), {
   ssr: false,
   loading: () => <div className="scene-fallback">3Dエディターを準備中</div>,
 });
+const LedModelPicker = dynamic(() => import("./led-model-picker"), {
+  ssr: false,
+});
 
 export default function LayoutEditor({
   circuit,
@@ -156,6 +159,13 @@ export default function LayoutEditor({
           レイアウトチェック
         </button>
       </div>
+      {kind === "led" && (
+        <LedModelPicker
+          value={newLedColor}
+          onChange={setNewLedColor}
+          disabled={disabled}
+        />
+      )}
       <p className="editor-help" id="editor-3d-help">
         3Dの部品をクリックして選択し、ドラッグして移動します。空いている穴のクリックでも移動できます。背景のドラッグで回転、スクロールでズーム。Escで移動をキャンセル。配線を変えた場合はコードも確認してください。
       </p>

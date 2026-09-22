@@ -60,6 +60,7 @@ import Schematic from "./schematic";
 import CircuitChat from "./circuit-chat";
 import LayoutEditor from "./layout-editor";
 import PurchaseModal from "./purchase-modal";
+import Tutorial from "./tutorial";
 import { MAX_MESSAGES } from "@/lib/conversation";
 const BoardScene = dynamic(() => import("./board-scene"), {
   ssr: false,
@@ -481,6 +482,7 @@ export default function Studio() {
           breadberry<span className="beta">BETA</span>
         </a>
         <div className="header-actions">
+          <Tutorial />
           <button
             className="settings-button"
             onClick={() => {

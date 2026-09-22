@@ -157,6 +157,7 @@ export default function PurchaseModal({
   const sandbox = rows.some((r) => r.sandbox);
   const valid =
     lines.length > 0 &&
+    selected.every((line) => canPurchase(line.offer, line.quantity)) &&
     lines.every((line) => canPurchase(line.offer, line.quantity)) &&
     !sandbox;
   const knownTotal = lines.reduce(

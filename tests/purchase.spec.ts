@@ -62,6 +62,9 @@ test("purchase modal selects products and POSTs combined quantities to FastAdd",
   await selects.nth(0).selectOption(offer.partNumber);
   await selects.nth(1).selectOption(offer.partNumber);
   await expect(dialog).toContainText("1 商品を選択 · ￥150");
+  // A valid combined quantity must not conceal an invalid individual row.
+  await dialog.locator('input[type="number"]').first().fill("0");
+  await expect(buy).toBeDisabled();
   await dialog.locator('input[type="number"]').first().fill("101");
   await expect(buy).toBeDisabled();
   await dialog.locator('input[type="number"]').first().fill("5");

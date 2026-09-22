@@ -8,6 +8,7 @@ import {
   owner,
 } from "@/lib/server";
 import { ServiceError } from "@/lib/ai";
+import { digiKeyConfigured } from "@/lib/digikey";
 export const runtime = "nodejs";
 export async function GET(req: NextRequest) {
   let active = false;
@@ -20,6 +21,7 @@ export async function GET(req: NextRequest) {
       active,
       gemini: !!process.env.GEMINI_API_KEY,
       gmi: !!process.env.GMI_API_KEY,
+      digikey: digiKeyConfigured(),
       firestore: !!process.env.GOOGLE_CLOUD_PROJECT,
       requiresAccessCode: !!process.env.APP_ACCESS_TOKEN,
     },

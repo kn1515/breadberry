@@ -426,3 +426,27 @@ GitHub Actionsでも実行します。APIキー・Google Cloudプロジェクト
 - 「保存」は接続済みならFirestoreへ、未接続またはクラウド保存失敗時はブラウザへ保存します。配置・未接続部品・会話履歴を含めてプロジェクト一覧から再開できます。最初の手動編集では元のプロジェクトとは別のIDになります。
 
 レイアウトチェックは表示モデルと導通列に基づく簡易検査です。実部品の寸法、公差、定格や回路の動作を保証しません。手動編集ではファームウェアを自動更新せず、以前の補助レビューは無効化します。AIへの修正依頼には編集途中の回路も渡せますが、生成結果には従来の電気的検査を適用します。
+
+
+## DigiKeyで部品を購入する
+
+アクションバーの「購入する」で現在の部品表（マイコン・ブレッドボード・素子・ジャンパ線）の購入候補を表示します。LEDの色と抵抗値を検索語に反映し、各行で検索語・商品・購入数量を変更できます。候補は自動選択されません。商品ページでモジュールか単体ICか、ピン配列・電圧・寸法・セット入数を確認してください。検索結果は互換性を保証するものではありません。
+
+選択後の「購入する · DigiKeyのカートへ」は、DigiKey公式のFastAddに品番と数量をPOSTし、別タブでカートを開きます。既存カートは維持し、同じ品番は数量を合算します。注文確定・決済はDigiKey側で行います。FastAddは公式資料に記載された `www.digikey.com` のエンドポイントを使用するため、DigiKey側で配送先・地域・通貨も確認してください。商品検索は日本サイト・日本語・JPY指定です。
+
+### 管理者の設定
+
+1. [DigiKey Developer Portal](https://developer.digikey.com/)でアプリを登録し、Product Information V4を有効にします。本番環境ではProduction Appのクライアント情報を使用します。
+2. `DIGIKEY_CLIENT_ID` と `DIGIKEY_CLIENT_SECRET` をサーバーの環境変数に設定します。`NEXT_PUBLIC_` を付けず、リポジトリにも保存しないでください。Docker Composeは既存の `.env`、Cloud RunではSecret Managerから実行時に渡します。Geminiのキーは部品検索には不要です。
+3. 既存の `SESSION_SECRET`、`GOOGLE_CLOUD_PROJECT`、Firestore権限を設定します。利用者は接続設定でセッションを開始します。アクセスコードを設定している場合は同じコードが必要です。
+4. 初期値の検索上限は全体800回/日・セッション100回/日です。`DIGIKEY_DAILY_LIMIT` と `DIGIKEY_SESSION_DAILY_LIMIT` で変更できます。FirestoreのトランザクションでCloud Runの複数インスタンス間でも計数します。AI生成上限とは別枠です。
+
+`DIGIKEY_SANDBOX=true` でSandboxの認証・商品検索を使用します。Sandboxの商品は検索条件と一致しない場合があるため、カート送信は無効です。本番運用時は `false` にしてください。
+
+認証トークンはサーバー内で期限まで再利用し、401では一度だけ再取得します。検索結果はインスタンス内で5分（最大200検索）保持します。包装別の最低購入数量・在庫・購入上限・段階単価を使用し、Digi-Reel手数料のある包装は除外します。価格・在庫は取得時点の参考値で、最終値はDigiKey側で確認してください。未設定・未接続・検索上限・タイムアウト・検索結果なしは画面に表示します。
+
+- [Product Information V4](https://developer.digikey.com/products/product-information-v4/productsearch/keywordsearch)
+- [OAuth 2-legged flow](https://developer.digikey.com/documentation)
+- [FastAdd公式仕様（POST）](https://forum.digikey.com/t/digikey-fastadd-bulk-add-parts-into-a-digikey-cart-via-third-party-tooling-and-urls/61356)
+
+検証: `npm run typecheck && npm test && npm run build`、`npx playwright test tests/purchase.spec.ts`。自動テストは商品APIとカート送信をモックし、実カートを変更しません。実機確認は本番キーで接続後、少数の候補を選び、別タブのDigiKeyカートで型番・数量を確認してください。

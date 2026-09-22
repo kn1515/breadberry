@@ -26,6 +26,7 @@ import {
   Eye,
   PencilRuler,
   Save,
+  ShoppingCart,
   Layers3,
   LoaderCircle,
   Maximize2,
@@ -58,6 +59,7 @@ import { demoProject, type Example } from "@/lib/demo";
 import Schematic from "./schematic";
 import CircuitChat from "./circuit-chat";
 import LayoutEditor from "./layout-editor";
+import PurchaseModal from "./purchase-modal";
 import { MAX_MESSAGES } from "@/lib/conversation";
 const BoardScene = dynamic(() => import("./board-scene"), {
   ssr: false,
@@ -72,6 +74,7 @@ type Config = {
   active: boolean;
   gemini: boolean;
   gmi: boolean;
+  digikey: boolean;
   firestore: boolean;
   requiresAccessCode: boolean;
 };
@@ -118,6 +121,7 @@ export default function Studio() {
   const [speed, setSpeed] = useState(1);
   const [query, setQuery] = useState("");
   const [settings, setSettings] = useState(false);
+  const [purchasing, setPurchasing] = useState(false);
   const [history, setHistory] = useState(false);
   const [examples, setExamples] = useState(false);
   const [accessCode, setAccessCode] = useState("");
@@ -615,6 +619,18 @@ export default function Studio() {
             >
               <Download size={18} />
               <span>エクスポート</span>
+            </button>
+            <button
+              className="activity-button"
+              disabled={busy || saving}
+              aria-haspopup="dialog"
+              onClick={() => {
+                setExamples(false);
+                setPurchasing(true);
+              }}
+            >
+              <ShoppingCart size={18} />
+              <span>購入する</span>
             </button>
           </div>
           <nav className="activity-group activity-help" aria-label="サポート">
@@ -1135,6 +1151,16 @@ export default function Studio() {
           想像を、つなごう。<span className="footer-spark">✧</span>
         </span>
       </footer>
+      {purchasing && (
+        <PurchaseModal
+          circuit={circuit}
+          onClose={() => setPurchasing(false)}
+          onConnect={() => {
+            setPurchasing(false);
+            setSettings(true);
+          }}
+        />
+      )}
       {settings && (
         <div className="modal-backdrop" onClick={() => setSettings(false)}>
           <dialog
@@ -1163,6 +1189,7 @@ export default function Studio() {
               {[
                 ["Gemini", config?.gemini],
                 ["GMI Cloud", config?.gmi],
+                ["DigiKey", config?.digikey],
                 ["Firestore", config?.firestore],
               ].map(([name, ok]) => (
                 <div key={String(name)}>

@@ -2792,3 +2792,50 @@ main > .ambient {
   border-radius: 50%;
   flex-shrink: 0;
 }
+
+
+/* DigiKey purchase dialog */
+.purchase-dialog { width: min(920px, calc(100vw - 32px)); max-height: 90dvh; margin: auto; padding: 0; border: 1px solid #dbe4df; border-radius: 20px; color: #243c33; background: #f8fbf9; box-shadow: 0 24px 90px #173c3333; overflow-y: auto; }
+.purchase-dialog::backdrop { background: #102e2866; backdrop-filter: blur(5px); }
+.purchase-header { display: flex; justify-content: space-between; align-items: center; padding: 24px 26px 12px; }
+.purchase-eyebrow { font-size: 11px; letter-spacing: .15em; color: #558471; }
+.purchase-header h2 { display: flex; align-items: center; gap: 10px; font-size: 22px; margin-top: 8px; }
+#purchase-help { padding: 0 26px 18px; color: #5b7067; font-size: 13px; line-height: 1.8; }
+.purchase-message { margin: 0 26px 16px; padding: 14px; border-radius: 10px; background: #fff5dc; font-size: 13px; }
+.purchase-message button { display: block; margin-top: 12px; }
+.purchase-list { padding: 0 26px 20px; display: grid; gap: 14px; }
+.purchase-row { min-width: 0; padding: 18px; background: white; border: 1px solid #e0e8e3; border-radius: 12px; }
+.purchase-part-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.purchase-part-heading h3 { font-size: 15px; }
+.purchase-part-heading span { white-space: nowrap; font-size: 12px; color: #317357; background: #edf6ef; padding: 4px 9px; border-radius: 6px; }
+.purchase-spec { font-size: 12px; color: #4a6558; margin: 5px 0; }
+.purchase-note { font-size: 12px; color: #68786f; line-height: 1.7; }
+.purchase-search { display: flex; gap: 8px; margin: 12px 0; }
+.purchase-dialog input, .purchase-dialog select { min-width: 0; border: 1px solid #cedbd3; border-radius: 6px; padding: 8px 10px; color: #263b30; background: white; font: inherit; font-size: 13px; }
+.purchase-search input { flex: 1; }
+.purchase-search button { border: 1px solid #cbdacf; background: #f4f8f5; border-radius: 6px; padding: 8px 12px; font-size: 12px; white-space: nowrap; }
+.purchase-dialog button:disabled { opacity: .5; cursor: not-allowed; }
+.purchase-selection { display: grid; gap: 5px; font-size: 12px; }
+.purchase-selection select { width: 100%; }
+.purchase-links { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; font-size: 11px; }
+.purchase-links a { display: inline-flex; align-items: center; gap: 4px; color: #286f54; text-decoration: underline; overflow-wrap: anywhere; }
+.purchase-status { display: flex; gap: 8px; align-items: center; font-size: 12px; color: #63786b; }
+.purchase-error { color: #a43e32; font-size: 12px; margin-top: 8px; }
+.purchase-offer { margin-top: 12px; padding-top: 12px; border-top: 1px solid #e9eeeb; font-size: 12px; overflow-wrap: anywhere; }
+.purchase-offer-details { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 10px; }
+.purchase-offer-details input { width: 90px; margin-left: 8px; }
+.purchase-footer { padding: 18px 26px 22px; background: #edf4ee; border-top: 1px solid #dbe7df; }
+.purchase-footer strong { font-size: 15px; }
+.purchase-footer p { font-size: 12px; line-height: 1.7; margin: 6px 0 12px; }
+.purchase-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 8px; background: #2e674f; color: white; font-size: 13px; font-weight: 600; padding: 12px 18px; }
+.purchase-dialog :focus-visible { outline: 3px solid #79b797; outline-offset: 2px; }
+@media (max-width: 600px) {
+  .purchase-dialog { width: calc(100vw - 16px); max-height: 94dvh; }
+  .purchase-header { padding: 18px 16px 12px; }
+  #purchase-help { padding: 0 16px 16px; }
+  .purchase-list { padding: 0 12px 16px; }
+  .purchase-row { padding: 12px; }
+  .purchase-message { margin: 0 12px 12px; }
+  .purchase-footer { padding: 16px; }
+  .purchase-footer .purchase-button { width: 100%; }
+}

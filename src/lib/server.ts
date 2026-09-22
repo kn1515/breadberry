@@ -123,3 +123,24 @@ export async function saveProject(id: string, project: Project) {
     .doc(project.id)
     .set(project);
 }
+
+/** Separate from generation quotas; shared across Cloud Run instances. */
+export async function takeDigiKeyQuota(id: string) {
+  const db = database();
+  const day = new Date().toISOString().slice(0, 10);
+  const global = db.collection("quotas").doc(`digikey-global-${day}`);
+  const user = db.collection("quotas").doc(`digikey-${id}-${day}`);
+  await db.runTransaction(async (tx) => {
+    const [g, u] = await tx.getAll(global, user);
+    const gc = g.data()?.count ?? 0,
+      uc = u.data()?.count ?? 0;
+    if (
+      gc >= Number(process.env.DIGIKEY_DAILY_LIMIT || 800) ||
+      uc >= Number(process.env.DIGIKEY_SESSION_DAILY_LIMIT || 100)
+    )
+      throw new ServiceError("本日の部品検索回数の上限に達しました。", 429);
+    const expiresAt = new Date(Date.now() + 7 * 86400000);
+    tx.set(global, { count: gc + 1, expiresAt });
+    tx.set(user, { count: uc + 1, expiresAt });
+  });
+}

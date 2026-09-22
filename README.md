@@ -156,17 +156,19 @@ Cloud Buildで使うビルド用サービスアカウントには、対象Artifa
 
 ### 3. Secret Manager
 
-次の4個のシークレットをGoogle Cloud Consoleで作成し、値を登録します。
+デプロイ前に、次の6個のシークレットをGoogle Cloud Consoleで作成し、値を登録します。
 
 - `breadberry-gemini-key`：Gemini APIキー
 - `breadberry-gmi-key`：GMI Cloud APIキー
 - `breadberry-session-secret`：`openssl rand -hex 32` で生成する値
 - `breadberry-access-token`：アプリ利用者に渡す共通アクセスコード
+- `breadberry-digikey-client-id`：DigiKey Production AppのClient ID
+- `breadberry-digikey-client-secret`：DigiKey Production AppのClient Secret
 
 各シークレットに実行アカウントの読み取り権限を付けます。
 
 ```bash
-for SECRET in breadberry-gemini-key breadberry-gmi-key breadberry-session-secret breadberry-access-token; do
+for SECRET in breadberry-gemini-key breadberry-gmi-key breadberry-session-secret breadberry-access-token breadberry-digikey-client-id breadberry-digikey-client-secret; do
   gcloud secrets add-iam-policy-binding "$SECRET" --project "$GOOGLE_CLOUD_PROJECT" \
     --member="serviceAccount:${RUNTIME_SA}" --role=roles/secretmanager.secretAccessor
 done
@@ -181,6 +183,8 @@ make deploy
 `scripts/deploy.sh` がCloud BuildでDockerをビルドし、Cloud Runへデプロイします。東京リージョン、1GiBメモリ、最大3インスタンス、180秒タイムアウト、**IAMで保護された非公開サービス**が既定です。環境変数 `REGION` / `SERVICE` / `SERVICE_ACCOUNT` で変更できます。
 
 `APP_ORIGIN` を指定して実行すると、そのURLを操作の送信元として許可します（末尾 `/` なし）。未指定の場合はCloud Runに設定済みの値を保持します。他の追加済み環境変数も再デプロイ時に保持します。
+
+`scripts/deploy.sh` はDigiKeyを含む上記6個のシークレットを `--update-secrets` でCloud Runの実行時環境変数に自動登録します。各シークレットの参照は `latest` に更新し、それ以外の追加シークレット参照は保持します。DigiKeyの2個もデプロイ前に作成・権限付与が必要です。`DIGIKEY_SANDBOX` は既定で `false` を登録します。
 
 一度Cloud RunのURLを `APP_ORIGIN` に設定済みなら、以降は `make deploy` だけで再デプロイできます。毎回 `gcloud run services update --update-env-vars APP_ORIGIN=...` を実行する必要はありません。URLを変更する場合や、localhost用の設定から戻す場合にだけ更新してください。
 
@@ -426,3 +430,56 @@ GitHub Actionsでも実行します。APIキー・Google Cloudプロジェクト
 - 「保存」は接続済みならFirestoreへ、未接続またはクラウド保存失敗時はブラウザへ保存します。配置・未接続部品・会話履歴を含めてプロジェクト一覧から再開できます。最初の手動編集では元のプロジェクトとは別のIDになります。
 
 レイアウトチェックは表示モデルと導通列に基づく簡易検査です。実部品の寸法、公差、定格や回路の動作を保証しません。手動編集ではファームウェアを自動更新せず、以前の補助レビューは無効化します。AIへの修正依頼には編集途中の回路も渡せますが、生成結果には従来の電気的検査を適用します。
+
+
+## DigiKeyで部品を購入する
+
+アクションバーの「購入する」で現在の部品表（マイコン・ブレッドボード・素子・ジャンパ線）の購入候補を表示します。LEDの色と抵抗値を検索語に反映し、各行で検索語・商品・購入数量を変更できます。候補は自動選択されません。商品ページでモジュールか単体ICか、ピン配列・電圧・寸法・セット入数を確認してください。検索結果は互換性を保証するものではありません。
+
+選択後の「購入する · DigiKeyのカートへ」は、DigiKey公式のFastAddに品番と数量をPOSTし、別タブでカートを開きます。既存カートは維持し、同じ品番は数量を合算します。注文確定・決済はDigiKey側で行います。FastAddは公式資料に記載された `www.digikey.com` のエンドポイントを使用するため、DigiKey側で配送先・地域・通貨も確認してください。商品検索は日本サイト・日本語・JPY指定です。
+
+### 管理者の設定
+
+1. [DigiKey Developer Portal](https://developer.digikey.com/)でアプリを登録し、Product Information V4を有効にします。本番環境ではProduction Appのクライアント情報を使用します。
+2. `DIGIKEY_CLIENT_ID` と `DIGIKEY_CLIENT_SECRET` をサーバーの環境変数に設定します。`NEXT_PUBLIC_` を付けず、リポジトリにも保存しないでください。Docker Composeは既存の `.env`、Cloud RunではSecret Managerから実行時に渡します。Geminiのキーは部品検索には不要です。
+3. 既存の `SESSION_SECRET`、`GOOGLE_CLOUD_PROJECT`、Firestore権限を設定します。利用者は接続設定でセッションを開始します。アクセスコードを設定している場合は同じコードが必要です。
+4. 初期値の検索上限は全体800回/日・セッション100回/日です。`DIGIKEY_DAILY_LIMIT` と `DIGIKEY_SESSION_DAILY_LIMIT` で変更できます。FirestoreのトランザクションでCloud Runの複数インスタンス間でも計数します。AI生成上限とは別枠です。
+
+`DIGIKEY_SANDBOX=true` でSandboxの認証・商品検索を使用します。Sandboxの商品は検索条件と一致しない場合があるため、カート送信は無効です。本番運用時は `false` にしてください。
+
+### Cloud RunでDigiKeyの認証情報を設定する
+
+この変更を初めてデプロイする前に、以下のシークレット作成と権限付与を済ませます。GitHub ActionsのSecretsやビルド時の環境変数に認証情報を登録する必要はありません。`make deploy` は `.env.local` / `.env` に書いたDigiKeyの値をCloud Runへ転送しません。
+
+1. 同じGoogle CloudプロジェクトのSecret Managerで次の2個を作成し、DigiKeyのProduction Appの値を保存します。
+
+   | シークレット名 | 保存する値 | Cloud Runの環境変数名 |
+   | --- | --- | --- |
+   | `breadberry-digikey-client-id` | Client ID | `DIGIKEY_CLIENT_ID` |
+   | `breadberry-digikey-client-secret` | Client Secret | `DIGIKEY_CLIENT_SECRET` |
+
+2. Cloud Runの実行サービスアカウントに、それぞれのシークレットを読む権限を付与します。`GOOGLE_CLOUD_PROJECT` と、独自のアカウントを使う場合は `SERVICE_ACCOUNT` を、デプロイ時と同じ値に設定してください。
+
+   ```bash
+   RUNTIME_SA="${SERVICE_ACCOUNT:-breadberry-runtime@${GOOGLE_CLOUD_PROJECT}.iam.gserviceaccount.com}"
+   for SECRET in breadberry-digikey-client-id breadberry-digikey-client-secret; do
+     gcloud secrets add-iam-policy-binding "$SECRET" --project "$GOOGLE_CLOUD_PROJECT" \
+       --member="serviceAccount:${RUNTIME_SA}" --role=roles/secretmanager.secretAccessor
+   done
+   ```
+
+3. `make deploy` を実行するか、PRを `main` にマージしてGitHub Actionsでデプロイします。`.github/workflows/deploy.yml` → `make deploy` → `scripts/deploy.sh` の順で実行され、上表のシークレット参照（`:latest`）と `DIGIKEY_SANDBOX=false` がCloud Runへ自動登録されます。Cloud Runコンソールでの手動割り当ては不要です。`cloudbuild.yaml` はDockerイメージのビルドを担当し、DigiKeyの認証情報は渡しません。
+
+キーを更新したときは、同じ名前のシークレットに新しいバージョンを登録して再デプロイします。既存APIキーと同じく `latest` を参照するため、手動で固定したバージョンも次のデプロイ時には `latest` に更新されます。Sandboxを使う検証環境を手動デプロイする場合は `DIGIKEY_SANDBOX=true make deploy` を指定してください。
+
+ローカル開発には `.env.local`（Docker Composeでは `.env`）に `DIGIKEY_CLIENT_ID` / `DIGIKEY_CLIENT_SECRET` を設定します。設定後はアプリの接続設定でDigiKeyが「設定済み」と表示されることを確認します（認証の成否は購入一覧での検索時に確認されます）。
+
+参考: [Cloud Runのシークレット設定](https://docs.cloud.google.com/run/docs/configuring/services/secrets)、[gcloud run deployのシークレット更新オプション](https://docs.cloud.google.com/sdk/gcloud/reference/run/deploy)。
+
+認証トークンはサーバー内で期限まで再利用し、401では一度だけ再取得します。検索結果はインスタンス内で5分（最大200検索）保持します。包装別の最低購入数量・在庫・購入上限・段階単価を使用し、Digi-Reel手数料のある包装は除外します。価格・在庫は取得時点の参考値で、最終値はDigiKey側で確認してください。未設定・未接続・検索上限・タイムアウト・検索結果なしは画面に表示します。
+
+- [Product Information V4](https://developer.digikey.com/products/product-information-v4/productsearch/keywordsearch)
+- [OAuth 2-legged flow](https://developer.digikey.com/documentation)
+- [FastAdd公式仕様（POST）](https://forum.digikey.com/t/digikey-fastadd-bulk-add-parts-into-a-digikey-cart-via-third-party-tooling-and-urls/61356)
+
+検証: `npm run typecheck && npm test && npm run build`、`npx playwright test tests/purchase.spec.ts`。自動テストは商品APIとカート送信をモックし、実カートを変更しません。実機確認は本番キーで接続後、少数の候補を選び、別タブのDigiKeyカートで型番・数量を確認してください。

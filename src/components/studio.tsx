@@ -680,9 +680,7 @@ export default function Studio() {
             </div>
             <details className="parts-catalog">
               <summary>
-                {t("対応するセンサー・部品（")}
-                {partKinds.length}
-                {t("種類）")}
+                {t("対応するセンサー・部品")}
               </summary>
               <p>
                 {t(

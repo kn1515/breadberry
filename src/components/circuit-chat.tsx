@@ -198,7 +198,7 @@ export default function CircuitChat({
           <span className="status-dot online" />
           {busy
             ? [
-                t("Geminiが回路を設計しています…"),
+                t("AIが回路を設計しています…"),
                 t("接続データを生成しています…"),
                 t("接続検査と補助レビューを進めています…"),
               ][phase]

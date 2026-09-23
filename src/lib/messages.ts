@@ -1,5 +1,34 @@
 // Japanese source messages and their English translations.
 export const messages: Record<string, string> = {
+  "対応するセンサー・部品": "Supported sensors and parts",
+  部品一覧を閉じる: "Close parts catalog",
+  "3Dモデルと名前を確認し、使いたい部品を選択してください。":
+    "Browse the 3D models and names, then choose a part to use.",
+  対応部品を検索: "Search supported parts",
+  "{0}種類の部品": "{0} types of parts",
+  "{0}の3Dモデル": "3D model of {0}",
+  "{0}を選択": "Select {0}",
+  この部品を使う: "Use this part",
+  "3Dプレビューを表示できません。": "3D preview unavailable.",
+  アクセスコードを入力: "Enter access code",
+  "利用を開始するには、管理者から案内されたアクセスコードを入力してください。":
+    "Enter the access code provided by your administrator to continue.",
+  続ける: "Continue",
+  操作チュートリアル: "Interactive tutorial",
+  完了: "Finish",
+  "「サンプル」から回路を選べます。今表示されている回路で操作を体験しましょう。":
+    "Choose a circuit from Samples. Try the controls with the circuit already on screen.",
+  "ここに作りたいものや修正内容を入力します。「回路を修正」で今の回路を変更できます。":
+    "Describe what to build or change here. Revise circuit applies your changes to the current design.",
+  "このボタンを押すと、対応部品の3Dモデルと名前を一覧で確認できます。":
+    "Press this button to browse supported parts with their 3D models and names.",
+  "組み立てを再生しています。このボタンで一時停止・再開できます。スライダーで工程を選べます。":
+    "Assembly is playing. Use this button to pause or resume, or the slider to choose a step.",
+  "Editorに切り替えました。部品を追加・移動し、レイアウトチェックで配置を確認できます。":
+    "The workspace is now in Editor. Add or move parts and use Check layout to inspect their placement.",
+  "部品リストはここからダウンロードできます。「保存」で回路を残し、「購入する」で商品を確認できます。":
+    "Download the parts list here. Save keeps your circuit, and Buy parts shows matching products.",
+
   "3D表示を開始できませんでした。「回路図」タブで接続を確認できます。":
     "Could not start the 3D view. Check connections in the Schematic tab.",
   "WebGLを利用できません。3Dを表示できるブラウザをご利用ください。配置の変更は下の「配置する穴」からも行えます。":
@@ -26,7 +55,7 @@ export const messages: Record<string, string> = {
   設計しています: "Designing",
   回路を生成: "Generate circuit",
   回路を修正: "Revise circuit",
-  "Geminiが回路を設計しています…": "Gemini is designing the circuit…",
+  "AIが回路を設計しています…": "AI is designing the circuit…",
   "接続データを生成しています…": "Generating connection data…",
   "接続検査と補助レビューを進めています…":
     "Checking connections and running the advisory review…",
@@ -88,22 +117,22 @@ export const messages: Record<string, string> = {
     "Could not check the connection. Close this window and try again.",
   "DigiKeyの商品検索は準備中です。管理者に連携設定を依頼してください。":
     "DigiKey search is not configured. Ask your administrator to set it up.",
-  "部品検索を利用するには、接続設定からセッションを開始してください。":
+  "利用期限が切れました。一覧を閉じて再度お試しください。":
     "Start a session in Connection settings to search for parts.",
   "接続状態を確認できませんでした。": "Could not check the connection.",
   部品を購入する: "Buy parts",
   購入一覧を閉じる: "Close purchase list",
-  "Geminiが回路の仕様に最も合う商品を選択します。選定理由と商品ページの仕様・端子・入数を確認してください。商品や数量は変更できます。":
-    "Gemini selects the product that best matches the circuit specifications. Check its reasoning, product specifications, pins, and pack size. You can change products and quantities.",
+  "AIが回路の仕様に最も合う商品を選択します。選定理由と商品ページの仕様・端子・入数を確認してください。商品や数量は変更できます。":
+    "AI selects the product that best matches the circuit specifications. Check its reasoning, product specifications, pins, and pack size. You can change products and quantities.",
   接続設定を開く: "Open connection settings",
   "テスト用の商品情報です。実際の検索条件と一致しないためカートへ追加できません。":
     "These are test products and may not match your search. They cannot be added to the cart.",
   必要数: "Required:",
   再検索: "Search again",
-  "商品検索・Geminiによる選定中…": "Searching and selecting with Gemini…",
+  "商品検索・AIによる選定中…": "Searching and selecting with AI…",
   "候補が見つかりません。検索語や型番を変更してください。":
     "No candidates found. Try different search terms or a part number.",
-  "Geminiの選定結果:": "Gemini recommendation:",
+  "AIの選定結果:": "AI recommendation:",
   購入する商品: "Product to purchase",
   "購入対象に含めない（商品を選択）":
     "Exclude from purchase (select a product)",
@@ -453,7 +482,7 @@ export const messages: Record<string, string> = {
     "Firestore project ID is not configured. Try a sample circuit.",
   "セッション署名キーを32文字以上で設定してください。":
     "Set a session signing key of at least 32 characters.",
-  "プロジェクト保存のため、接続設定からセッションを開始してください。":
+  "利用期限が切れました。再度お試しください。":
     "Start a session in Connection settings to save projects.",
   "この送信元からは操作できません。":
     "Requests from this origin are not allowed.",
@@ -470,18 +499,18 @@ export const messages: Record<string, string> = {
     "The AI service connection timed out. Try again later.",
   "AIサービスから不正な応答が返されました。":
     "The AI service returned an invalid response.",
-  "Gemini APIキーが未設定です。サンプル回路をお試しください。":
-    "The Gemini API key is not configured. Try a sample circuit.",
+  "回路生成は現在利用できません。サンプル回路をお試しください。":
+    "Circuit generation is currently unavailable. Try a sample circuit.",
   "AIが設計を完了できませんでした。対応部品を使う、より小さな回路を指定してください。":
     "AI could not finish the design. Request a smaller circuit using supported parts.",
   "選択された基板と設計が一致しません。":
     "The design does not match the selected board.",
   "対応する回路形式ではありません。": "Unsupported circuit format.",
   不正な回路: "Invalid circuit",
-  "GMI Cloudが未設定のため、補助レビューは実施していません。":
-    "GMI Cloud is not configured, so no advisory review was performed.",
-  "GMI Cloudから応答を取得できませんでした。設計は保存できますが、補助レビューは未実施です。":
-    "Could not get a response from GMI Cloud. You can save the design, but no advisory review was performed.",
+  "補助レビューは現在利用できないため、実施していません。":
+    "Advisory review is currently unavailable and has not been performed.",
+  "補助レビューの応答を取得できませんでした。設計は保存できますが、補助レビューは未実施です。":
+    "Could not get a response from the review service. You can save the design, but no advisory review was performed.",
   "DigiKeyの商品情報・通貨を確認できませんでした。再検索してください。":
     "Could not verify DigiKey product data or currency. Search again.",
   "DigiKeyに接続できませんでした。時間をおいて再検索してください。":
@@ -498,10 +527,10 @@ export const messages: Record<string, string> = {
     "DigiKey returned an invalid authentication response.",
   "必要数量を購入できる候補がありません。":
     "No candidate can supply the required quantity.",
-  "Gemini APIキーが未設定のため自動選択できません。":
-    "Automatic selection is unavailable because the Gemini API key is not configured.",
-  "Geminiの商品選定結果を確認できませんでした。再検索するか手動で選択してください。":
-    "Could not verify Gemini’s product selection. Search again or select manually.",
+  "自動選択は現在利用できません。商品は手動で選択できます。":
+    "Automatic selection is currently unavailable. You can select a product manually.",
+  "AIの商品選定結果を確認できませんでした。再検索するか手動で選択してください。":
+    "Could not verify AI’s product selection. Search again or select manually.",
   "配線 {0} → {1} を削除": "Delete wire {0} → {1}",
   "要確認: {0}件": "Needs attention: {0}",
   "{0}のLEDモデルを選択": "Select {0} LED model",
@@ -559,13 +588,14 @@ export const messages: Record<string, string> = {
   "テスト用の商品情報のため自動選択しません。":
     "Test product data is not selected automatically.",
   "{0} 商品は手動で選択できます。": "{0} You can select a product manually.",
-  "Geminiの自動選択を利用できません。商品は手動で選択できます。":
-    "Gemini selection is unavailable. You can select a product manually.",
+  "AIの自動選択を利用できません。商品は手動で選択できます。":
+    "AI selection is unavailable. You can select a product manually.",
   "1〜2000文字で入力し、基板を選択してください。会話が50往復に達した場合は新しい回路を開始してください。":
     "Enter 1–2000 characters and select a board. Start a new circuit after 50 exchanges.",
   "修正元の回路データが不正です。プロジェクトを開き直してください。":
     "The source circuit is invalid. Reopen the project.",
-  "Gemini APIキーが未設定です。": "The Gemini API key is not configured.",
+  "回路生成は現在利用できません。":
+    "Circuit generation is currently unavailable.",
   "保存に失敗しました。回路をJSONでダウンロードして保管してください。":
     "Saving failed. Download the circuit as JSON to keep it.",
   "プロジェクトが見つかりません。": "Project not found.",

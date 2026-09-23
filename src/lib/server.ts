@@ -41,7 +41,7 @@ export function owner(req: NextRequest) {
     Number(expires) < Date.now()
   )
     throw new ServiceError(
-      "プロジェクト保存のため、接続設定からセッションを開始してください。",
+      "利用期限が切れました。再度お試しください。",
       401,
     );
   return id;

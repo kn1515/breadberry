@@ -48,7 +48,7 @@ test("missing Gemini is explicit; GMI failure never reports reviewed", async () 
   const old = process.env.GEMINI_API_KEY;
   delete process.env.GEMINI_API_KEY;
   try {
-    await assert.rejects(generateCircuit("sample test", "esp32"), /未設定/);
+    await assert.rejects(generateCircuit("sample test", "esp32"), /現在利用できません/);
   } finally {
     if (old !== undefined) process.env.GEMINI_API_KEY = old;
   }

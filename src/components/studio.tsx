@@ -3,6 +3,7 @@ import { usePreferences, Text, PreferenceControls } from "./preferences";
 import dynamic from "next/dynamic";
 import {
   useEffect,
+  useCallback,
   useMemo,
   useRef,
   useState,
@@ -36,7 +37,6 @@ import {
   Plus,
   RotateCcw,
   Search,
-  Settings2,
   ShieldCheck,
   SlidersHorizontal,
   Sparkles,
@@ -49,8 +49,6 @@ import {
   billOfMaterials,
   boards,
   catalog,
-  isAnalog,
-  partKinds,
   compileCircuit,
   validateCircuit,
   validateDraft,
@@ -64,6 +62,7 @@ import CircuitChat from "./circuit-chat";
 import LayoutEditor from "./layout-editor";
 import PurchaseModal from "./purchase-modal";
 import Tutorial from "./tutorial";
+const PartsCatalog = dynamic(() => import("./parts-catalog"), { ssr: false });
 import { MAX_MESSAGES } from "@/lib/conversation";
 const BoardScene = dynamic(() => import("./board-scene"), {
   ssr: false,
@@ -126,6 +125,39 @@ export default function Studio() {
   const [speed, setSpeed] = useState(1);
   const [query, setQuery] = useState("");
   const [settings, setSettings] = useState(false);
+  const [catalogOpen, setCatalogOpen] = useState(false);
+  const [tourStep, setTourStep] = useState<number | null>(null);
+  const tourSnapshot = useRef<{
+    mode: "viewer" | "editor";
+    tab: "3d" | "schematic" | "code";
+    step: number;
+    playing: boolean;
+  } | null>(null);
+  const pendingAction = useRef<"generate" | "purchase" | null>(null);
+  const startTour = () => {
+    if (tourStep !== null || busy || saving) return;
+    tourSnapshot.current = { mode, tab, step, playing };
+    setExamples(false);
+    setTourStep(0);
+  };
+  const closeTour = useCallback(() => {
+    setTourStep(null);
+    const before = tourSnapshot.current;
+    if (before) {
+      setMode(before.mode);
+      setTab(before.tab);
+      setStep(before.step);
+      setPlaying(before.playing);
+      tourSnapshot.current = null;
+    }
+  }, []);
+  useEffect(() => {
+    if (tourStep === null) return;
+    setMode(tourStep === 4 ? "editor" : "viewer");
+    setTab("3d");
+    setPlaying(tourStep === 3);
+    if (tourStep === 3) setStep(0);
+  }, [tourStep]);
   const [purchasing, setPurchasing] = useState(false);
   const [history, setHistory] = useState(false);
   const [examples, setExamples] = useState(false);
@@ -252,6 +284,32 @@ export default function Studio() {
     setNotice("サンプル回路を開きました。生成APIは使用していません。");
     workspace.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
+  async function prepareSession(action: "generate" | "purchase") {
+    const cfg = await loadConfig();
+    if (!cfg) throw new Error(t("接続状態を確認できませんでした。"));
+    if (cfg.active) return true;
+    if (cfg.requiresAccessCode) {
+      pendingAction.current = action;
+      setSettings(true);
+      return false;
+    }
+    const res = await fetch("/api/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.error);
+    await loadConfig();
+    return true;
+  }
+  async function openPurchase() {
+    try {
+      if (await prepareSession("purchase")) setPurchasing(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("接続できませんでした。"));
+    }
+  }
   async function connect() {
     setConnecting(true);
     setError("");
@@ -266,7 +324,10 @@ export default function Studio() {
       await loadConfig();
       setAccessCode("");
       setSettings(false);
-      setNotice("セッションを開始しました。回路を生成できます。");
+      const action = pendingAction.current;
+      pendingAction.current = null;
+      if (action === "generate") void generate();
+      if (action === "purchase") setPurchasing(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "接続できませんでした。");
     } finally {
@@ -283,11 +344,7 @@ export default function Studio() {
     setError("");
     setNotice("");
     try {
-      const cfg = await loadConfig();
-      if (!cfg?.active) {
-        setSettings(true);
-        throw new Error(t("接続設定からセッションを開始してください。"));
-      }
+      if (!(await prepareSession("generate"))) return;
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -490,19 +547,15 @@ export default function Studio() {
         </a>
         <div className="header-actions">
           <PreferenceControls />
-          <Tutorial />
           <button
-            className="settings-button"
-            onClick={() => {
-              setError("");
-              setSettings(true);
-            }}
+            className="tutorial-trigger"
+            onClick={startTour}
+            disabled={busy || saving}
+            aria-label={t("チュートリアルを開く")}
+            aria-expanded={tourStep !== null}
           >
-            <Settings2 size={16} />
-            <span>{t("接続設定")}</span>
-            <span
-              className={`status-dot ${config?.active && config.gemini ? "online" : ""}`}
-            />
+            <CircleHelp size={18} />
+            <span>{t("使い方")}</span>
           </button>
         </div>
       </header>
@@ -547,6 +600,7 @@ export default function Studio() {
             {(["viewer", "editor"] as const).map((value) => (
               <button
                 key={value}
+                data-tour={value}
                 className="activity-button"
                 disabled={busy || saving}
                 aria-label={
@@ -583,6 +637,7 @@ export default function Studio() {
                 className="activity-button"
                 disabled={busy || saving}
                 aria-expanded={examples}
+                data-tour="samples"
                 aria-controls="activity-examples"
                 onClick={() => setExamples((s) => !s)}
               >
@@ -635,14 +690,15 @@ export default function Studio() {
             className="activity-group activity-help"
             aria-label={t("サポート")}
           >
-            <a
+            <button
               className="activity-button"
-              href="#how-it-works"
+              onClick={startTour}
+              disabled={busy || saving}
               title={t("使い方を見る")}
             >
               <CircleHelp size={18} />
               <span>{t("ヘルプ")}</span>
-            </a>
+            </button>
           </nav>
         </aside>
         <div className="workspace-heading">
@@ -678,49 +734,14 @@ export default function Studio() {
               <span>{t("パーツライブラリ")}</span>
               <span className="count">{bom.length}</span>
             </div>
-            <details className="parts-catalog">
-              <summary>
-                {t("対応するセンサー・部品")}
-              </summary>
-              <p>
-                {t(
-                  "部品を選ぶと入力欄にセットします。3.3V回路・最大6部品。モジュールは端子名と実物の仕様を確認してください。",
-                )}
-              </p>
-              <div className="catalog-grid">
-                {partKinds.map((kind) => {
-                  const unavailable =
-                    selectedBoard === "raspberry-pi" && isAnalog(kind);
-                  return (
-                    <button
-                      type="button"
-                      key={kind}
-                      disabled={busy || unavailable}
-                      title={
-                        unavailable
-                          ? t("Raspberry Pi 4/5はADC非搭載です")
-                          : t(catalog[kind].note)
-                      }
-                      onClick={() =>
-                        setPrompt(
-                          newDesign
-                            ? t(
-                                "{0}を使う回路と動作確認用のコードを作成してください。",
-                                [t(catalog[kind].name)],
-                              )
-                            : t("現在の回路に{0}を追加してください。", [
-                                t(catalog[kind].name),
-                              ]),
-                        )
-                      }
-                    >
-                      {t(catalog[kind].name)}
-                      {unavailable ? t("（ADCが必要）") : ""}
-                    </button>
-                  );
-                })}
-              </div>
-            </details>
+            <button
+              className="parts-catalog"
+              data-tour="catalog"
+              aria-haspopup="dialog"
+              onClick={() => setCatalogOpen(true)}
+            >
+              {t("対応するセンサー・部品")}
+            </button>
             <label className="parts-search">
               <Search size={14} />
               <input
@@ -780,7 +801,11 @@ export default function Studio() {
                   .includes(query.toLowerCase()),
               ) && <p className="empty">{t("該当する部品がありません。")}</p>}
             </div>
-            <button className="bom-download" onClick={exportBOM}>
+            <button
+              className="bom-download"
+              onClick={exportBOM}
+              data-tour="download"
+            >
               <ArrowDownToLine size={14} /> {t("部品リストをダウンロード")}
             </button>
             <button
@@ -963,6 +988,7 @@ export default function Studio() {
                 <div className="playback">
                   <button
                     className="play-button"
+                    data-tour="play"
                     onClick={togglePlay}
                     aria-label={playing ? t("一時停止") : t("組み立てを再生")}
                   >
@@ -1145,7 +1171,7 @@ export default function Studio() {
               ? t("手動編集した回路")
               : project.source === "demo"
                 ? t("サンプル回路")
-                : `Gemini · GMI ${project.review.status === "reviewed" ? t("レビュー済み") : t("レビュー未実施")}`}
+                : `${t("AI生成")} · ${project.review.status === "reviewed" ? t("レビュー済み") : t("レビュー未実施")}`}
             <i />
             {project.storage === "firestore"
               ? t("保存済み")
@@ -1174,11 +1200,10 @@ export default function Studio() {
                 <li key={i}>{project.source === "demo" ? t(n) : n}</li>
               ))}
             </ul>
-            <strong>
-              {t("補助レビュー")}{" "}
-              {project.review.status === "reviewed" ? "· GMI Cloud" : ""}
-            </strong>
-            <p className="review-text">{t(project.review.text)}</p>
+            <strong>{t("補助レビュー")} </strong>
+            <p className="review-text">
+              {t(project.review.text.replace(/Gemini|GMI Cloud/gi, "AI"))}
+            </p>
           </details>
         </div>
         <div id="how-it-works" className="how-it-works">
@@ -1225,15 +1250,30 @@ export default function Studio() {
           <span className="footer-spark">✧</span>
         </span>
       </footer>
-      {purchasing && (
-        <PurchaseModal
-          circuit={circuit}
-          onClose={() => setPurchasing(false)}
-          onConnect={() => {
-            setPurchasing(false);
-            setSettings(true);
+      {tourStep !== null && (
+        <Tutorial step={tourStep} onStep={setTourStep} onClose={closeTour} />
+      )}
+      {catalogOpen && (
+        <PartsCatalog
+          board={selectedBoard}
+          disabled={busy || saving}
+          onClose={() => setCatalogOpen(false)}
+          onSelect={(kind) => {
+            setPrompt(
+              newDesign
+                ? t("{0}を使う回路と動作確認用のコードを作成してください。", [
+                    t(catalog[kind].name),
+                  ])
+                : t("現在の回路に{0}を追加してください。", [
+                    t(catalog[kind].name),
+                  ]),
+            );
+            setCatalogOpen(false);
           }}
         />
+      )}
+      {purchasing && (
+        <PurchaseModal circuit={circuit} onClose={() => setPurchasing(false)} />
       )}
       {settings && (
         <div className="modal-backdrop" onClick={() => setSettings(false)}>
@@ -1252,30 +1292,12 @@ export default function Studio() {
             >
               <X size={18} />
             </button>
-            <div className="modal-symbol">
-              <Settings2 />
-            </div>
-            <h2 id="settings-title">{t("AIとの接続を、準備しよう。")}</h2>
+            <h2 id="settings-title">{t("アクセスコードを入力")}</h2>
             <p>
               {t(
-                "キーはサーバーの環境変数で管理されます。設定がなくてもサンプル回路を体験できます。",
+                "利用を開始するには、管理者から案内されたアクセスコードを入力してください。",
               )}
             </p>
-            <div className="config-rows">
-              {[
-                ["Gemini", config?.gemini],
-                ["GMI Cloud", config?.gmi],
-                ["DigiKey", config?.digikey],
-                ["Firestore", config?.firestore],
-              ].map(([name, ok]) => (
-                <div key={String(name)}>
-                  <span>{name}</span>
-                  <span className={ok ? "configured" : ""}>
-                    {ok ? t("設定済み") : t("未設定")}
-                  </span>
-                </div>
-              ))}
-            </div>
             {config?.requiresAccessCode && (
               <label className="access-field">
                 {t("アクセスコード")}
@@ -1295,24 +1317,15 @@ export default function Studio() {
             <button
               className="primary-button connect-button"
               onClick={() => void connect()}
-              disabled={connecting || !config?.gemini || !config?.firestore}
+              disabled={connecting || !accessCode.trim()}
             >
               {connecting ? (
                 <LoaderCircle className="spin" size={16} />
               ) : (
                 <Zap size={16} />
               )}
-              {t("セッションを開始")}
+              {t("続ける")}
             </button>
-            <a
-              className="setup-link"
-              href="https://github.com/kn1515/breadberry#セットアップ"
-              target="_blank"
-              rel="noreferrer"
-            >
-              {t("セットアップ手順を見る")}
-              <ArrowUpRight size={14} />
-            </a>
           </dialog>
         </div>
       )}

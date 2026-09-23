@@ -1,7 +1,13 @@
 "use client";
 import { usePreferences } from "./preferences";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ExternalLink, LoaderCircle, ShoppingCart, Sparkles, X } from "lucide-react";
+import {
+  ExternalLink,
+  LoaderCircle,
+  ShoppingCart,
+  Sparkles,
+  X,
+} from "lucide-react";
 import type { Circuit } from "@/lib/circuit";
 import {
   canPurchase,
@@ -274,8 +280,7 @@ export default function PurchaseModal({
                   {part.ledColor && ` (${part.ledColor})`}
                 </h3>
                 <span>
-                  {t("必要数")}
-                  {part.quantity}
+                  {t("必要数")} {part.quantity}
                 </span>
               </div>
               <p className="purchase-spec">{t(part.value)}</p>
@@ -319,7 +324,7 @@ export default function PurchaseModal({
               ) : null}
               {row.recommendation && (
                 <p className="purchase-note" role="status">
-                  <strong>{t("Geminiの選定結果:")}</strong>
+                  <strong>{t("Geminiの選定結果:")} </strong>
                   {t(row.recommendation)}
                 </p>
               )}
@@ -356,8 +361,7 @@ export default function PurchaseModal({
                           }
                         >
                           {o.manufacturerPartNumber} · {o.partNumber} ·{" "}
-                          {o.packaging} {t("· 在庫")}
-                          {o.stock}
+                          {o.packaging} {t("· 在庫")} {o.stock}
                         </option>
                       ))}
                     </select>
@@ -403,9 +407,7 @@ export default function PurchaseModal({
                       />
                     </label>
                     <span>
-                      {t("最少")}
-                      {offer.minimum} {t("/ 在庫")}
-                      {offer.stock}
+                      {t("最少")} {offer.minimum} {t("/ 在庫")} {offer.stock}
                     </span>
                     <strong>
                       {unitPrice(offer, row.quantity) === null
@@ -429,8 +431,7 @@ export default function PurchaseModal({
       <div className="purchase-footer">
         <div>
           <strong>
-            {lines.length} {t("商品を選択 ·")}
-            {yen(knownTotal)}
+            {lines.length} {t("商品を選択 ·")} {yen(knownTotal)}
             {unknownPrice ? t(" ＋ 価格未確認分") : ""}
           </strong>
           <p>

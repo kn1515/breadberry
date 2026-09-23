@@ -453,7 +453,7 @@ GitHub Actionsでも実行します。APIキー・Google Cloudプロジェクト
 1. [DigiKey Developer Portal](https://developer.digikey.com/)でアプリを登録し、Product Information V4を有効にします。本番環境ではProduction Appのクライアント情報を使用します。
 2. `DIGIKEY_CLIENT_ID` と `DIGIKEY_CLIENT_SECRET` をサーバーの環境変数に設定します。`NEXT_PUBLIC_` を付けず、リポジトリにも保存しないでください。Docker Composeは既存の `.env`、Cloud RunではSecret Managerから実行時に渡します。ショップ横断の選定には `GEMINI_API_KEY` と、構造化出力・Google Search・URL Contextを併用できるGeminiモデル（既定のGemini 3系）が必要です。DigiKeyが未設定でも国内ショップ・Amazonの選定は利用できます。AIが利用できない場合もDigiKeyの検索結果は手動で選択できます。
 3. 既存の `SESSION_SECRET`、`GOOGLE_CLOUD_PROJECT`、Firestore権限を設定します。セッションはアクセスコードなしで自動開始します。
-4. 初期値の検索上限は全体800回/日・セッション100回/日です。`DIGIKEY_DAILY_LIMIT` と `DIGIKEY_SESSION_DAILY_LIMIT` で変更できます。FirestoreのトランザクションでCloud Runの複数インスタンス間でも計数します。AI生成上限とは別枠です。購入提案はDigiKey検索に加えてGeminiの商品検索・在庫確認の各呼び出し（DigiKey候補のみなら1回、国内候補は探索と確認で2回、候補不適合時の再探索を含め最大5回/部品）もこの枠で計数します。
+4. DigiKey APIの検索上限は全体800回/日・セッション100回/日で、`DIGIKEY_DAILY_LIMIT` / `DIGIKEY_SESSION_DAILY_LIMIT` で変更できます。Geminiによるショップ検索・商品確認は別枠で、`PURCHASE_AI_DAILY_LIMIT` / `PURCHASE_AI_SESSION_DAILY_LIMIT`（既定800回/日・100回/日）を使用します。DigiKeyのローカル上限やAPIの429に達しても、DigiKeyを除いて他ショップの検索を続けます。Gemini側の枠も上限に達した場合はその旨を表示します。各枠は回路生成の上限とも独立し、Firestoreの `digikey-*` / `purchase-ai-*` ドキュメントでCloud Runの複数インスタンス間でも計数します。既存のDigiKeyカウンターはリセットしません。購入提案はGeminiの各呼び出し（DigiKey候補のみなら1回、国内候補は探索と確認で2回、再探索を含め最大5回/部品）をショップ検索・商品確認の枠で計数します。
 
 `DIGIKEY_SANDBOX=true` でSandboxの認証・商品検索を使用します。Sandboxの商品は検索条件と一致しない場合があるため、カート送信は無効です。本番運用時は `false` にしてください。
 

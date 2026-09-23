@@ -661,4 +661,8 @@ export const messages: Record<string, string> = {
   "適合性・必要数量を確認し、価格も考慮した商品を部品ごとに1つ表示します。在庫・価格は取得時点の情報です。購入前に各商品ページで再確認してください。":
     "One suitable product is shown per part after checking specifications, quantity and price. Stock and prices reflect the time checked. Confirm details on the product page before purchasing.",
   "有力な商品を検索中…": "Searching for a suitable product…",
+  "DigiKeyは検索上限に達したため、今回の検索対象から外しています。ほかのショップは引き続き検索できます。":
+    "DigiKey has reached its search limit and is excluded from this search. Other stores remain available.",
+  "本日のショップ検索・商品確認回数の上限に達しました。":
+    "Today's limit for store searches and product verification has been reached.",
 };

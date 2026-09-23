@@ -34,6 +34,7 @@ type Row = {
   phase: PurchasePhase;
   error: string;
   sandbox: boolean;
+  digikeyLimited: boolean;
   recommendation: string;
   best: RecommendedProduct | null;
   searchSuggestions: string;
@@ -66,6 +67,7 @@ export default function PurchaseModal({
       phase: "queued",
       error: "",
       sandbox: false,
+      digikeyLimited: false,
       recommendation: "",
       best: null,
       searchSuggestions: "",
@@ -110,6 +112,7 @@ export default function PurchaseModal({
                 canPurchase(o, orderQuantity(o, parts[i].quantity)),
               ),
               sandbox: event.search.sandbox,
+              digikeyLimited: !!event.search.digikeyLimited,
             });
             return;
           }
@@ -131,6 +134,7 @@ export default function PurchaseModal({
                     ...row,
                     offers,
                     sandbox: result.sandbox,
+                    digikeyLimited: !!result.digikeyLimited,
                     loading: false,
                     phase: "done",
                     selected: manualSelection.current.has(i)
@@ -373,6 +377,13 @@ export default function PurchaseModal({
         <div className="purchase-message" role="status">
           {t(message)}
         </div>
+      )}
+      {rows.some((row) => row.digikeyLimited) && (
+        <p className="purchase-message" role="status">
+          {t(
+            "DigiKeyは検索上限に達したため、今回の検索対象から外しています。ほかのショップは引き続き検索できます。",
+          )}
+        </p>
       )}
       {sandbox && (
         <p className="purchase-message" role="status">

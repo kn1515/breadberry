@@ -515,3 +515,61 @@ test("an unresponsive search ends at the batch deadline and leaves queued parts 
   );
   expect(searches).toBe(3);
 });
+
+test("DigiKey quota notice does not block verified products from other stores", async ({
+  page,
+}) => {
+  await page.route("**/api/session", (r) =>
+    r.fulfill({ json: { active: true, digikey: true, gemini: true } }),
+  );
+  await page.route("**/api/purchase/search", (r) => {
+    const { partId } = r.request().postDataJSON();
+    const search = { offers: [], sandbox: false, digikeyLimited: true };
+    return r.fulfill({
+      contentType: "application/x-ndjson",
+      body:
+        [
+          { type: "phase", phase: "digikey" },
+          { type: "offers", search },
+          { type: "phase", phase: "discovery" },
+          {
+            type: "result",
+            result: {
+              ...search,
+              recommendation: {
+                partNumber: null,
+                best: partId === "bom-0" ? bestProduct : null,
+                reason: "他ショップで確認しました。",
+                searchSuggestions: "",
+              },
+            },
+          },
+        ]
+          .map((event) => JSON.stringify(event))
+          .join("\n") + "\n",
+    });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "購入する", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.locator(".purchase-list")).toHaveAttribute(
+    "aria-busy",
+    "false",
+  );
+  const notice = dialog.getByText(
+    "DigiKeyは検索上限に達したため、今回の検索対象から外しています。ほかのショップは引き続き検索できます。",
+    { exact: true },
+  );
+  await expect(notice).toBeVisible();
+  await expect(notice).toHaveCount(1);
+  await expect(
+    dialog.getByRole("link", { name: bestProduct.name }),
+  ).toBeVisible();
+  await expect(dialog.getByRole("alert")).toHaveCount(0);
+  await expect(
+    dialog.getByRole("button", { name: "未完了の部品を再試行", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    dialog.getByRole("button", { name: "購入する · DigiKeyのカートへ" }),
+  ).toBeDisabled();
+});

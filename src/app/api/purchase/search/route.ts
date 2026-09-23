@@ -11,6 +11,7 @@ import {
   checkOrigin,
   owner,
   takeDigiKeyQuota,
+  takePurchaseAiQuota,
 } from "@/lib/server";
 
 export const runtime = "nodejs";
@@ -46,7 +47,8 @@ export async function POST(req: NextRequest) {
       query: input.data.query,
       locale: input.data.locale,
       digikey: digiKeyConfigured(),
-      takeQuota: () => takeDigiKeyQuota(user),
+      takeDigiKeyQuota: () => takeDigiKeyQuota(user),
+      takePurchaseAiQuota: () => takePurchaseAiQuota(user),
     };
     if (!req.headers.get("accept")?.includes("application/x-ndjson")) {
       const result = await runPurchaseSearch({

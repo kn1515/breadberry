@@ -28,7 +28,8 @@ function options(emit: (event: PurchaseSearchEvent) => void = () => {}) {
     query: part.query,
     locale: "ja" as const,
     digikey: true,
-    takeQuota: async () => {},
+    takeDigiKeyQuota: async () => {},
+    takePurchaseAiQuota: async () => {},
     signal: new AbortController().signal,
     emit,
   };
@@ -74,7 +75,7 @@ test("a stalled quota check terminates search and never starts the next provider
     finishQuota = resolve;
   });
   const pending = runPurchaseSearch(
-    { ...options(), takeQuota: () => gate },
+    { ...options(), takeDigiKeyQuota: () => gate },
     {
       ...services,
       search: async (_query, quota) => {

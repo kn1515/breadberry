@@ -19,7 +19,8 @@ type Options = {
   query: string;
   locale: Locale;
   digikey: boolean;
-  takeQuota: () => Promise<void>;
+  takeDigiKeyQuota: () => Promise<void>;
+  takePurchaseAiQuota: () => Promise<void>;
   signal: AbortSignal;
   emit: (event: PurchaseSearchEvent) => void;
 };
@@ -36,10 +37,10 @@ export async function runPurchaseSearch(
   const { part, circuit, query, locale, emit } = options;
   return withDeadline(
     async (signal) => {
-      const quota = () =>
+      const quota = (take: () => Promise<void>) =>
         withDeadline(
           async (quotaSignal) => {
-            await options.takeQuota();
+            await take();
             quotaSignal.throwIfAborted();
           },
           services.quotaTimeoutMs,
@@ -52,7 +53,19 @@ export async function runPurchaseSearch(
       let search: PurchaseSearch = { offers: [], sandbox: false };
       if (options.digikey) {
         emit({ type: "phase", phase: "digikey" });
-        search = await services.search(query, quota, signal);
+        try {
+          search = await services.search(
+            query,
+            () => quota(options.takeDigiKeyQuota),
+            signal,
+          );
+        } catch (error) {
+          signal.throwIfAborted();
+          if (!(error instanceof ServiceError) || error.status !== 429)
+            throw error;
+          // Local daily limits and DigiKey's own 429 must not block other stores.
+          search = { offers: [], sandbox: false, digikeyLimited: true };
+        }
       }
       signal.throwIfAborted();
       search = {
@@ -77,7 +90,7 @@ export async function runPurchaseSearch(
         circuit,
         query,
         search.offers,
-        quota,
+        () => quota(options.takePurchaseAiQuota),
         locale,
         search.checkedAt,
         {

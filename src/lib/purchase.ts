@@ -27,6 +27,7 @@ export type PurchaseSearch = {
   offers: PurchaseOffer[];
   sandbox: boolean;
   checkedAt?: string;
+  digikeyLimited?: boolean;
 };
 export const domesticStores = {
   akizuki: { name: "秋月電子通商", domain: "akizukidenshi.com" },

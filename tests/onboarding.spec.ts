@@ -16,6 +16,14 @@ test("guided tour highlights real controls, plays assembly and restores the view
   await page.getByRole("button", { name: "チュートリアルを開く" }).click();
   const tour = page.getByRole("region", { name: "操作チュートリアル" });
   await expect(tour).toBeVisible();
+  const overlay = page.locator("body > .tour-overlay");
+  await expect(overlay).toHaveCSS("position", "fixed");
+  await expect(overlay).toHaveCSS("pointer-events", "none");
+  await expect(tour).toHaveCSS("pointer-events", "auto");
+  await expect.poll(async () => (await tour.boundingBox())?.y).toBeLessThan(32);
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await expect.poll(async () => (await tour.boundingBox())?.y).toBeLessThan(32);
+  await expect(tour).toBeInViewport();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.locator('[data-tour="samples"]')).toHaveClass(
     /tour-highlight/,
@@ -43,6 +51,7 @@ test("guided tour highlights real controls, plays assembly and restores the view
   );
   await tour.getByRole("button", { name: "完了" }).click();
   await expect(tour).toHaveCount(0);
+  await expect(overlay).toHaveCount(0);
   await expect(page.locator(".tour-highlight")).toHaveCount(0);
   await expect(
     page.getByRole("tab", { name: "回路図", exact: true }),
@@ -63,23 +72,22 @@ test("guided tour highlights real controls, plays assembly and restores the view
   ).toBeFocused();
 });
 
-for (const protectedSession of [false, true]) {
-  test(`generation starts a session without connection settings (access code: ${protectedSession})`, async ({
+for (const initiallyActive of [false, true]) {
+  test(`generation starts a session without connection settings (existing session: ${initiallyActive})`, async ({
     page,
   }) => {
-    let active = false;
+    let active = initiallyActive;
     let starts = 0;
     let generations = 0;
     await page.route("**/api/session", async (route) => {
       if (route.request().method() === "POST") {
         starts++;
-        if (protectedSession)
-          expect(route.request().postDataJSON().accessCode).toBe("test-code");
+        expect(route.request().postDataJSON()).toEqual({});
         active = true;
         return route.fulfill({ json: { ok: true } });
       }
       return route.fulfill({
-        json: { active, gemini: true, requiresAccessCode: protectedSession },
+        json: { active, gemini: true, requiresAccessCode: false },
       });
     });
     await page.route("**/api/generate", (route) => {
@@ -94,23 +102,13 @@ for (const protectedSession of [false, true]) {
     await expect(page.getByRole("button", { name: /接続設定/ })).toHaveCount(0);
     await page.getByLabel("作りたいもの").fill("LEDを追加");
     await page.getByRole("button", { name: "回路を修正", exact: true }).click();
-    if (protectedSession) {
-      const dialog = page.getByRole("dialog", { name: "アクセスコードを入力" });
-      await expect(dialog).toBeVisible();
-      expect(generations).toBe(0);
-      await expect(dialog).not.toContainText(/Gemini|GMI|Firestore|API/);
-      await dialog
-        .getByLabel("アクセスコード", { exact: true })
-        .fill("test-code");
-      await dialog.getByRole("button", { name: "続ける", exact: true }).click();
-    }
     await expect(
       page
         .getByRole("complementary", { name: "回路設計チャット", exact: true })
         .getByRole("alert"),
     ).toContainText("回路生成は現在利用できません。");
     expect(generations).toBe(1);
-    expect(starts).toBe(1);
+    expect(starts).toBe(initiallyActive ? 0 : 1);
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(page.locator("body")).not.toContainText(/Gemini|GMI Cloud/);
   });

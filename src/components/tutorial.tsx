@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ArrowRight, ChevronLeft, MousePointer2, X } from "lucide-react";
 import { usePreferences } from "./preferences";
 
@@ -56,8 +57,30 @@ export default function Tutorial({
   const current = steps[step];
   const [point, setPoint] = useState<{ x: number; y: number } | null>(null);
   const card = useRef<HTMLElement>(null);
+  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
+  useEffect(() => setPortalRoot(document.body), []);
   const previous = useRef<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    if (!portalRoot || !card.current) return;
+    // Leave room above the first controls on narrow screens, where the guide
+    // spans the viewport width and scrolling alone cannot reveal them.
+    const measure = () =>
+      document.body.style.setProperty(
+        "--tour-card-height",
+        `${card.current!.getBoundingClientRect().bottom + 24}px`,
+      );
+    document.body.classList.add("tour-active");
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(card.current);
+    return () => {
+      observer.disconnect();
+      document.body.classList.remove("tour-active");
+      document.body.style.removeProperty("--tour-card-height");
+    };
+  }, [portalRoot]);
   useEffect(() => {
+    if (!portalRoot) return;
     previous.current = document.activeElement as HTMLElement | null;
     card.current?.focus({ preventScroll: true });
     const escape = (event: KeyboardEvent) => {
@@ -69,8 +92,9 @@ export default function Tutorial({
       document.removeEventListener("keydown", escape);
       previous.current?.focus({ preventScroll: true });
     };
-  }, [onClose]);
+  }, [onClose, portalRoot]);
   useEffect(() => {
+    if (!portalRoot) return;
     let target: HTMLElement | null = null;
     const update = () => {
       if (!target) return;
@@ -89,6 +113,10 @@ export default function Tutorial({
       }
       target.classList.add("tour-highlight");
       target.setAttribute("aria-describedby", "tour-description");
+      target.style.setProperty(
+        "--tour-offset",
+        `${(card.current?.getBoundingClientRect().bottom ?? 260) + 24}px`,
+      );
       target.scrollIntoView({
         behavior: "instant",
         block: "center",
@@ -102,12 +130,14 @@ export default function Tutorial({
       cancelAnimationFrame(frame);
       target?.classList.remove("tour-highlight");
       target?.removeAttribute("aria-describedby");
+      target?.style.removeProperty("--tour-offset");
       window.removeEventListener("resize", update);
       window.removeEventListener("scroll", update, true);
     };
-  }, [current]);
-  return (
-    <>
+  }, [current, portalRoot]);
+  if (!portalRoot) return null;
+  return createPortal(
+    <div className="tour-overlay">
       {point && (
         <MousePointer2
           className="tour-pointer"
@@ -157,6 +187,7 @@ export default function Tutorial({
           </button>
         </div>
       </section>
-    </>
+    </div>,
+    portalRoot,
   );
 }

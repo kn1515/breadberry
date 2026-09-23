@@ -79,7 +79,6 @@ type Config = {
   gmi: boolean;
   digikey: boolean;
   firestore: boolean;
-  requiresAccessCode: boolean;
 };
 type Saved = {
   id: string;
@@ -124,7 +123,6 @@ export default function Studio() {
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [query, setQuery] = useState("");
-  const [settings, setSettings] = useState(false);
   const [catalogOpen, setCatalogOpen] = useState(false);
   const [tourStep, setTourStep] = useState<number | null>(null);
   const tourSnapshot = useRef<{
@@ -133,7 +131,6 @@ export default function Studio() {
     step: number;
     playing: boolean;
   } | null>(null);
-  const pendingAction = useRef<"generate" | "purchase" | null>(null);
   const startTour = () => {
     if (tourStep !== null || busy || saving) return;
     tourSnapshot.current = { mode, tab, step, playing };
@@ -161,8 +158,7 @@ export default function Studio() {
   const [purchasing, setPurchasing] = useState(false);
   const [history, setHistory] = useState(false);
   const [examples, setExamples] = useState(false);
-  const [accessCode, setAccessCode] = useState("");
-  const [connecting, setConnecting] = useState(false);
+  const sessionRequest = useRef<Promise<void> | null>(null);
   const [config, setConfig] = useState<Config | null>(null);
   const [saved, setSaved] = useState<Saved[]>([]);
   const [historyError, setHistoryError] = useState("");
@@ -185,6 +181,7 @@ export default function Studio() {
   async function loadConfig() {
     try {
       const r = await fetch("/api/session");
+      if (!r.ok) return null;
       const data = await r.json();
       setConfig(data);
       return data as Config;
@@ -193,8 +190,8 @@ export default function Studio() {
     }
   }
   useEffect(() => {
-    void loadConfig().then((data) => {
-      if (data && !data.active && !data.requiresAccessCode) void connect();
+    void prepareSession().catch((e) => {
+      setError(e instanceof Error ? e.message : t("接続できませんでした。"));
     });
   }, []);
   useEffect(() => {
@@ -219,10 +216,9 @@ export default function Studio() {
     return () => clearInterval(timer);
   }, [busy]);
   useEffect(() => {
-    if (!settings && !history) return;
+    if (!history) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        setSettings(false);
         setHistory(false);
       }
     };
@@ -233,7 +229,7 @@ export default function Studio() {
       window.removeEventListener("keydown", handler);
       document.body.style.overflow = old;
     };
-  }, [settings, history]);
+  }, [history]);
   useEffect(() => {
     if (!examples) return;
     const dismiss = (event: PointerEvent) => {
@@ -286,54 +282,35 @@ export default function Studio() {
     setNotice("サンプル回路を開きました。生成APIは使用していません。");
     workspace.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
-  async function prepareSession(action: "generate" | "purchase") {
-    const cfg = await loadConfig();
-    if (!cfg) throw new Error(t("接続状態を確認できませんでした。"));
-    if (cfg.active) return true;
-    if (cfg.requiresAccessCode) {
-      pendingAction.current = action;
-      setSettings(true);
-      return false;
-    }
-    const res = await fetch("/api/session", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    });
-    const body = await res.json();
-    if (!res.ok) throw new Error(body.error);
-    await loadConfig();
-    return true;
-  }
-  async function openPurchase() {
-    try {
-      if (await prepareSession("purchase")) setPurchasing(true);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : t("接続できませんでした。"));
-    }
-  }
-  async function connect() {
-    setConnecting(true);
-    setError("");
-    try {
+  async function prepareSession() {
+    // Reuse the initial connection when an action starts before it completes.
+    if (sessionRequest.current) return sessionRequest.current;
+    const request = (async () => {
+      const cfg = await loadConfig();
+      if (!cfg) throw new Error(t("接続状態を確認できませんでした。"));
+      if (cfg.active) return;
       const res = await fetch("/api/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accessCode }),
+        body: JSON.stringify({}),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error);
       await loadConfig();
-      setAccessCode("");
-      setSettings(false);
-      const action = pendingAction.current;
-      pendingAction.current = null;
-      if (action === "generate") void generate();
-      if (action === "purchase") setPurchasing(true);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "接続できませんでした。");
+    })();
+    sessionRequest.current = request;
+    try {
+      await request;
     } finally {
-      setConnecting(false);
+      sessionRequest.current = null;
+    }
+  }
+  async function openPurchase() {
+    try {
+      await prepareSession();
+      setPurchasing(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("接続できませんでした。"));
     }
   }
   async function generate() {
@@ -346,7 +323,7 @@ export default function Studio() {
     setError("");
     setNotice("");
     try {
-      if (!(await prepareSession("generate"))) return;
+      await prepareSession();
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1154,7 +1131,7 @@ export default function Studio() {
             setSelectedBoard={setSelectedBoard}
             busy={busy || saving}
             phase={phase}
-            error={settings ? "" : error}
+            error={error}
             newDesign={newDesign}
             setNewDesign={setNewDesign}
             onSubmit={() => void generate()}
@@ -1276,60 +1253,6 @@ export default function Studio() {
       )}
       {purchasing && (
         <PurchaseModal circuit={circuit} onClose={() => setPurchasing(false)} />
-      )}
-      {settings && (
-        <div className="modal-backdrop" onClick={() => setSettings(false)}>
-          <dialog
-            open
-            aria-labelledby="settings-title"
-            className="modal"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={trapFocus}
-          >
-            <button
-              autoFocus
-              className="modal-close icon-button"
-              aria-label={t("閉じる")}
-              onClick={() => setSettings(false)}
-            >
-              <X size={18} />
-            </button>
-            <h2 id="settings-title">{t("アクセスコードを入力")}</h2>
-            <p>
-              {t(
-                "利用を開始するには、管理者から案内されたアクセスコードを入力してください。",
-              )}
-            </p>
-            {config?.requiresAccessCode && (
-              <label className="access-field">
-                {t("アクセスコード")}
-                <input
-                  type="password"
-                  value={accessCode}
-                  onChange={(e) => setAccessCode(e.target.value)}
-                  autoComplete="off"
-                />
-              </label>
-            )}
-            {error && (
-              <div className="alert error" role="alert">
-                {t(error)}
-              </div>
-            )}
-            <button
-              className="primary-button connect-button"
-              onClick={() => void connect()}
-              disabled={connecting || !accessCode.trim()}
-            >
-              {connecting ? (
-                <LoaderCircle className="spin" size={16} />
-              ) : (
-                <Zap size={16} />
-              )}
-              {t("続ける")}
-            </button>
-          </dialog>
-        </div>
       )}
       {history && (
         <div className="modal-backdrop" onClick={() => setHistory(false)}>

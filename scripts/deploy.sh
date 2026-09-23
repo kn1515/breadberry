@@ -19,4 +19,5 @@ gcloud run deploy "$SERVICE" --project "$GOOGLE_CLOUD_PROJECT" --region "$REGION
   --memory 1Gi --cpu 1 --min-instances 0 --max-instances 3 --concurrency 8 --timeout 180 \
   --no-allow-unauthenticated \
   --update-env-vars "$ENV_VARS" \
-  --update-secrets 'GEMINI_API_KEY=breadberry-gemini-key:latest,GMI_API_KEY=breadberry-gmi-key:latest,SESSION_SECRET=breadberry-session-secret:latest,APP_ACCESS_TOKEN=breadberry-access-token:latest,DIGIKEY_CLIENT_ID=breadberry-digikey-client-id:latest,DIGIKEY_CLIENT_SECRET=breadberry-digikey-client-secret:latest'
+  --remove-secrets APP_ACCESS_TOKEN \
+  --update-secrets 'GEMINI_API_KEY=breadberry-gemini-key:latest,GMI_API_KEY=breadberry-gmi-key:latest,SESSION_SECRET=breadberry-session-secret:latest,DIGIKEY_CLIENT_ID=breadberry-digikey-client-id:latest,DIGIKEY_CLIENT_SECRET=breadberry-digikey-client-secret:latest'

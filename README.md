@@ -70,14 +70,13 @@ openssl rand -hex 32
 | `GOOGLE_CLOUD_PROJECT`   | Firestoreを作成したGoogle CloudプロジェクトID                     |
 | `FIRESTORE_DATABASE_ID`  | 既定 `(default)`                                                  |
 | `SESSION_SECRET`         | 32文字以上のランダムな署名キー                                    |
-| `APP_ACCESS_TOKEN`       | 任意の共通アクセスコード。インターネット公開時は必須運用          |
 | `APP_ORIGIN`             | リバースプロキシ使用時の実際のアクセス元URL。末尾 `/` なし        |
 | `DAILY_GENERATION_LIMIT` | アプリ全体の1日生成上限。既定200                                  |
 | `SESSION_DAILY_LIMIT`    | セッションごとの1日生成上限。既定20                               |
 
 ### ローカルでGeminiを使う
 
-`.env.local` に `GEMINI_API_KEY` と `SESSION_SECRET` を設定してローカルサーバーを起動すると、Gemini APIをサーバー側から呼び出します。APIキーはブラウザへ送信されません。ローカル開発と `localhost` へのアクセスでは、`APP_ACCESS_TOKEN` が設定されていてもアクセスコードを要求しません。インターネットに公開する非ローカル環境では、アクセスコードまたは別の認証を必ず設定してください。
+`.env.local` に `GEMINI_API_KEY` と `SESSION_SECRET` を設定してローカルサーバーを起動すると、Gemini APIをサーバー側から呼び出します。APIキーはブラウザへ送信されません。ローカル・Cloud Runともにアクセスコードの入力は不要で、セッションは自動開始します。旧設定の `APP_ACCESS_TOKEN` が残っていてもアクセスコードは要求しません。
 
 ローカルから本物のFirestoreを使う場合は、gcloud CLIでADCを設定します。
 
@@ -86,7 +85,7 @@ gcloud auth application-default login
 gcloud auth application-default set-quota-project YOUR_PROJECT_ID
 ```
 
-ADCのユーザーにFirestoreの読み書き権限が必要です。環境変数設定後にサーバーを再起動し、画面右上の「接続設定」→「セッションを開始」を押してください。
+ADCのユーザーにFirestoreの読み書き権限が必要です。環境変数設定後にサーバーを再起動し、画面を再読み込みしてください。セッションは自動開始します。
 
 ### Firestoreエミュレーター
 
@@ -160,19 +159,18 @@ Cloud Buildで使うビルド用サービスアカウントには、対象Artifa
 
 ### 3. Secret Manager
 
-デプロイ前に、次の6個のシークレットをGoogle Cloud Consoleで作成し、値を登録します。
+デプロイ前に、次の5個のシークレットをGoogle Cloud Consoleで作成し、値を登録します。
 
 - `breadberry-gemini-key`：Gemini APIキー
 - `breadberry-gmi-key`：GMI Cloud APIキー
 - `breadberry-session-secret`：`openssl rand -hex 32` で生成する値
-- `breadberry-access-token`：アプリ利用者に渡す共通アクセスコード
 - `breadberry-digikey-client-id`：DigiKey Production AppのClient ID
 - `breadberry-digikey-client-secret`：DigiKey Production AppのClient Secret
 
 各シークレットに実行アカウントの読み取り権限を付けます。
 
 ```bash
-for SECRET in breadberry-gemini-key breadberry-gmi-key breadberry-session-secret breadberry-access-token breadberry-digikey-client-id breadberry-digikey-client-secret; do
+for SECRET in breadberry-gemini-key breadberry-gmi-key breadberry-session-secret breadberry-digikey-client-id breadberry-digikey-client-secret; do
   gcloud secrets add-iam-policy-binding "$SECRET" --project "$GOOGLE_CLOUD_PROJECT" \
     --member="serviceAccount:${RUNTIME_SA}" --role=roles/secretmanager.secretAccessor
 done
@@ -188,7 +186,7 @@ make deploy
 
 `APP_ORIGIN` を指定して実行すると、そのURLを操作の送信元として許可します（末尾 `/` なし）。未指定の場合はCloud Runに設定済みの値を保持します。他の追加済み環境変数も再デプロイ時に保持します。
 
-`scripts/deploy.sh` はDigiKeyを含む上記6個のシークレットを `--update-secrets` でCloud Runの実行時環境変数に自動登録します。各シークレットの参照は `latest` に更新し、それ以外の追加シークレット参照は保持します。DigiKeyの2個もデプロイ前に作成・権限付与が必要です。`DIGIKEY_SANDBOX` は既定で `false` を登録します。
+`scripts/deploy.sh` はDigiKeyを含む上記5個のシークレットを `--update-secrets` でCloud Runの実行時環境変数に自動登録します。各シークレットの参照は `latest` に更新し、それ以外の追加シークレット参照は保持します。DigiKeyの2個もデプロイ前に作成・権限付与が必要です。`DIGIKEY_SANDBOX` は既定で `false` を登録します。旧 `APP_ACCESS_TOKEN` のシークレット参照はデプロイ時に解除します。Secret Managerのシークレット自体は削除しません。Cloud RunのIAMアクセス制御は従来どおりです。
 
 一度Cloud RunのURLを `APP_ORIGIN` に設定済みなら、以降は `make deploy` だけで再デプロイできます。毎回 `gcloud run services update --update-env-vars APP_ORIGIN=...` を実行する必要はありません。URLを変更する場合や、localhost用の設定から戻す場合にだけ更新してください。
 
@@ -305,7 +303,7 @@ gcloud run services update breadberry --region "$REGION" \
 
 現在の実装で許可する送信元は1つです。localhostと公開URLの両方を同時には指定できません。「この送信元からは操作できません。」という403は、セッション開始などの操作時にブラウザの送信元と許可URLが一致しない場合にアプリが返します。Cloud RunのIAM認証による `Error: Forbidden` とは別の設定です。
 
-一般公開する場合は、アクセスコードを設定したうえでCloud RunのInvoker権限を運用に合わせて変更してください。公開URLに合わせて `APP_ORIGIN` を設定します。本格的な複数ユーザー運用にはFirebase Authentication等の認証を追加してください。
+一般公開する場合は、Cloud RunのInvoker権限を運用に合わせて変更してください。公開URLに合わせて `APP_ORIGIN` を設定します。本格的な複数ユーザー運用にはFirebase Authentication等の認証を追加してください。
 
 Firestoreのクライアント直接アクセスを禁止するルールと、生成回数カウンターの7日TTLを適用できます。
 
@@ -446,7 +444,7 @@ GitHub Actionsでも実行します。APIキー・Google Cloudプロジェクト
 
 1. [DigiKey Developer Portal](https://developer.digikey.com/)でアプリを登録し、Product Information V4を有効にします。本番環境ではProduction Appのクライアント情報を使用します。
 2. `DIGIKEY_CLIENT_ID` と `DIGIKEY_CLIENT_SECRET` をサーバーの環境変数に設定します。`NEXT_PUBLIC_` を付けず、リポジトリにも保存しないでください。Docker Composeは既存の `.env`、Cloud RunではSecret Managerから実行時に渡します。Geminiのキーは部品検索には不要です。
-3. 既存の `SESSION_SECRET`、`GOOGLE_CLOUD_PROJECT`、Firestore権限を設定します。利用者は接続設定でセッションを開始します。アクセスコードを設定している場合は同じコードが必要です。
+3. 既存の `SESSION_SECRET`、`GOOGLE_CLOUD_PROJECT`、Firestore権限を設定します。セッションはアクセスコードなしで自動開始します。
 4. 初期値の検索上限は全体800回/日・セッション100回/日です。`DIGIKEY_DAILY_LIMIT` と `DIGIKEY_SESSION_DAILY_LIMIT` で変更できます。FirestoreのトランザクションでCloud Runの複数インスタンス間でも計数します。AI生成上限とは別枠です。
 
 `DIGIKEY_SANDBOX=true` でSandboxの認証・商品検索を使用します。Sandboxの商品は検索条件と一致しない場合があるため、カート送信は無効です。本番運用時は `false` にしてください。
@@ -476,7 +474,7 @@ GitHub Actionsでも実行します。APIキー・Google Cloudプロジェクト
 
 キーを更新したときは、同じ名前のシークレットに新しいバージョンを登録して再デプロイします。既存APIキーと同じく `latest` を参照するため、手動で固定したバージョンも次のデプロイ時には `latest` に更新されます。Sandboxを使う検証環境を手動デプロイする場合は `DIGIKEY_SANDBOX=true make deploy` を指定してください。
 
-ローカル開発には `.env.local`（Docker Composeでは `.env`）に `DIGIKEY_CLIENT_ID` / `DIGIKEY_CLIENT_SECRET` を設定します。設定後はアプリの接続設定でDigiKeyが「設定済み」と表示されることを確認します（認証の成否は購入一覧での検索時に確認されます）。
+ローカル開発には `.env.local`（Docker Composeでは `.env`）に `DIGIKEY_CLIENT_ID` / `DIGIKEY_CLIENT_SECRET` を設定します。設定後にサーバーを再起動し、購入一覧で検索できることを確認します。
 
 参考: [Cloud Runのシークレット設定](https://docs.cloud.google.com/run/docs/configuring/services/secrets)、[gcloud run deployのシークレット更新オプション](https://docs.cloud.google.com/sdk/gcloud/reference/run/deploy)。
 

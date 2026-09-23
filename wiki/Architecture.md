@@ -63,7 +63,7 @@ Next.js App Router (src/app)
 - HMAC 署名付き HttpOnly Cookie（`bb_session`）で所有者を分離
 - Cookie は 30 日で失効。ログインアカウント方式ではなく、別端末への引き継ぎ・期限後の復旧は未実装
 - `SESSION_SECRET`（32文字以上）で署名。`timingSafeEqual` で検証
-- `APP_ACCESS_TOKEN` を設定すると共通アクセスコードによるゲートを追加
+- ローカル・クラウドともにセッションは自動開始。旧 `APP_ACCESS_TOKEN` は使用しない
 - `APP_ORIGIN` で許可する送信元を1つに制限（CSRF 対策）。ブラウザの送信元と一致しない操作は 403
 
 ## 主なモジュール

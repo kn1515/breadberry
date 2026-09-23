@@ -55,19 +55,20 @@ Cloud Build で使うビルド用サービスアカウントには、対象 Arti
 
 ### 3. Secret Manager
 
-次の4個のシークレットを Google Cloud Console で作成し、値を登録します。
+次の5個のシークレットを Google Cloud Console で作成し、値を登録します。
 
 | シークレット名 | 値 |
 | -------------- | -- |
 | `breadberry-gemini-key` | Gemini API キー |
 | `breadberry-gmi-key` | GMI Cloud API キー |
 | `breadberry-session-secret` | `openssl rand -hex 32` で生成する値 |
-| `breadberry-access-token` | アプリ利用者に渡す共通アクセスコード |
+| `breadberry-digikey-client-id` | DigiKey Production App の Client ID |
+| `breadberry-digikey-client-secret` | DigiKey Production App の Client Secret |
 
 各シークレットに実行アカウントの読み取り権限を付けます。
 
 ```bash
-for SECRET in breadberry-gemini-key breadberry-gmi-key breadberry-session-secret breadberry-access-token; do
+for SECRET in breadberry-gemini-key breadberry-gmi-key breadberry-session-secret breadberry-digikey-client-id breadberry-digikey-client-secret; do
   gcloud secrets add-iam-policy-binding "$SECRET" --project "$GOOGLE_CLOUD_PROJECT" \
     --member="serviceAccount:${RUNTIME_SA}" --role=roles/secretmanager.secretAccessor
 done
@@ -194,7 +195,7 @@ gcloud run services update breadberry --region "$REGION" \
 
 ## 一般公開
 
-一般公開する場合は、アクセスコード（`breadberry-access-token`）を設定したうえで Cloud Run の Invoker 権限を運用に合わせて変更してください。公開 URL に合わせて `APP_ORIGIN` を設定します。本格的な複数ユーザー運用には Firebase Authentication 等の認証を追加してください。
+一般公開する場合は、Cloud Run の Invoker 権限を運用に合わせて変更してください。公開 URL に合わせて `APP_ORIGIN` を設定します。本格的な複数ユーザー運用には Firebase Authentication 等の認証を追加してください。
 
 Firestore のクライアント直接アクセスを禁止するルールと、生成回数カウンターの 7 日 TTL を適用できます：
 

@@ -8,13 +8,7 @@ import {
   MessageSquare,
   Sparkles,
 } from "lucide-react";
-import {
-  boards,
-  catalog,
-  isAnalog,
-  partKinds,
-  type Board,
-} from "@/lib/circuit";
+import { boards, type Board } from "@/lib/circuit";
 import { MAX_MESSAGES, type ChatMessage } from "@/lib/conversation";
 
 type Props = {
@@ -196,40 +190,6 @@ export default function CircuitChat({
               ][phase]
             : "Ctrl / ⌘ + Enter で送信"}
         </div>
-        <details className="parts-catalog">
-          <summary>対応するセンサー・部品（{partKinds.length}種類）</summary>
-          <p>
-            部品を選ぶと入力欄にセットします。3.3V回路・最大6部品。モジュールは端子名と実物の仕様を確認してください。
-          </p>
-          <div className="catalog-grid">
-            {partKinds.map((kind) => {
-              const unavailable =
-                selectedBoard === "raspberry-pi" && isAnalog(kind);
-              return (
-                <button
-                  type="button"
-                  key={kind}
-                  disabled={busy || unavailable}
-                  title={
-                    unavailable
-                      ? "Raspberry Pi 4/5はADC非搭載です"
-                      : catalog[kind].note
-                  }
-                  onClick={() =>
-                    setPrompt(
-                      newDesign
-                        ? `${catalog[kind].name}を使う回路と動作確認用のコードを作成してください。`
-                        : `現在の回路に${catalog[kind].name}を追加してください。`,
-                    )
-                  }
-                >
-                  {catalog[kind].name}
-                  {unavailable ? "（ADCが必要）" : ""}
-                </button>
-              );
-            })}
-          </div>
-        </details>
       </form>
     </aside>
   );

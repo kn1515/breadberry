@@ -3112,3 +3112,19 @@ main > .ambient {
   .purchase-footer { padding: 16px; }
   .purchase-footer .purchase-button { width: 100%; }
 }
+
+.parts-panel .parts-catalog {
+  margin-top: 12px;
+  margin-bottom: 8px;
+  font-size: 11px;
+}
+.parts-panel .catalog-grid {
+  max-height: 260px;
+  overflow-y: auto;
+}
+.parts-panel .parts-purchase {
+  margin-top: 8px;
+  margin-bottom: 20px;
+  color: #d5e0ef;
+  background: #253652;
+}

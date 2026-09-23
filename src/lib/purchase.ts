@@ -24,6 +24,13 @@ export type PurchaseOffer = {
   prices: { quantity: number; unitPrice: number }[];
 };
 export type PurchaseSearch = { offers: PurchaseOffer[]; sandbox: boolean };
+export type PurchaseRecommendation = {
+  partNumber: string | null;
+  reason: string;
+};
+export type RecommendedPurchaseSearch = PurchaseSearch & {
+  recommendation: PurchaseRecommendation;
+};
 
 export function purchaseParts(circuit: Circuit): PurchasePart[] {
   return billOfMaterials(circuit)

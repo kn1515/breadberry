@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { ServiceError } from "@/lib/ai";
 import { searchDigiKey } from "@/lib/digikey";
+import { draftCircuitSchema, validateDraft } from "@/lib/circuit";
+import { purchaseParts, type PurchaseRecommendation } from "@/lib/purchase";
+import { recommendPurchase } from "@/lib/purchase-ai";
 import {
   apiError,
   bodyJson,
@@ -11,21 +14,64 @@ import {
 } from "@/lib/server";
 
 export const runtime = "nodejs";
+export const maxDuration = 120;
 export async function POST(req: NextRequest) {
   try {
     checkOrigin(req);
     const user = owner(req);
     const input = z
-      .object({ query: z.string().trim().min(1).max(200) })
-      .safeParse(await bodyJson(req, 2048));
+      .object({
+        query: z.string().trim().min(1).max(200),
+        circuit: draftCircuitSchema,
+        partId: z.string().regex(/^bom-\d{1,2}$/),
+      })
+      .safeParse(await bodyJson(req, 1024 * 1024));
     if (!input.success)
-      throw new ServiceError("検索語を1〜200文字で入力してください。", 400);
+      throw new ServiceError("検索語と回路・部品情報を確認してください。", 400);
+    let circuit;
+    try {
+      circuit = validateDraft(input.data.circuit);
+    } catch {
+      throw new ServiceError(
+        "回路情報が不正です。プロジェクトを開き直してください。",
+        400,
+      );
+    }
+    const part = purchaseParts(circuit).find((p) => p.id === input.data.partId);
+    if (!part) throw new ServiceError("対象の部品が見つかりません。", 400);
     const result = await searchDigiKey(input.data.query, () =>
       takeDigiKeyQuota(user),
     );
-    return NextResponse.json(result, {
-      headers: { "Cache-Control": "no-store" },
-    });
+    let recommendation: PurchaseRecommendation;
+    try {
+      recommendation = result.sandbox
+        ? {
+            partNumber: null,
+            reason: "テスト用の商品情報のため自動選択しません。",
+          }
+        : await recommendPurchase(
+            part,
+            circuit,
+            input.data.query,
+            result.offers,
+            () => takeDigiKeyQuota(user),
+          );
+    } catch (error) {
+      // Preserve real search results for manual selection if AI is unavailable.
+      recommendation = {
+        partNumber: null,
+        reason:
+          error instanceof ServiceError
+            ? `${error.message} 商品は手動で選択できます。`
+            : "Geminiの自動選択を利用できません。商品は手動で選択できます。",
+      };
+    }
+    return NextResponse.json(
+      { ...result, recommendation },
+      {
+        headers: { "Cache-Control": "no-store" },
+      },
+    );
   } catch (error) {
     return apiError(error);
   }

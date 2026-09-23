@@ -65,7 +65,7 @@ openssl rand -hex 32
 | `GEMINI_API_KEY`         | Google AI Studioで発行したAPIキー                                 |
 | `GEMINI_MODEL`           | 既定 `gemini-3.8-flash`。利用可能な構造化出力対応モデルに変更可能 |
 | `GMI_API_KEY`            | GMI CloudのAPIキー。未設定時はレビュー未実施と表示                |
-| `GMI_MODEL`              | 既定 `meta-llama/Llama-3.3-70B-Instruct`                          |
+| `GMI_MODEL`              | 既定 `Qwen/Qwen3.8-Flash`                                        |
 | `GMI_BASE_URL`           | 既定 `https://api.gmi-serving.com/v1`。HTTPSのみ                  |
 | `GOOGLE_CLOUD_PROJECT`   | Firestoreを作成したGoogle CloudプロジェクトID                     |
 | `FIRESTORE_DATABASE_ID`  | 既定 `(default)`                                                  |
@@ -434,18 +434,24 @@ GitHub Actionsでも実行します。APIキー・Google Cloudプロジェクト
 レイアウトチェックは表示モデルと導通列に基づく簡易検査です。実部品の寸法、公差、定格や回路の動作を保証しません。手動編集ではファームウェアを自動更新せず、以前の補助レビューは無効化します。AIへの修正依頼には編集途中の回路も渡せますが、生成結果には従来の電気的検査を適用します。
 
 
-## DigiKeyで部品を購入する
+## 部品の購入提案（DigiKey・国内ショップ・Amazon）
 
-アクションバーの「購入する」で現在の部品表（マイコン・ブレッドボード・素子・ジャンパ線）の購入候補を表示します。LEDの色と抵抗値を検索語に反映し、各行で検索語・商品・購入数量を変更できます。候補は自動選択されません。商品ページでモジュールか単体ICか、ピン配列・電圧・寸法・セット入数を確認してください。検索結果は互換性を保証するものではありません。
+部品パネルの「購入する」で、現在の部品表（マイコン・ブレッドボード・素子・ジャンパ線）に対応する「おすすめ購入リスト」を先頭に表示します。GeminiがDigiKey・秋月電子通商・千石電商・共立エレショップ・マルツ・Amazon.co.jpを比較し、確認できた候補の中から部品ごとに最適な1商品を選びます。適合性・必要数量・価格を優先し、DigiKeyを無条件には優先しません。
+
+国内5ショップはGeminiのGoogle Searchで実在の商品ページを探し、URL Contextでそのページを取得して在庫・入数・仕様を確認します。商品URLはショップの許可リストと商品詳細ページのパスで検証し、取得成功のメタデータがあるページだけを採用します。売り切れ・予約・取り寄せ・在庫不明・ページ取得失敗・入数不明・必要数を確保できない候補は推奨から除外します。検索スニペットだけで在庫ありとは判定しません。Amazonも販売元・選択された商品バリエーション・入数・在庫が確認できる場合のみ採用します。
+
+おすすめには商品ページへの直接リンク、店舗、注文数、1注文あたりの入数、商品代金、理由、在庫の根拠と確認日時を表示します。注文数は `max(最低注文数, ceil(必要数 / 入数))` です。予備を勝手に追加せず、必要数の3倍と10個の大きい方を超える数量や、余分な基板・ブレッドボードを含むセットは除外します。在庫・価格は取得時点の情報で、購入直前の変更まで保証するものではありません。商品ページで仕様や送料も再確認してください。
+
+「検索条件・DigiKeyの商品を変更」を開くと再検索・手動選択ができます。DigiKeyも在庫不足の商品は候補一覧から除外します。国内ショップ・Amazonの商品は各商品ページで購入し、DigiKeyのカートやその合計金額には含めません。
 
 選択後の「購入する · DigiKeyのカートへ」は、DigiKey公式のFastAddに品番と数量をPOSTし、別タブでカートを開きます。既存カートは維持し、同じ品番は数量を合算します。注文確定・決済はDigiKey側で行います。FastAddは公式資料に記載された `www.digikey.com` のエンドポイントを使用するため、DigiKey側で配送先・地域・通貨も確認してください。商品検索は日本サイト・日本語・JPY指定です。
 
 ### 管理者の設定
 
 1. [DigiKey Developer Portal](https://developer.digikey.com/)でアプリを登録し、Product Information V4を有効にします。本番環境ではProduction Appのクライアント情報を使用します。
-2. `DIGIKEY_CLIENT_ID` と `DIGIKEY_CLIENT_SECRET` をサーバーの環境変数に設定します。`NEXT_PUBLIC_` を付けず、リポジトリにも保存しないでください。Docker Composeは既存の `.env`、Cloud RunではSecret Managerから実行時に渡します。Geminiのキーは部品検索には不要です。
+2. `DIGIKEY_CLIENT_ID` と `DIGIKEY_CLIENT_SECRET` をサーバーの環境変数に設定します。`NEXT_PUBLIC_` を付けず、リポジトリにも保存しないでください。Docker Composeは既存の `.env`、Cloud RunではSecret Managerから実行時に渡します。ショップ横断の選定には `GEMINI_API_KEY` と、構造化出力・Google Search・URL Contextを併用できるGeminiモデル（既定のGemini 3系）が必要です。DigiKeyが未設定でも国内ショップ・Amazonの選定は利用できます。AIが利用できない場合もDigiKeyの検索結果は手動で選択できます。
 3. 既存の `SESSION_SECRET`、`GOOGLE_CLOUD_PROJECT`、Firestore権限を設定します。セッションはアクセスコードなしで自動開始します。
-4. 初期値の検索上限は全体800回/日・セッション100回/日です。`DIGIKEY_DAILY_LIMIT` と `DIGIKEY_SESSION_DAILY_LIMIT` で変更できます。FirestoreのトランザクションでCloud Runの複数インスタンス間でも計数します。AI生成上限とは別枠です。
+4. 初期値の検索上限は全体800回/日・セッション100回/日です。`DIGIKEY_DAILY_LIMIT` と `DIGIKEY_SESSION_DAILY_LIMIT` で変更できます。FirestoreのトランザクションでCloud Runの複数インスタンス間でも計数します。AI生成上限とは別枠です。購入提案はDigiKey検索に加えてGeminiの商品検索・在庫確認の各呼び出し（最大2回/部品）もこの枠で計数します。
 
 `DIGIKEY_SANDBOX=true` でSandboxの認証・商品検索を使用します。Sandboxの商品は検索条件と一致しない場合があるため、カート送信は無効です。本番運用時は `false` にしてください。
 

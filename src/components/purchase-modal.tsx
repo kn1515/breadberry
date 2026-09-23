@@ -13,10 +13,12 @@ import {
   canPurchase,
   cartLines,
   DIGIKEY_CART_ACTION,
+  domesticStores,
   orderQuantity,
   purchaseParts,
   unitPrice,
   type PurchaseOffer,
+  type RecommendedProduct,
   type RecommendedPurchaseSearch,
 } from "@/lib/purchase";
 
@@ -29,6 +31,8 @@ type Row = {
   error: string;
   sandbox: boolean;
   recommendation: string;
+  best: RecommendedProduct | null;
+  searchSuggestions: string;
 };
 const formatYen = (value: number, locale: string) =>
   new Intl.NumberFormat(locale, {
@@ -58,6 +62,8 @@ export default function PurchaseModal({
       error: "",
       sandbox: false,
       recommendation: "",
+      best: null,
+      searchSuggestions: "",
     })),
   );
   const [message, setMessage] = useState("");
@@ -77,6 +83,8 @@ export default function PurchaseModal({
       selected: "",
       offers: [],
       recommendation: "",
+      best: null,
+      searchSuggestions: "",
     });
     setSubmitted(false);
     try {
@@ -90,16 +98,19 @@ export default function PurchaseModal({
       if (!response.ok)
         throw new Error(data.error || t("商品検索に失敗しました。"));
       const result = data as RecommendedPurchaseSearch;
+      const offers = result.offers.filter((o) =>
+        canPurchase(o, orderQuantity(o, parts[i].quantity)),
+      );
       const recommended = result.sandbox
         ? undefined
-        : result.offers.find(
+        : offers.find(
             (o) =>
               o.partNumber === result.recommendation?.partNumber &&
               canPurchase(o, orderQuantity(o, parts[i].quantity)),
           );
       if (!signal.aborted)
         update(i, {
-          offers: result.offers,
+          offers,
           sandbox: result.sandbox,
           loading: false,
           selected: recommended?.partNumber ?? "",
@@ -107,6 +118,8 @@ export default function PurchaseModal({
             ? orderQuantity(recommended, parts[i].quantity)
             : parts[i].quantity,
           recommendation: result.recommendation?.reason ?? "",
+          best: result.sandbox ? null : (result.recommendation?.best ?? null),
+          searchSuggestions: result.recommendation?.searchSuggestions ?? "",
         });
     } catch (error) {
       if (!signal.aborted)
@@ -137,9 +150,9 @@ export default function PurchaseModal({
           );
         const config = await response.json();
         if (controller.signal.aborted) return;
-        if (!config.digikey || !config.active) {
+        if ((!config.digikey && !config.gemini) || !config.active) {
           setMessage(
-            !config.digikey
+            !config.digikey && !config.gemini
               ? "DigiKeyの商品検索は準備中です。管理者に連携設定を依頼してください。"
               : "利用期限が切れました。一覧を閉じて再度お試しください。",
           );
@@ -224,7 +237,7 @@ export default function PurchaseModal({
     >
       <div className="purchase-header">
         <div>
-          <span className="purchase-eyebrow">PARTS · DIGIKEY</span>
+          <span className="purchase-eyebrow">PARTS · SHOPPING</span>
           <h2 id="purchase-title">
             <ShoppingCart size={22} /> {t("部品を購入する")}
           </h2>
@@ -240,7 +253,7 @@ export default function PurchaseModal({
       </div>
       <p id="purchase-help">
         {t(
-          "AIが回路の仕様に最も合う商品を選択します。選定理由と商品ページの仕様・端子・入数を確認してください。商品や数量は変更できます。",
+          "DigiKey・秋月・千石・共立・マルツ・Amazonを比較し、回路に合う商品を部品ごとに1つ選びます。売り切れ・在庫を確認できない商品はおすすめに含めません。",
         )}
       </p>
       {message && (
@@ -255,170 +268,276 @@ export default function PurchaseModal({
           )}
         </p>
       )}
-      <div className="purchase-list" aria-busy={loading}>
-        {parts.map((part, i) => {
-          const row = rows[i];
-          const offer = row.offers.find((o) => o.partNumber === row.selected);
-          return (
-            <section
-              className="purchase-row"
-              key={part.id}
-              aria-label={t("{0}の購入候補", [t(part.name)])}
-            >
-              <div className="purchase-part-heading">
-                <h3>
-                  {t(part.name)}
-                  {part.ledColor && ` (${part.ledColor})`}
-                </h3>
-                <span>
-                  {t("必要数")} {part.quantity}
-                </span>
-              </div>
-              <p className="purchase-spec">{t(part.value)}</p>
-              <p className="purchase-note">{t(part.note)}</p>
-              <form
-                className="purchase-search"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  if (ready && !row.loading && abort.current)
-                    void search(i, row.query.trim(), abort.current.signal);
-                }}
-              >
-                <input
-                  aria-label={t("{0}の検索語", [t(part.name)])}
-                  value={row.query}
-                  maxLength={200}
-                  required
-                  disabled={!ready || row.loading}
-                  onChange={(event) => update(i, { query: event.target.value })}
-                />
-                <button
-                  type="submit"
-                  disabled={!ready || row.loading || !row.query.trim()}
+      <section
+        className="purchase-recommended"
+        aria-label={t("おすすめ購入リスト")}
+        aria-busy={loading}
+      >
+        <h3>
+          <Sparkles size={17} /> {t("おすすめ購入リスト")}
+        </h3>
+        <p className="purchase-note">
+          {t(
+            "確認できた候補の中から、適合性・必要数量・価格を比較して選定しています。在庫・価格は取得時点の情報です。購入前に各商品ページで再確認してください。",
+          )}
+        </p>
+        {loading && (
+          <p className="purchase-status" role="status">
+            <LoaderCircle size={16} className="spin" />
+            {t("各ショップの商品・在庫を確認中…")}
+          </p>
+        )}
+        <ul className="purchase-best-list">
+          {rows.map((row, i) =>
+            row.best && !row.loading && !row.sandbox ? (
+              <li className="purchase-best" key={parts[i].id}>
+                <div className="purchase-part-heading">
+                  <h4>{t(parts[i].name)}</h4>
+                  <span>
+                    {row.best.store === "digikey"
+                      ? "DigiKey"
+                      : t(domesticStores[row.best.store].name)}
+                  </span>
+                </div>
+                <a
+                  className="purchase-product-link"
+                  href={row.best.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
-                  {t("再検索")}
-                </button>
-              </form>
-              {row.loading ? (
-                <p className="purchase-status" role="status">
-                  <LoaderCircle size={16} className="spin" />{" "}
-                  {t("商品検索・AIによる選定中…")}
+                  {row.best.name} <ExternalLink size={14} />
+                </a>
+                <p className="purchase-spec">
+                  {t("注文数 {0} × {1}個入り（必要数 {2}）", [
+                    row.best.quantity,
+                    row.best.unitsPerPack,
+                    parts[i].quantity,
+                  ])}
                 </p>
-              ) : row.error ? (
-                <p className="purchase-error" role="alert">
-                  {t(row.error)}
-                </p>
-              ) : ready && row.offers.length === 0 ? (
-                <p className="purchase-status">
-                  {t("候補が見つかりません。検索語や型番を変更してください。")}
-                </p>
-              ) : null}
-              {row.recommendation && (
-                <p className="purchase-note" role="status">
-                  <strong>{t("AIの選定結果:")} </strong>
-                  {t(row.recommendation)}
-                </p>
-              )}
-              {row.offers.length > 0 && (
-                <>
-                  <label className="purchase-selection">
-                    {t("購入する商品")}
-                    <select
-                      aria-label={t("{0}の商品", [t(part.name)])}
-                      value={row.selected}
-                      onChange={(event) => {
-                        const next = row.offers.find(
-                          (o) => o.partNumber === event.target.value,
-                        );
-                        update(i, {
-                          selected: event.target.value,
-                          quantity: next
-                            ? orderQuantity(next, part.quantity)
-                            : part.quantity,
-                        });
-                        setSubmitted(false);
-                      }}
-                    >
-                      <option value="">
-                        {t("購入対象に含めない（商品を選択）")}
-                      </option>
-                      {row.offers.map((o) => (
-                        <option
-                          key={o.partNumber}
-                          value={o.partNumber}
-                          disabled={
-                            o.stock < o.minimum ||
-                            (o.maximum !== null && o.maximum < o.minimum)
-                          }
-                        >
-                          {o.manufacturerPartNumber} · {o.partNumber} ·{" "}
-                          {o.packaging} {t("· 在庫")} {o.stock}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <div className="purchase-links">
-                    {row.offers.map((o) => (
-                      <a
-                        key={o.partNumber}
-                        href={o.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {o.manufacturerPartNumber} ({o.packaging}){" "}
-                        <ExternalLink size={12} />
-                      </a>
-                    ))}
-                  </div>
-                </>
-              )}
-              {offer && (
-                <div className="purchase-offer">
-                  <p>
-                    <strong>{offer.manufacturer}</strong> {offer.description}
+                <strong>
+                  {row.best.totalPrice === null
+                    ? t("価格は商品ページで確認")
+                    : t("商品代金 {0}（送料別）", [yen(row.best.totalPrice)])}
+                </strong>
+                <p className="purchase-note">{row.best.reason}</p>
+                {row.best.checks && (
+                  <p className="purchase-note">
+                    {t("購入前の確認:")} {row.best.checks}
                   </p>
-                  <div className="purchase-offer-details">
-                    <label>
-                      {t("購入数量")}
-                      <input
-                        aria-label={t("{0}の購入数量", [t(part.name)])}
-                        type="number"
-                        min={offer.minimum}
-                        max={Math.min(
-                          offer.stock,
-                          offer.maximum ?? 100000,
-                          100000,
-                        )}
-                        step={1}
-                        value={row.quantity}
+                )}
+                <p className="purchase-note">
+                  {t("在庫確認:")} {row.best.stockEvidence}
+                </p>
+                <p className="purchase-note">
+                  {t("確認日時:")}{" "}
+                  {new Date(row.best.checkedAt).toLocaleString(
+                    locale === "en" ? "en-US" : "ja-JP",
+                  )}
+                </p>
+              </li>
+            ) : null,
+          )}
+        </ul>
+        {!loading && !rows.some((row) => row.best) && (
+          <p className="purchase-status">
+            {t(
+              "在庫と適合性を確認できる商品が見つかりませんでした。再検索してください。",
+            )}
+          </p>
+        )}
+        {rows.map((row, i) =>
+          !row.loading && !row.best && (row.error || row.recommendation) ? (
+            <p className="purchase-note" key={parts[i].id}>
+              {t(parts[i].name)}: {t(row.error || row.recommendation)}
+            </p>
+          ) : null,
+        )}
+        {rows.map((row, i) =>
+          row.searchSuggestions ? (
+            <iframe
+              key={parts[i].id}
+              className="purchase-search-suggestions"
+              title={t("{0}の検索の参照元", [t(parts[i].name)])}
+              srcDoc={row.searchSuggestions}
+              sandbox="allow-popups allow-popups-to-escape-sandbox"
+              referrerPolicy="no-referrer"
+            />
+          ) : null,
+        )}
+      </section>
+      <details className="purchase-details">
+        <summary>{t("検索条件・DigiKeyの商品を変更")}</summary>
+        <div className="purchase-list" aria-busy={loading}>
+          {parts.map((part, i) => {
+            const row = rows[i];
+            const offer = row.offers.find((o) => o.partNumber === row.selected);
+            return (
+              <section
+                className="purchase-row"
+                key={part.id}
+                aria-label={t("{0}の購入候補", [t(part.name)])}
+              >
+                <div className="purchase-part-heading">
+                  <h3>
+                    {t(part.name)}
+                    {part.ledColor && ` (${part.ledColor})`}
+                  </h3>
+                  <span>
+                    {t("必要数")} {part.quantity}
+                  </span>
+                </div>
+                <p className="purchase-spec">{t(part.value)}</p>
+                <p className="purchase-note">{t(part.note)}</p>
+                <form
+                  className="purchase-search"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    if (ready && !row.loading && abort.current)
+                      void search(i, row.query.trim(), abort.current.signal);
+                  }}
+                >
+                  <input
+                    aria-label={t("{0}の検索語", [t(part.name)])}
+                    value={row.query}
+                    maxLength={200}
+                    required
+                    disabled={!ready || row.loading}
+                    onChange={(event) =>
+                      update(i, { query: event.target.value })
+                    }
+                  />
+                  <button
+                    type="submit"
+                    disabled={!ready || row.loading || !row.query.trim()}
+                  >
+                    {t("再検索")}
+                  </button>
+                </form>
+                {row.loading ? (
+                  <p className="purchase-status" role="status">
+                    <LoaderCircle size={16} className="spin" />{" "}
+                    {t("商品検索・AIによる選定中…")}
+                  </p>
+                ) : row.error ? (
+                  <p className="purchase-error" role="alert">
+                    {t(row.error)}
+                  </p>
+                ) : ready && row.offers.length === 0 && !row.best ? (
+                  <p className="purchase-status">
+                    {t(
+                      "候補が見つかりません。検索語や型番を変更してください。",
+                    )}
+                  </p>
+                ) : null}
+                {row.recommendation && (
+                  <p className="purchase-note" role="status">
+                    <strong>{t("AIの選定結果:")} </strong>
+                    {t(row.recommendation)}
+                  </p>
+                )}
+                {row.offers.length > 0 && (
+                  <>
+                    <label className="purchase-selection">
+                      {t("購入する商品")}
+                      <select
+                        aria-label={t("{0}の商品", [t(part.name)])}
+                        value={row.selected}
                         onChange={(event) => {
-                          update(i, { quantity: Number(event.target.value) });
+                          const next = row.offers.find(
+                            (o) => o.partNumber === event.target.value,
+                          );
+                          update(i, {
+                            selected: event.target.value,
+                            quantity: next
+                              ? orderQuantity(next, part.quantity)
+                              : part.quantity,
+                          });
                           setSubmitted(false);
                         }}
-                      />
+                      >
+                        <option value="">
+                          {t("購入対象に含めない（商品を選択）")}
+                        </option>
+                        {row.offers.map((o) => (
+                          <option
+                            key={o.partNumber}
+                            value={o.partNumber}
+                            disabled={
+                              o.stock < o.minimum ||
+                              (o.maximum !== null && o.maximum < o.minimum)
+                            }
+                          >
+                            {o.manufacturerPartNumber} · {o.partNumber} ·{" "}
+                            {o.packaging} {t("· 在庫")} {o.stock}
+                          </option>
+                        ))}
+                      </select>
                     </label>
-                    <span>
-                      {t("最少")} {offer.minimum} {t("/ 在庫")} {offer.stock}
-                    </span>
-                    <strong>
-                      {unitPrice(offer, row.quantity) === null
-                        ? t("価格はDigiKeyで確認")
-                        : t("{0} / 個", [yen(unitPrice(offer, row.quantity)!)])}
-                    </strong>
-                  </div>
-                  {!canPurchase(offer, row.quantity) && (
-                    <p className="purchase-error">
-                      {t(
-                        "最低購入数量・在庫数の範囲内で整数を指定してください。",
-                      )}
+                    <div className="purchase-links">
+                      {row.offers.map((o) => (
+                        <a
+                          key={o.partNumber}
+                          href={o.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {o.manufacturerPartNumber} ({o.packaging}){" "}
+                          <ExternalLink size={12} />
+                        </a>
+                      ))}
+                    </div>
+                  </>
+                )}
+                {offer && (
+                  <div className="purchase-offer">
+                    <p>
+                      <strong>{offer.manufacturer}</strong> {offer.description}
                     </p>
-                  )}
-                </div>
-              )}
-            </section>
-          );
-        })}
-      </div>
+                    <div className="purchase-offer-details">
+                      <label>
+                        {t("購入数量")}
+                        <input
+                          aria-label={t("{0}の購入数量", [t(part.name)])}
+                          type="number"
+                          min={offer.minimum}
+                          max={Math.min(
+                            offer.stock,
+                            offer.maximum ?? 100000,
+                            100000,
+                          )}
+                          step={1}
+                          value={row.quantity}
+                          onChange={(event) => {
+                            update(i, { quantity: Number(event.target.value) });
+                            setSubmitted(false);
+                          }}
+                        />
+                      </label>
+                      <span>
+                        {t("最少")} {offer.minimum} {t("/ 在庫")} {offer.stock}
+                      </span>
+                      <strong>
+                        {unitPrice(offer, row.quantity) === null
+                          ? t("価格はDigiKeyで確認")
+                          : t("{0} / 個", [
+                              yen(unitPrice(offer, row.quantity)!),
+                            ])}
+                      </strong>
+                    </div>
+                    {!canPurchase(offer, row.quantity) && (
+                      <p className="purchase-error">
+                        {t(
+                          "最低購入数量・在庫数の範囲内で整数を指定してください。",
+                        )}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </section>
+            );
+          })}
+        </div>
+      </details>
       <div className="purchase-footer">
         <div>
           <strong>

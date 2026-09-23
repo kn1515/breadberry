@@ -228,6 +228,7 @@ export async function searchDigiKey(
     const result = {
       offers: normalizeOffers(await json(response)),
       sandbox: c.sandbox,
+      checkedAt: new Date().toISOString(),
     };
     if (cache.size >= 200) cache.delete(cache.keys().next().value!);
     cache.set(key, { result, expires: Date.now() + 5 * 60000 });

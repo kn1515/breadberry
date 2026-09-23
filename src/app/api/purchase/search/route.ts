@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { ServiceError } from "@/lib/ai";
-import { searchDigiKey } from "@/lib/digikey";
+import { digiKeyConfigured, searchDigiKey } from "@/lib/digikey";
 import { draftCircuitSchema, validateDraft } from "@/lib/circuit";
-import { purchaseParts, type PurchaseRecommendation } from "@/lib/purchase";
+import {
+  canPurchase,
+  orderQuantity,
+  purchaseParts,
+  type PurchaseRecommendation,
+} from "@/lib/purchase";
 import { recommendPurchase } from "@/lib/purchase-ai";
 import {
   apiError,
@@ -14,7 +19,7 @@ import {
 } from "@/lib/server";
 
 export const runtime = "nodejs";
-export const maxDuration = 120;
+export const maxDuration = 180;
 export async function POST(req: NextRequest) {
   try {
     checkOrigin(req);
@@ -40,15 +45,23 @@ export async function POST(req: NextRequest) {
     }
     const part = purchaseParts(circuit).find((p) => p.id === input.data.partId);
     if (!part) throw new ServiceError("対象の部品が見つかりません。", 400);
-    const result = await searchDigiKey(input.data.query, () =>
-      takeDigiKeyQuota(user),
-    );
+    const search = digiKeyConfigured()
+      ? await searchDigiKey(input.data.query, () => takeDigiKeyQuota(user))
+      : { offers: [], sandbox: false };
+    const result = {
+      ...search,
+      offers: search.offers.filter((offer) =>
+        canPurchase(offer, orderQuantity(offer, part.quantity)),
+      ),
+    };
     let recommendation: PurchaseRecommendation;
     try {
       recommendation = result.sandbox
         ? {
             partNumber: null,
             reason: "テスト用の商品情報のため自動選択しません。",
+            best: null,
+            searchSuggestions: "",
           }
         : await recommendPurchase(
             part,
@@ -57,11 +70,14 @@ export async function POST(req: NextRequest) {
             result.offers,
             () => takeDigiKeyQuota(user),
             input.data.locale,
+            result.checkedAt,
           );
     } catch (error) {
       // Preserve real search results for manual selection if AI is unavailable.
       recommendation = {
         partNumber: null,
+        best: null,
+        searchSuggestions: "",
         reason:
           error instanceof ServiceError
             ? `${error.message} 商品は手動で選択できます。`

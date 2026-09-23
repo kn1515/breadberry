@@ -23,10 +23,75 @@ export type PurchaseOffer = {
   maximum: number | null;
   prices: { quantity: number; unitPrice: number }[];
 };
-export type PurchaseSearch = { offers: PurchaseOffer[]; sandbox: boolean };
+export type PurchaseSearch = {
+  offers: PurchaseOffer[];
+  sandbox: boolean;
+  checkedAt?: string;
+};
+export const domesticStores = {
+  akizuki: { name: "秋月電子通商", domain: "akizukidenshi.com" },
+  sengoku: { name: "千石電商", domain: "sengoku.co.jp" },
+  kyoritsu: { name: "共立エレショップ", domain: "eleshop.jp" },
+  marutsu: { name: "マルツ", domain: "marutsu.co.jp" },
+  amazon: { name: "Amazon.co.jp", domain: "amazon.co.jp" },
+} as const;
+export type DomesticStore = keyof typeof domesticStores;
+export type RecommendedProduct = {
+  store: DomesticStore | "digikey";
+  name: string;
+  url: string;
+  /** Number of sale units (packs for a multipack). */
+  quantity: number;
+  unitsPerPack: number;
+  totalPrice: number | null;
+  reason: string;
+  checks: string;
+  stockEvidence: string;
+  checkedAt: string;
+};
+// Only actual product pages on the five configured stores may be retrieved/linked.
+export function storeProductUrl(
+  store: DomesticStore,
+  value: string,
+): string | null {
+  try {
+    const url = new URL(value);
+    const domain = domesticStores[store].domain;
+    if (
+      url.protocol !== "https:" ||
+      url.username ||
+      url.password ||
+      url.port ||
+      ![domain, `www.${domain}`].includes(url.hostname)
+    )
+      return null;
+    const productPaths = {
+      akizuki: /^\/catalog\/g\/g[\w-]+\/?$/,
+      sengoku: /^\/mod\/sgk_cart\/detail\.php$/,
+      kyoritsu: /^\/shop\/g\/g[\w-]+\/?$/,
+      marutsu: /^\/pc\/i\/\d+\/?$/,
+      amazon: /\/(?:dp|gp\/product)\/([A-Z0-9]{10})(?:\/|$)/i,
+    };
+    if (!productPaths[store].test(url.pathname)) return null;
+    if (store === "sengoku" && !url.searchParams.get("code")) return null;
+    if (store === "amazon")
+      return `https://www.amazon.co.jp/dp/${url.pathname.match(productPaths.amazon)![1].toUpperCase()}`;
+    url.hash = "";
+    return url.href;
+  } catch {
+    return null;
+  }
+}
+// Avoid automatically ordering an industrial lot for a small breadboard circuit.
+// Larger lots remain available for explicit manual selection.
+export function maxAutomaticQuantity(requested: number) {
+  return Math.max(10, requested * 3);
+}
 export type PurchaseRecommendation = {
   partNumber: string | null;
   reason: string;
+  best: RecommendedProduct | null;
+  searchSuggestions: string;
 };
 export type RecommendedPurchaseSearch = PurchaseSearch & {
   recommendation: PurchaseRecommendation;

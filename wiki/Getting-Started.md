@@ -36,7 +36,6 @@ openssl rand -hex 32   # SESSION_SECRET に設定する乱数を生成
 | `GOOGLE_CLOUD_PROJECT`   | Firestoreを作成したGoogle CloudプロジェクトID                     |
 | `FIRESTORE_DATABASE_ID`  | 既定 `(default)`                                                  |
 | `SESSION_SECRET`         | 32文字以上のランダムな署名キー                                    |
-| `APP_ACCESS_TOKEN`       | 任意の共通アクセスコード。インターネット公開時は必須運用          |
 | `APP_ORIGIN`             | リバースプロキシ使用時の実際のアクセス元URL。末尾 `/` なし        |
 | `DAILY_GENERATION_LIMIT` | アプリ全体の1日生成上限。既定200                                  |
 | `SESSION_DAILY_LIMIT`    | セッションごとの1日生成上限。既定20                               |
@@ -48,7 +47,7 @@ gcloud auth application-default login
 gcloud auth application-default set-quota-project YOUR_PROJECT_ID
 ```
 
-ADC のユーザーに Firestore の読み書き権限が必要です。環境変数設定後にサーバーを再起動し、画面右上の「接続設定」→「セッションを開始」を押してください。
+ADC のユーザーに Firestore の読み書き権限が必要です。環境変数設定後にサーバーを再起動し、画面を再読み込みしてください。セッションは自動開始します。
 
 ### Firestore エミュレーター
 
@@ -62,7 +61,7 @@ firebase emulators:start --only firestore --project demo-breadberry
 
 ## 回路を生成する
 
-1. 画面右上の「接続設定」→「セッションを開始」でセッションを開始
+1. 画面を開くとセッションが自動開始（アクセスコード不要）
 2. 基板（ESP32 / Pico / Raspberry Pi）を選択
 3. 入力欄に作りたいものを自然言語で入力（例:「温湿度を測ってOLEDに表示したい」）
 4. 必要に応じて「対応するセンサー・部品」から部品を選択

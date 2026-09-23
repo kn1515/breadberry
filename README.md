@@ -75,6 +75,10 @@ openssl rand -hex 32
 | `DAILY_GENERATION_LIMIT` | アプリ全体の1日生成上限。既定200                                  |
 | `SESSION_DAILY_LIMIT`    | セッションごとの1日生成上限。既定20                               |
 
+### ローカルでGeminiを使う
+
+`.env.local` に `GEMINI_API_KEY` と `SESSION_SECRET` を設定してローカルサーバーを起動すると、Gemini APIをサーバー側から呼び出します。APIキーはブラウザへ送信されません。ローカル開発と `localhost` へのアクセスでは、`APP_ACCESS_TOKEN` が設定されていてもアクセスコードを要求しません。インターネットに公開する非ローカル環境では、アクセスコードまたは別の認証を必ず設定してください。
+
 ローカルから本物のFirestoreを使う場合は、gcloud CLIでADCを設定します。
 
 ```bash

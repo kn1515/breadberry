@@ -148,7 +148,7 @@ test("no candidates skips Gemini; unknown, unavailable and malformed selections 
   delete process.env.GEMINI_API_KEY;
   await assert.rejects(
     recommendPurchase(part, circuit, part.query, [offer], takeQuota),
-    /未設定/,
+    /現在利用できません/,
   );
 });
 

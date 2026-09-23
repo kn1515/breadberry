@@ -121,7 +121,7 @@ test("missing configuration and session are actionable without searching", async
 }) => {
   let searches = 0;
   await page.route("**/api/session", (r) =>
-    r.fulfill({ json: { active: false, digikey: false } }),
+    r.fulfill({ json: { active: true, digikey: false } }),
   );
   await page.route("**/api/purchase/search", (r) => {
     searches++;
@@ -135,10 +135,8 @@ test("missing configuration and session are actionable without searching", async
     dialog.getByRole("button", { name: "購入する · DigiKeyのカートへ" }),
   ).toBeDisabled();
   expect(searches).toBe(0);
-  await dialog.getByRole("button", { name: "接続設定を開く" }).click();
-  await expect(
-    page.getByRole("dialog", { name: "AIとの接続を、準備しよう。" }),
-  ).toBeVisible();
+  await expect(page.getByRole("button", { name: /接続設定/ })).toHaveCount(0);
+  await expect(dialog).not.toContainText(/Gemini|GMI/);
 });
 
 test("failed searches can retry, empty results are explicit, sandbox cannot reach cart", async ({

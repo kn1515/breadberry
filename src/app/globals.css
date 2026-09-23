@@ -3544,3 +3544,60 @@ main > .ambient {
 :root[data-theme="light"] .chat-error {
   color: var(--danger);
 }
+
+/* Catalog previews share the workspace part geometry. */
+button.parts-catalog {
+  width: 100%; padding: 12px; text-align: left;
+  border: 1px solid var(--line); border-radius: 9px;
+  color: var(--text); background: var(--surface-raised);
+}
+.catalog-modal.modal {
+  position: fixed; margin: auto; padding: 24px;
+  width: min(640px, calc(100vw - 24px)); max-height: 88dvh;
+  color: var(--text); background: var(--surface);
+}
+.catalog-modal::backdrop { background: #040a17b8; backdrop-filter: blur(8px); }
+.catalog-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.catalog-header .icon-button { flex-shrink: 0; }
+.catalog-modal .parts-search { margin: 16px 0 8px; }
+.catalog-modal > p, .catalog-list p { color: var(--text-secondary); }
+.catalog-list { list-style: none; margin: 12px 0 0; padding: 0; }
+.catalog-list li { display: grid; grid-template-columns: 180px 1fr; align-items: center; gap: 20px; min-height: 172px; padding: 12px 0; border-top: 1px solid var(--line); }
+.catalog-preview { height: 150px; width: 100%; min-width: 0; border-radius: 12px; overflow: hidden; background: var(--surface-raised); display: grid; place-items: center; }
+.catalog-preview > div { grid-area: 1 / 1; }
+.catalog-list h3 { font-size: 14px; font-weight: 600; }
+.catalog-list p { margin: 8px 0; font-size: 11px; }
+.catalog-list button { padding: 9px 12px; border-radius: 8px; background: var(--surface-raised); color: var(--text); border: 1px solid var(--line); }
+
+/* Non-modal guide: real controls stay usable throughout the tour. */
+.tour-card { position: fixed; z-index: 45; right: 20px; bottom: 20px; width: min(360px, calc(100vw - 24px)); padding: 22px; border: 1px solid var(--accent); border-radius: 16px; color: var(--text); background: var(--surface); box-shadow: 0 12px 45px #0005; }
+.tour-card h2 { font-size: 19px; margin: 10px 28px 10px 0; }
+.tour-card p { color: var(--text-secondary); font-size: 12px; line-height: 1.8; }
+.tour-close { position: absolute; top: 12px; right: 12px; }
+.tour-actions { display: flex; justify-content: space-between; gap: 16px; margin-top: 16px; }
+.tour-actions button { display: inline-flex; align-items: center; gap: 6px; }
+.tour-actions .primary-button { width: auto; padding: 9px 16px; }
+.tour-highlight { outline: 3px solid var(--accent) !important; outline-offset: 5px; animation: tour-pulse 1.6s ease-in-out infinite; scroll-margin-block: 100px 280px; }
+.tour-pointer { position: fixed; z-index: 44; pointer-events: none; fill: var(--accent); color: var(--text); filter: drop-shadow(0 2px 4px #0008); animation: tour-point 1.6s ease-in-out infinite; }
+@keyframes tour-pulse { 50% { box-shadow: 0 0 0 10px color-mix(in srgb, var(--accent) 22%, transparent); } }
+@keyframes tour-point { 50% { transform: translate(5px, 7px); } }
+@media (max-width: 600px) {
+  .catalog-modal.modal { padding: 16px; }
+  .catalog-modal h2 { font-size: 17px; }
+  .catalog-list li { grid-template-columns: 112px 1fr; gap: 12px; }
+  .catalog-preview { height: 140px; }
+  .tour-card { right: 12px; bottom: 12px; padding: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tour-highlight, .tour-pointer { animation: none; }
+}
+
+@media (min-width: 641px) and (max-width: 1000px) {
+  .workbench > .parts-panel {
+    display: flex;
+    grid-column: 1 / -1;
+    grid-row: 3;
+    border-right: 0;
+    border-top: 1px solid var(--line);
+  }
+}

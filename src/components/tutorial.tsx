@@ -1,190 +1,162 @@
 "use client";
-import { usePreferences } from "./preferences";
 
 import { useEffect, useRef, useState } from "react";
-import {
-  ArrowRight,
-  BookOpen,
-  Check,
-  ChevronLeft,
-  CircuitBoard,
-  MessageSquare,
-  PencilRuler,
-  Play,
-  Save,
-  X,
-  Zap,
-} from "lucide-react";
+import { ArrowRight, ChevronLeft, MousePointer2, X } from "lucide-react";
+import { usePreferences } from "./preferences";
 
 const steps = [
   {
+    target: '[data-tour="samples"]',
     title: "まずは、回路をひとつ。",
     description:
-      "「サンプル」から好きな回路を選びましょう。AIで作るなら、接続設定を済ませてチャットの「新しい回路」へ。",
-    hint: "例：LEDを点滅させたい",
-    icons: [MessageSquare, CircuitBoard],
-    labels: ["アイデアを伝える", "回路ができる"],
+      "「サンプル」から回路を選べます。今表示されている回路で操作を体験しましょう。",
   },
   {
-    title: "再生して、つなぎ方を見る。",
+    target: ".chat-panel textarea",
+    title: "アイデアを伝える",
     description:
-      "Viewerの再生ボタンで、部品と配線を順番に確認。3Dはドラッグで回転でき、「回路図」「コード」にも切り替えられます。",
-    hint: "組み立てガイドの各工程もクリックできます",
-    icons: [Play, Zap],
-    labels: ["組み立てを再生", "ひとつずつ確認"],
+      "ここに作りたいものや修正内容を入力します。「回路を修正」で今の回路を変更できます。",
   },
   {
-    title: "調整したら、保存しよう。",
+    target: '[data-tour="catalog"]',
+    title: "パーツをそろえる",
     description:
-      "変更はチャットで相談するか、Editorで部品や配線を編集。「保存」した回路は「プロジェクト」から開けます。",
-    hint: "「エクスポート」でJSONのダウンロードもできます",
-    icons: [PencilRuler, Save],
-    labels: ["回路を編集", "保存して、続きへ"],
+      "このボタンを押すと、対応部品の3Dモデルと名前を一覧で確認できます。",
+  },
+  {
+    target: '[data-tour="play"]',
+    title: "ひとつずつ、つなぐ",
+    description:
+      "組み立てを再生しています。このボタンで一時停止・再開できます。スライダーで工程を選べます。",
+  },
+  {
+    target: '[data-tour="editor"]',
+    title: "回路を編集",
+    description:
+      "Editorに切り替えました。部品を追加・移動し、レイアウトチェックで配置を確認できます。",
+  },
+  {
+    target: '[data-tour="download"]',
+    title: "保存して、続きへ",
+    description:
+      "部品リストはここからダウンロードできます。「保存」で回路を残し、「購入する」で商品を確認できます。",
   },
 ];
 
-export default function Tutorial() {
+export default function Tutorial({
+  step,
+  onStep,
+  onClose,
+}: {
+  step: number;
+  onStep: (step: number) => void;
+  onClose: () => void;
+}) {
   const { t } = usePreferences();
-  const dialog = useRef<HTMLDialogElement>(null);
-  const trigger = useRef<HTMLButtonElement>(null);
-  const [open, setOpen] = useState(false);
-  const [step, setStep] = useState(0);
   const current = steps[step];
-  const last = step === steps.length - 1;
-
+  const [point, setPoint] = useState<{ x: number; y: number } | null>(null);
+  const card = useRef<HTMLElement>(null);
+  const previous = useRef<HTMLElement | null>(null);
   useEffect(() => {
-    if (!open) return;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previous;
+    previous.current = document.activeElement as HTMLElement | null;
+    card.current?.focus({ preventScroll: true });
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !document.querySelector("dialog[open]"))
+        onClose();
     };
-  }, [open]);
-
-  function close() {
-    dialog.current?.close();
-  }
-
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("keydown", escape);
+      previous.current?.focus({ preventScroll: true });
+    };
+  }, [onClose]);
+  useEffect(() => {
+    let target: HTMLElement | null = null;
+    const update = () => {
+      if (!target) return;
+      const rect = target.getBoundingClientRect();
+      setPoint({
+        x: Math.max(8, Math.min(innerWidth - 32, rect.right - 8)),
+        y: rect.bottom - 4,
+      });
+    };
+    // Studio switches the displayed mode before locating the actual control.
+    const frame = requestAnimationFrame(() => {
+      target = document.querySelector<HTMLElement>(current.target);
+      if (!target) {
+        setPoint(null);
+        return;
+      }
+      target.classList.add("tour-highlight");
+      target.setAttribute("aria-describedby", "tour-description");
+      target.scrollIntoView({
+        behavior: "instant",
+        block: "center",
+        inline: "center",
+      });
+      update();
+    });
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    return () => {
+      cancelAnimationFrame(frame);
+      target?.classList.remove("tour-highlight");
+      target?.removeAttribute("aria-describedby");
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
+  }, [current]);
   return (
     <>
-      <button
-        ref={trigger}
-        type="button"
-        className="tutorial-trigger"
-        aria-label={t("チュートリアルを開く")}
-        title={t("チュートリアルを開く")}
-        aria-haspopup="dialog"
-        aria-controls="tutorial-dialog"
-        aria-expanded={open}
-        onClick={() => {
-          setStep(0);
-          dialog.current?.showModal();
-          setOpen(true);
-        }}
+      {point && (
+        <MousePointer2
+          className="tour-pointer"
+          aria-hidden="true"
+          style={{ left: point.x, top: point.y }}
+          size={28}
+        />
+      )}
+      <section
+        ref={card}
+        tabIndex={-1}
+        className="tour-card"
+        role="region"
+        aria-label={t("操作チュートリアル")}
       >
-        <BookOpen size={18} aria-hidden="true" />
-        <span>{t("使い方")}</span>
-      </button>
-      <dialog
-        ref={dialog}
-        id="tutorial-dialog"
-        className="tutorial-dialog"
-        aria-labelledby="tutorial-title"
-        onClose={() => {
-          setOpen(false);
-          trigger.current?.focus({ preventScroll: true });
-        }}
-        onClick={(event) => {
-          if (event.target !== event.currentTarget) return;
-          const bounds = event.currentTarget.getBoundingClientRect();
-          if (
-            event.clientX < bounds.left ||
-            event.clientX > bounds.right ||
-            event.clientY < bounds.top ||
-            event.clientY > bounds.bottom
-          )
-            close();
-        }}
-      >
-        <div className="tutorial-header">
-          <span>
-            <BookOpen size={15} aria-hidden="true" />{" "}
-            {t("約30秒でわかる使い方")}
-          </span>
-          <button
-            type="button"
-            autoFocus
-            className="tutorial-close"
-            aria-label={t("チュートリアルを閉じる")}
-            onClick={close}
-          >
-            <X size={19} />
-          </button>
-        </div>
-        <h2 id="tutorial-title">{t("アイデアから、動く回路へ。")}</h2>
-        <div
-          className="tutorial-progress"
-          role="group"
-          aria-label={t("チュートリアルのステップ")}
+        <button
+          className="icon-button tour-close"
+          onClick={onClose}
+          aria-label={t("チュートリアルを閉じる")}
         >
-          {steps.map((item, index) => (
-            <button
-              key={item.title}
-              type="button"
-              aria-label={t("ステップ{0}：{1}", [index + 1, t(item.title)])}
-              aria-current={step === index ? "step" : undefined}
-              onClick={() => setStep(index)}
-            >
-              <span className={index <= step ? "is-complete" : ""} />
-            </button>
-          ))}
-        </div>
+          <X size={18} />
+        </button>
         <div aria-live="polite" aria-atomic="true">
-          <div key={step} className="tutorial-step">
-            <div className="tutorial-preview" aria-hidden="true">
-              {current.icons.map((Icon, index) => (
-                <div className="tutorial-preview-item" key={index}>
-                  {index === 1 && (
-                    <ArrowRight className="tutorial-arrow" size={22} />
-                  )}
-                  <span className="tutorial-preview-icon">
-                    <Icon size={30} />
-                  </span>
-                  <span>{t(current.labels[index])}</span>
-                </div>
-              ))}
-              <span className="tutorial-preview-check">
-                <Check size={13} />
-              </span>
-            </div>
-            <p className="tutorial-counter">STEP 0{step + 1} / 03</p>
-            <h3>{t(current.title)}</h3>
-            <p className="tutorial-description">{t(current.description)}</p>
-            <p className="tutorial-hint">{t(current.hint)}</p>
-          </div>
+          <span className="tutorial-counter">
+            STEP {step + 1} / {steps.length}
+          </span>
+          <h2>{t(current.title)}</h2>
+          <p id="tour-description">{t(current.description)}</p>
         </div>
-        <div className="tutorial-footer">
+        <div className="tour-actions">
           <button
-            type="button"
-            className="tutorial-back"
+            className="text-button"
             disabled={step === 0}
-            onClick={() => setStep((value) => Math.max(0, value - 1))}
+            onClick={() => onStep(step - 1)}
           >
-            <ChevronLeft size={16} /> {t("戻る")}
+            <ChevronLeft size={16} />
+            {t("戻る")}
           </button>
           <button
-            type="button"
             className="primary-button"
-            onClick={() => (last ? close() : setStep((value) => value + 1))}
+            onClick={() =>
+              step === steps.length - 1 ? onClose() : onStep(step + 1)
+            }
           >
-            {last ? t("使ってみる") : t("次へ")}
-            {last ? <Check size={16} /> : <ArrowRight size={16} />}
+            {t(step === steps.length - 1 ? "完了" : "次へ")}
+            <ArrowRight size={16} />
           </button>
         </div>
-        <p className="tutorial-reminder">
-          {t("ヘッダーの本のアイコンから、いつでも見返せます")}
-        </p>
-      </dialog>
+      </section>
     </>
   );
 }

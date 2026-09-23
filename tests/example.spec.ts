@@ -60,8 +60,12 @@ test("unconfigured services and API authorization are explicit", async ({
   await page.goto("/");
   await page.getByLabel("作りたいもの").fill("部屋の温度と湿度を測りたい");
   await page.getByRole("button", { name: "回路を修正", exact: true }).click();
-  await expect(page.getByRole("dialog")).toBeVisible();
-  await expect(page.getByRole("dialog")).toContainText("未設定");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(
+    page
+      .getByRole("complementary", { name: "回路設計チャット", exact: true })
+      .getByRole("alert"),
+  ).toContainText("回路生成は現在利用できません。");
   const response = await request.post("/api/generate", {
     data: { prompt: "温湿度を測定する", board: "esp32" },
   });
@@ -125,21 +129,33 @@ test("expanded catalog respects board capabilities", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
-  await page.locator(".parts-catalog summary").click();
-  await expect(page.locator(".catalog-grid button")).toHaveCount(15);
-  await page
-    .getByRole("button", { name: "BME280 温湿度・気圧モジュール", exact: true })
+  await page.locator(".parts-catalog").click();
+  const dialog = page.getByRole("dialog", { name: "対応するセンサー・部品" });
+  await expect(dialog.locator(".catalog-list li")).toHaveCount(15);
+  await expect(dialog.locator("canvas").first()).toBeVisible();
+  await dialog.getByLabel("対応部品を検索").fill("BME280");
+  await expect(dialog.locator(".catalog-list li")).toHaveCount(1);
+  await dialog
+    .getByRole("button", {
+      name: "BME280 温湿度・気圧モジュールを選択",
+      exact: true,
+    })
     .click();
   await expect(page.getByLabel("作りたいもの")).toHaveValue(/BME280/);
+  await expect(dialog).toHaveCount(0);
+  await expect(page.locator(".parts-catalog")).toBeFocused();
   await page.getByLabel("使用する基板").selectOption("raspberry-pi");
+  await page.locator(".parts-catalog").click();
   await expect(
-    page.getByRole("button", { name: "可変抵抗（ADCが必要）", exact: true }),
+    dialog.getByRole("button", { name: "可変抵抗を選択", exact: true }),
   ).toBeDisabled();
+  await page.keyboard.press("Escape");
   await page.getByLabel("使用する基板").selectOption("pico");
+  await page.locator(".parts-catalog").click();
   await expect(
-    page.getByRole("button", { name: "可変抵抗", exact: true }),
+    dialog.getByRole("button", { name: "可変抵抗を選択", exact: true }),
   ).toBeEnabled();
-  await page.locator(".parts-catalog summary").click();
+  await page.keyboard.press("Escape");
   expect(errors).toEqual([]);
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth),

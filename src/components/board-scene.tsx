@@ -233,14 +233,16 @@ function Segment({
     </mesh>
   );
 }
-function Part({
+export function Part({
   part,
   holes,
   active,
+  labels = true,
 }: {
   part: Circuit["parts"][number];
   holes: Record<string, string>;
   active: boolean;
+  labels?: boolean;
 }) {
   const group = useRef<THREE.Group>(null);
   const progress = useRef(0);
@@ -311,7 +313,7 @@ function Part({
               roughness={0.35}
             />
           </mesh>
-          {part.kind === "ssd1306" && (
+          {labels && part.kind === "ssd1306" && (
             <Label at={[x, 0.89, z]} color="#67e8f9">
               OLED · 128×64
             </Label>
@@ -375,15 +377,17 @@ function Part({
           )}
         </>
       )}
-      <Label
-        at={[x, 1.45, z]}
-        color={active ? "var(--accent)" : "var(--scene-label)"}
-      >
-        <span data-part-label={part.id}>
-          {part.id} ·{" "}
-          {part.kind === "resistor" ? part.value : def.name.split(" ")[0]}
-        </span>
-      </Label>
+      {labels && (
+        <Label
+          at={[x, 1.45, z]}
+          color={active ? "var(--accent)" : "var(--scene-label)"}
+        >
+          <span data-part-label={part.id}>
+            {part.id} ·{" "}
+            {part.kind === "resistor" ? part.value : def.name.split(" ")[0]}
+          </span>
+        </Label>
+      )}
     </group>
   );
 }

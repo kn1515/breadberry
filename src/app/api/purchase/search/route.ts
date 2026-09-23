@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
         reason:
           error instanceof ServiceError
             ? `${error.message} 商品は手動で選択できます。`
-            : "Geminiの自動選択を利用できません。商品は手動で選択できます。",
+            : "AIの自動選択を利用できません。商品は手動で選択できます。",
       };
     }
     return NextResponse.json(

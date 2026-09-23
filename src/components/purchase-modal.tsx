@@ -40,11 +40,9 @@ const formatYen = (value: number, locale: string) =>
 export default function PurchaseModal({
   circuit,
   onClose,
-  onConnect,
 }: {
   circuit: Circuit;
   onClose: () => void;
-  onConnect: () => void;
 }) {
   const { t, locale } = usePreferences();
   const yen = (value: number) =>
@@ -64,7 +62,6 @@ export default function PurchaseModal({
   );
   const [message, setMessage] = useState("");
   const [ready, setReady] = useState(false);
-  const [needsSession, setNeedsSession] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   const abort = useRef<AbortController | null>(null);
@@ -144,9 +141,8 @@ export default function PurchaseModal({
           setMessage(
             !config.digikey
               ? "DigiKeyの商品検索は準備中です。管理者に連携設定を依頼してください。"
-              : "部品検索を利用するには、接続設定からセッションを開始してください。",
+              : "利用期限が切れました。一覧を閉じて再度お試しください。",
           );
-          setNeedsSession(!config.active);
           setRows((old) => old.map((r) => ({ ...r, loading: false })));
           return;
         }
@@ -244,17 +240,12 @@ export default function PurchaseModal({
       </div>
       <p id="purchase-help">
         {t(
-          "Geminiが回路の仕様に最も合う商品を選択します。選定理由と商品ページの仕様・端子・入数を確認してください。商品や数量は変更できます。",
+          "AIが回路の仕様に最も合う商品を選択します。選定理由と商品ページの仕様・端子・入数を確認してください。商品や数量は変更できます。",
         )}
       </p>
       {message && (
         <div className="purchase-message" role="status">
           {t(message)}
-          {needsSession && (
-            <button className="purchase-button" onClick={onConnect}>
-              {t("接続設定を開く")}
-            </button>
-          )}
         </div>
       )}
       {sandbox && (
@@ -311,7 +302,7 @@ export default function PurchaseModal({
               {row.loading ? (
                 <p className="purchase-status" role="status">
                   <LoaderCircle size={16} className="spin" />{" "}
-                  {t("商品検索・Geminiによる選定中…")}
+                  {t("商品検索・AIによる選定中…")}
                 </p>
               ) : row.error ? (
                 <p className="purchase-error" role="alert">
@@ -324,7 +315,7 @@ export default function PurchaseModal({
               ) : null}
               {row.recommendation && (
                 <p className="purchase-note" role="status">
-                  <strong>{t("Geminiの選定結果:")} </strong>
+                  <strong>{t("AIの選定結果:")} </strong>
                   {t(row.recommendation)}
                 </p>
               )}

@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
       }
     }
     if (!process.env.GEMINI_API_KEY)
-      throw new ServiceError("Gemini APIキーが未設定です。");
+      throw new ServiceError("回路生成は現在利用できません。");
     await takeQuota(user);
     const circuit = await generateCircuit(
       input.data.prompt,

@@ -33,7 +33,7 @@ export async function recommendPurchase(
     };
   if (!process.env.GEMINI_API_KEY)
     throw new ServiceError(
-      "Gemini APIキーが未設定のため自動選択できません。",
+      "自動選択は現在利用できません。商品は手動で選択できます。",
       503,
     );
   // Count every AI call, including searches served from the DigiKey cache.
@@ -103,7 +103,7 @@ Prioritize exact component/model, resistance, LED color, voltage (3.3V), interfa
     return result;
   } catch {
     throw new ServiceError(
-      "Geminiの商品選定結果を確認できませんでした。再検索するか手動で選択してください。",
+      "AIの商品選定結果を確認できませんでした。再検索するか手動で選択してください。",
       502,
     );
   }

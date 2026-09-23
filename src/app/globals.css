@@ -3368,6 +3368,18 @@ main > .ambient {
 .purchase-offer {
   border-color: var(--line);
 }
+.purchase-recommended { padding: 0 26px 20px; overflow-wrap: anywhere; }
+.purchase-recommended > h3 { display: flex; align-items: center; gap: 8px; font-size: 17px; margin-bottom: 8px; }
+.purchase-best-list { display: grid; gap: 12px; margin: 14px 0; padding: 0; list-style: none; }
+.purchase-best { padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-raised); font-size: 13px; }
+.purchase-best h4 { font-size: 14px; }
+.purchase-product-link { display: inline-flex; align-items: center; gap: 6px; color: var(--success); text-decoration: underline; margin-top: 10px; }
+.purchase-details > summary { cursor: pointer; padding: 12px 26px 20px; font-size: 13px; color: var(--muted); }
+.purchase-search-suggestions { display: block; width: 100%; height: 110px; border: 0; margin-top: 8px; background: white; border-radius: 8px; }
+@media (max-width: 700px) {
+  .purchase-recommended { padding: 0 12px 16px; }
+  .purchase-details > summary { padding-inline: 16px; }
+}
 .purchase-button {
   background: #23634c;
   color: white;
@@ -3627,3 +3639,13 @@ button.parts-catalog {
 @media (max-width: 1000px) {
   body.tour-active main { padding-top: var(--tour-card-height, 280px); }
 }
+
+.purchase-progress { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 14px 0; }
+.purchase-progress > p[role="status"] { font-size: 13px; font-weight: 600; margin: 0; }
+.purchase-progress progress { flex: 1; min-width: 80px; height: 8px; accent-color: var(--success); }
+.purchase-progress > .purchase-note { flex-basis: 100%; margin: 0; }
+.purchase-progress button, .purchase-search-progress button { padding: 8px 12px; min-height: 40px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-raised); color: var(--text); font-size: 12px; cursor: pointer; }
+.purchase-search-progress { display: grid; gap: 8px; list-style: none; padding: 0; margin: 0; }
+.purchase-search-progress > li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 12px; }
+.purchase-search-progress > li > strong { margin-right: auto; }
+.purchase-search-progress .purchase-error, .purchase-search-progress .purchase-note { flex-basis: 100%; }

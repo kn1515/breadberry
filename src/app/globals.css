@@ -3570,15 +3570,37 @@ button.parts-catalog {
 .catalog-list button { padding: 9px 12px; border-radius: 8px; background: var(--surface-raised); color: var(--text); border: 1px solid var(--line); }
 
 /* Non-modal guide: real controls stay usable throughout the tour. */
-.tour-card { position: fixed; z-index: 45; right: 20px; bottom: 20px; width: min(360px, calc(100vw - 24px)); padding: 22px; border: 1px solid var(--accent); border-radius: 16px; color: var(--text); background: var(--surface); box-shadow: 0 12px 45px #0005; }
+.tour-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+}
+.tour-card {
+  position: absolute;
+  z-index: 2;
+  top: max(16px, env(safe-area-inset-top));
+  right: max(20px, env(safe-area-inset-right));
+  width: min(400px, calc(100vw - 40px));
+  max-height: calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  pointer-events: auto;
+  padding: 22px;
+  border: 1px solid var(--accent);
+  border-radius: 16px;
+  color: var(--text);
+  background: var(--surface);
+  box-shadow: 0 12px 45px #0005;
+}
 .tour-card h2 { font-size: 19px; margin: 10px 28px 10px 0; }
 .tour-card p { color: var(--text-secondary); font-size: 12px; line-height: 1.8; }
 .tour-close { position: absolute; top: 12px; right: 12px; }
 .tour-actions { display: flex; justify-content: space-between; gap: 16px; margin-top: 16px; }
 .tour-actions button { display: inline-flex; align-items: center; gap: 6px; }
 .tour-actions .primary-button { width: auto; padding: 9px 16px; }
-.tour-highlight { outline: 3px solid var(--accent) !important; outline-offset: 5px; animation: tour-pulse 1.6s ease-in-out infinite; scroll-margin-block: 100px 280px; }
-.tour-pointer { position: fixed; z-index: 44; pointer-events: none; fill: var(--accent); color: var(--text); filter: drop-shadow(0 2px 4px #0008); animation: tour-point 1.6s ease-in-out infinite; }
+.tour-highlight { outline: 3px solid var(--accent) !important; outline-offset: 5px; animation: tour-pulse 1.6s ease-in-out infinite; scroll-margin-block: var(--tour-offset, 280px) 24px; }
+.tour-pointer { position: fixed; z-index: 1; pointer-events: none; fill: var(--accent); color: var(--text); filter: drop-shadow(0 2px 4px #0008); animation: tour-point 1.6s ease-in-out infinite; }
 @keyframes tour-pulse { 50% { box-shadow: 0 0 0 10px color-mix(in srgb, var(--accent) 22%, transparent); } }
 @keyframes tour-point { 50% { transform: translate(5px, 7px); } }
 @media (max-width: 600px) {
@@ -3586,7 +3608,7 @@ button.parts-catalog {
   .catalog-modal h2 { font-size: 17px; }
   .catalog-list li { grid-template-columns: 112px 1fr; gap: 12px; }
   .catalog-preview { height: 140px; }
-  .tour-card { right: 12px; bottom: 12px; padding: 16px; }
+  .tour-card { right: max(12px, env(safe-area-inset-right)); width: calc(100vw - 24px); padding: 16px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .tour-highlight, .tour-pointer { animation: none; }
@@ -3600,4 +3622,8 @@ button.parts-catalog {
     border-right: 0;
     border-top: 1px solid var(--line);
   }
+}
+
+@media (max-width: 1000px) {
+  body.tour-active main { padding-top: var(--tour-card-height, 280px); }
 }

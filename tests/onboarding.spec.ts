@@ -16,6 +16,14 @@ test("guided tour highlights real controls, plays assembly and restores the view
   await page.getByRole("button", { name: "チュートリアルを開く" }).click();
   const tour = page.getByRole("region", { name: "操作チュートリアル" });
   await expect(tour).toBeVisible();
+  const overlay = page.locator("body > .tour-overlay");
+  await expect(overlay).toHaveCSS("position", "fixed");
+  await expect(overlay).toHaveCSS("pointer-events", "none");
+  await expect(tour).toHaveCSS("pointer-events", "auto");
+  await expect.poll(async () => (await tour.boundingBox())?.y).toBeLessThan(32);
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await expect.poll(async () => (await tour.boundingBox())?.y).toBeLessThan(32);
+  await expect(tour).toBeInViewport();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.locator('[data-tour="samples"]')).toHaveClass(
     /tour-highlight/,
@@ -43,6 +51,7 @@ test("guided tour highlights real controls, plays assembly and restores the view
   );
   await tour.getByRole("button", { name: "完了" }).click();
   await expect(tour).toHaveCount(0);
+  await expect(overlay).toHaveCount(0);
   await expect(page.locator(".tour-highlight")).toHaveCount(0);
   await expect(
     page.getByRole("tab", { name: "回路図", exact: true }),

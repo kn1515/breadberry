@@ -10,7 +10,7 @@ import {
   purchaseParts,
   unitPrice,
   type PurchaseOffer,
-  type PurchaseSearch,
+  type RecommendedPurchaseSearch,
 } from "@/lib/purchase";
 
 type Row = {
@@ -21,6 +21,7 @@ type Row = {
   loading: boolean;
   error: string;
   sandbox: boolean;
+  recommendation: string;
 };
 const yen = (value: number) =>
   new Intl.NumberFormat("ja-JP", {
@@ -48,6 +49,7 @@ export default function PurchaseModal({
       loading: true,
       error: "",
       sandbox: false,
+      recommendation: "",
     })),
   );
   const [message, setMessage] = useState("");
@@ -62,24 +64,42 @@ export default function PurchaseModal({
     );
 
   async function search(i: number, query: string, signal: AbortSignal) {
-    update(i, { loading: true, error: "", selected: "", offers: [] });
+    update(i, {
+      loading: true,
+      error: "",
+      selected: "",
+      offers: [],
+      recommendation: "",
+    });
     setSubmitted(false);
     try {
       const response = await fetch("/api/purchase/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query, circuit, partId: parts[i].id }),
         signal,
       });
       const data = await response.json();
       if (!response.ok)
         throw new Error(data.error || "商品検索に失敗しました。");
-      const result = data as PurchaseSearch;
+      const result = data as RecommendedPurchaseSearch;
+      const recommended = result.sandbox
+        ? undefined
+        : result.offers.find(
+            (o) =>
+              o.partNumber === result.recommendation?.partNumber &&
+              canPurchase(o, orderQuantity(o, parts[i].quantity)),
+          );
       if (!signal.aborted)
         update(i, {
           offers: result.offers,
           sandbox: result.sandbox,
           loading: false,
+          selected: recommended?.partNumber ?? "",
+          quantity: recommended
+            ? orderQuantity(recommended, parts[i].quantity)
+            : parts[i].quantity,
+          recommendation: result.recommendation?.reason ?? "",
         });
     } catch (error) {
       if (!signal.aborted)
@@ -159,7 +179,8 @@ export default function PurchaseModal({
     lines.length > 0 &&
     selected.every((line) => canPurchase(line.offer, line.quantity)) &&
     lines.every((line) => canPurchase(line.offer, line.quantity)) &&
-    !sandbox;
+    !sandbox &&
+    !rows.some((r) => r.loading);
   const knownTotal = lines.reduce(
     (sum, line) =>
       sum + (unitPrice(line.offer, line.quantity) ?? 0) * line.quantity,
@@ -210,7 +231,7 @@ export default function PurchaseModal({
         </button>
       </div>
       <p id="purchase-help">
-        回路に必要な部品の購入候補です。商品ページで仕様・端子・入数を確認し、購入する商品を選択してください。
+        Geminiが回路の仕様に最も合う商品を選択します。選定理由と商品ページの仕様・端子・入数を確認してください。商品や数量は変更できます。
       </p>
       {message && (
         <div className="purchase-message" role="status">
@@ -271,7 +292,8 @@ export default function PurchaseModal({
               </form>
               {row.loading ? (
                 <p className="purchase-status" role="status">
-                  <LoaderCircle size={16} className="spin" /> 購入候補を検索中…
+                  <LoaderCircle size={16} className="spin" />{" "}
+                  商品検索・Geminiによる選定中…
                 </p>
               ) : row.error ? (
                 <p className="purchase-error" role="alert">
@@ -282,6 +304,12 @@ export default function PurchaseModal({
                   候補が見つかりません。検索語や型番を変更してください。
                 </p>
               ) : null}
+              {row.recommendation && (
+                <p className="purchase-note" role="status">
+                  <strong>Geminiの選定結果: </strong>
+                  {row.recommendation}
+                </p>
+              )}
               {row.offers.length > 0 && (
                 <>
                   <label className="purchase-selection">
@@ -388,7 +416,7 @@ export default function PurchaseModal({
             概算・送料等を除く。同一商品は数量を合算します。最終価格と注文確定はDigiKeyで確認してください。
           </p>
         </div>
-        {lines.length > 0 && !valid && !sandbox && (
+        {lines.length > 0 && !valid && !sandbox && !loading && (
           <p className="purchase-error" role="alert">
             同一商品の合計数量を含め、最低購入数量・在庫数・購入上限を確認してください。
           </p>

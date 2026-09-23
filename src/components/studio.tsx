@@ -48,6 +48,8 @@ import {
   billOfMaterials,
   boards,
   catalog,
+  isAnalog,
+  partKinds,
   compileCircuit,
   validateCircuit,
   validateDraft,
@@ -622,18 +624,6 @@ export default function Studio() {
               <Download size={18} />
               <span>エクスポート</span>
             </button>
-            <button
-              className="activity-button"
-              disabled={busy || saving}
-              aria-haspopup="dialog"
-              onClick={() => {
-                setExamples(false);
-                setPurchasing(true);
-              }}
-            >
-              <ShoppingCart size={18} />
-              <span>購入する</span>
-            </button>
           </div>
           <nav className="activity-group activity-help" aria-label="サポート">
             <a
@@ -677,6 +667,42 @@ export default function Studio() {
               <span>パーツライブラリ</span>
               <span className="count">{bom.length}</span>
             </div>
+            <details className="parts-catalog">
+              <summary>
+                対応するセンサー・部品（{partKinds.length}種類）
+              </summary>
+              <p>
+                部品を選ぶと入力欄にセットします。3.3V回路・最大6部品。モジュールは端子名と実物の仕様を確認してください。
+              </p>
+              <div className="catalog-grid">
+                {partKinds.map((kind) => {
+                  const unavailable =
+                    selectedBoard === "raspberry-pi" && isAnalog(kind);
+                  return (
+                    <button
+                      type="button"
+                      key={kind}
+                      disabled={busy || unavailable}
+                      title={
+                        unavailable
+                          ? "Raspberry Pi 4/5はADC非搭載です"
+                          : catalog[kind].note
+                      }
+                      onClick={() =>
+                        setPrompt(
+                          newDesign
+                            ? `${catalog[kind].name}を使う回路と動作確認用のコードを作成してください。`
+                            : `現在の回路に${catalog[kind].name}を追加してください。`,
+                        )
+                      }
+                    >
+                      {catalog[kind].name}
+                      {unavailable ? "（ADCが必要）" : ""}
+                    </button>
+                  );
+                })}
+              </div>
+            </details>
             <label className="parts-search">
               <Search size={14} />
               <input
@@ -736,6 +762,18 @@ export default function Studio() {
             </div>
             <button className="bom-download" onClick={exportBOM}>
               <ArrowDownToLine size={14} /> 部品リストをダウンロード
+            </button>
+            <button
+              className="bom-download parts-purchase"
+              disabled={busy || saving}
+              aria-haspopup="dialog"
+              onClick={() => {
+                setExamples(false);
+                setPurchasing(true);
+              }}
+            >
+              <ShoppingCart size={14} />
+              <span>購入する</span>
             </button>
             <div className="parts-tip">
               <span className="tip-icon">

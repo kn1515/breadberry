@@ -18,7 +18,7 @@ export class ServiceError extends Error {
     super(message);
   }
 }
-async function providerJson(
+export async function providerJson(
   url: string,
   init: RequestInit,
   timeout: number,

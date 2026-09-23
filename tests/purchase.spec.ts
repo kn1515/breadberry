@@ -28,7 +28,21 @@ test("purchase modal selects products and POSTs combined quantities to FastAdd",
   const queries: string[] = [];
   await page.route("**/api/purchase/search", (r) => {
     queries.push(r.request().postDataJSON().query);
-    return r.fulfill({ json: { offers: [offer], sandbox: false } });
+    const body = r.request().postDataJSON();
+    expect(body.circuit.board).toBe("esp32");
+    expect(body.partId).toMatch(/^bom-/);
+    return r.fulfill({
+      json: {
+        offers: [offer],
+        sandbox: false,
+        recommendation: {
+          partNumber: ["bom-0", "bom-1"].includes(body.partId)
+            ? offer.partNumber
+            : null,
+          reason: "テスト用の選定理由",
+        },
+      },
+    });
   });
   // Intercept the popup at browser-context level: never contact the real cart.
   let cartBody = "";
@@ -45,13 +59,25 @@ test("purchase modal selects products and POSTs combined quantities to FastAdd",
   );
   await page.goto("/");
   const trigger = page.getByRole("button", { name: "購入する", exact: true });
+  const panel = page.locator(".parts-panel");
+  await expect(
+    panel.getByRole("button", { name: "購入する", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page
+      .locator(".activity-bar")
+      .getByRole("button", { name: "購入する", exact: true }),
+  ).toHaveCount(0);
+  await expect(panel.locator(".parts-catalog")).toHaveCount(1);
+  expect(
+    await trigger.evaluate((el) => el.previousElementSibling?.textContent),
+  ).toContain("部品リストをダウンロード");
   await trigger.click();
   const dialog = page.getByRole("dialog", { name: "部品を購入する" });
   await expect(dialog).toBeVisible();
   const buy = dialog.getByRole("button", {
     name: "購入する · DigiKeyのカートへ",
   });
-  await expect(buy).toBeDisabled();
   await expect(dialog.locator(".purchase-list")).toHaveAttribute(
     "aria-busy",
     "false",
@@ -59,8 +85,13 @@ test("purchase modal selects products and POSTs combined quantities to FastAdd",
   expect(queries.length).toBeGreaterThan(3);
   expect(queries.some((q) => q.includes("LED green"))).toBe(true);
   const selects = dialog.locator("select");
-  await selects.nth(0).selectOption(offer.partNumber);
+  await expect(selects.nth(0)).toHaveValue(offer.partNumber);
+  await expect(selects.nth(1)).toHaveValue(offer.partNumber);
+  await expect(selects.nth(2)).toHaveValue("");
+  await selects.nth(1).selectOption("");
+  await expect(selects.nth(1)).toHaveValue("");
   await selects.nth(1).selectOption(offer.partNumber);
+  await expect(dialog).toContainText("テスト用の選定理由");
   await expect(dialog).toContainText("1 商品を選択 · ￥150");
   // A valid combined quantity must not conceal an invalid individual row.
   await dialog.locator('input[type="number"]').first().fill("0");

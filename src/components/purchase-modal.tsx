@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ExternalLink, LoaderCircle, ShoppingCart, X } from "lucide-react";
+import { ExternalLink, LoaderCircle, ShoppingCart, Sparkles, X } from "lucide-react";
 import type { Circuit } from "@/lib/circuit";
 import {
   canPurchase,
@@ -449,7 +449,9 @@ export default function PurchaseModal({
             type="submit"
             disabled={!valid || submitted}
           >
-            <ShoppingCart size={17} /> 購入する · DigiKeyのカートへ
+            <ShoppingCart size={17} /> 
+              購入する · DigiKeyのカートへ
+            <Sparkles size={14} />
           </button>
         </form>
         {submitted && (

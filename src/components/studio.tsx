@@ -774,6 +774,7 @@ export default function Studio() {
             >
               <ShoppingCart size={14} />
               <span>購入する</span>
+              <Sparkles size={14} />
             </button>
             <div className="parts-tip">
               <span className="tip-icon">

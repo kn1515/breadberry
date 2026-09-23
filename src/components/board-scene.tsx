@@ -452,11 +452,15 @@ function SceneWorkspace({
   circuit,
   step,
   reduced,
+  view,
+  reset,
   editor,
 }: {
   circuit: Circuit;
   step: number;
   reduced: boolean;
+  view: "perspective" | "top";
+  reset: number;
   editor?: SceneEditor;
 }) {
   const { camera, gl } = useThree();
@@ -475,6 +479,15 @@ function SceneWorkspace({
     null,
   );
   const [dragging, setDragging] = useState(false);
+  useEffect(() => {
+    const position: [number, number, number] =
+      view === "top" ? [0, 15, -0.2] : [7.8, 10.2, 9.8];
+    controls.current?.target.set(0, 0.3, -0.6);
+    camera.position.set(...position);
+    camera.lookAt(0, 0.3, -0.6);
+    camera.updateProjectionMatrix();
+    controls.current?.update();
+  }, [camera, reset, view]);
   const displayed = useMemo(
     () => (preview ? movePart(circuit, preview.id, preview.hole) : circuit),
     [circuit, preview],
@@ -796,7 +809,6 @@ export default function BoardScene({
   editor?: SceneEditor;
 }) {
   const { t, theme } = usePreferences();
-  const [supported, setSupported] = useState(true);
   const [reduced, setReduced] = useState(false);
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -805,46 +817,44 @@ export default function BoardScene({
     media.addEventListener("change", sync);
     return () => media.removeEventListener("change", sync);
   }, []);
-  useEffect(() => {
-    const canvas = document.createElement("canvas");
-    const gl = canvas.getContext("webgl2");
-    if (!gl) setSupported(false);
-    else gl.getExtension("WEBGL_lose_context")?.loseContext();
-  }, []);
-  if (!supported)
-    return (
-      <div className="scene-fallback">
-        {t(
-          "WebGLを利用できません。3Dを表示できるブラウザをご利用ください。配置の変更は下の「配置する穴」からも行えます。",
-        )}
-      </div>
-    );
   return (
     <SceneBoundary>
       <Canvas
-        key={`${view}-${reset}`}
         shadows="percentage"
         camera={{
-          position: view === "top" ? [0, 15, -0.2] : [7.8, 10.2, 9.8],
+          position: [7.8, 10.2, 9.8],
           fov: 39,
         }}
         dpr={[1, 1.6]}
         gl={{ antialias: true, alpha: true }}
         aria-label={t("ブレッドボードの3D配線モデル")}
+        fallback={
+          <div className="scene-fallback">
+            {t(
+              "WebGLを利用できません。3Dを表示できるブラウザをご利用ください。配置の変更は下の「配置する穴」からも行えます。",
+            )}
+          </div>
+        }
       >
-        <ambientLight intensity={1.2} />
-        <hemisphereLight args={["#cfddff", "#273447", 1.5]} />
+        <color
+          attach="background"
+          args={[theme === "light" ? "#dbe5ef" : "#0c1728"]}
+        />
+        <ambientLight intensity={0.45} />
+        <hemisphereLight args={["#cfddff", "#273447", 0.65]} />
         <directionalLight
           position={[3, 8, 4]}
-          intensity={2.3}
+          intensity={1.35}
           castShadow
           shadow-mapSize={[1024, 1024]}
         />
-        <pointLight position={[-4, 4, -4]} color="#818cf8" intensity={16} />
+        <pointLight position={[-4, 4, -4]} color="#818cf8" intensity={3.5} />
         <SceneWorkspace
           circuit={circuit}
           step={step}
           reduced={reduced}
+          view={view}
+          reset={reset}
           editor={editor}
         />
         <ContactShadows

@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 const config: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
+  reactStrictMode: false,
   serverExternalPackages: ["@google-cloud/firestore"],
   async headers() {
     return [

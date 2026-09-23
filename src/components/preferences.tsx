@@ -123,11 +123,11 @@ export function PreferenceControls() {
         <span>
           {locale === "ja"
             ? theme === "dark"
-              ? "ホワイト"
-              : "ダーク"
+              ? ""
+              : ""
             : theme === "dark"
-              ? "Light"
-              : "Dark"}
+              ? ""
+              : ""}
         </span>
       </button>
       <button

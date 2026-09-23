@@ -1,7 +1,9 @@
 "use client";
+import { usePreferences } from "./preferences";
 import { boards, catalog, type Circuit } from "@/lib/circuit";
 import { ledColors, resolveLedColor } from "@/lib/led";
 export default function Schematic({ circuit }: { circuit: Circuit }) {
+  const { t } = usePreferences();
   const usedPins = Object.keys(boards[circuit.board].pins).filter((pin) =>
     circuit.wires.some((w) => [w.from, w.to].includes(`board.${pin}`)),
   );
@@ -21,7 +23,7 @@ export default function Schematic({ circuit }: { circuit: Circuit }) {
     <div className="schematic">
       <svg
         role="img"
-        aria-label="接続データから描画した回路図"
+        aria-label={t("接続データから描画した回路図")}
         viewBox={`0 0 800 ${height}`}
       >
         <defs>
@@ -41,10 +43,10 @@ export default function Schematic({ circuit }: { circuit: Circuit }) {
           width="165"
           height={Math.max(170, usedPins.length * 44 + 55)}
           rx="14"
-          fill="#172b35"
+          fill="var(--surface-raised)"
           stroke="#3b7e6a"
         />
-        <text x="63" y="77" fill="#7ae4bc" fontSize="13">
+        <text x="63" y="77" fill="var(--success)" fontSize="13">
           {circuit.board.toUpperCase()}
         </text>
         {usedPins.map((p) => (
@@ -52,7 +54,7 @@ export default function Schematic({ circuit }: { circuit: Circuit }) {
             <text
               x="64"
               y={ports[`board.${p}`][1] + 4}
-              fill="#c3d2df"
+              fill="var(--text-secondary)"
               fontSize="12"
             >
               {p}
@@ -88,17 +90,17 @@ export default function Schematic({ circuit }: { circuit: Circuit }) {
               width="180"
               height="73"
               rx="9"
-              fill="#182437"
+              fill="var(--surface-raised)"
               stroke="#495775"
             />
             <text
               x="570"
               y={36 + i * 100}
               textAnchor="middle"
-              fill="#dae4ef"
+              fill="var(--text)"
               fontSize="12"
             >
-              {p.id} · {catalog[p.kind].name} {p.value}
+              {p.id} · {t(catalog[p.kind].name)} {p.value}
             </text>
             {catalog[p.kind].pins.map((pin, j) => (
               <g key={pin}>
@@ -118,7 +120,7 @@ export default function Schematic({ circuit }: { circuit: Circuit }) {
                   x={ports[`${p.id}.${pin}`][0] + (j % 2 ? -12 : 12)}
                   y={ports[`${p.id}.${pin}`][1] + 4}
                   textAnchor={j % 2 ? "end" : "start"}
-                  fill="#c4d0de"
+                  fill="var(--text-secondary)"
                   fontSize="11"
                 >
                   {pin}
@@ -129,7 +131,9 @@ export default function Schematic({ circuit }: { circuit: Circuit }) {
         ))}
       </svg>
       <p>
-        接続図 · 交差する線は接続されません。端子名を基準に確認してください。
+        {t(
+          "接続図 · 交差する線は接続されません。端子名を基準に確認してください。",
+        )}
       </p>
     </div>
   );

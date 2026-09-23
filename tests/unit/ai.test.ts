@@ -107,3 +107,53 @@ test("revisions include the current circuit and earlier conversation", async () 
     else process.env.GEMINI_API_KEY = oldKey;
   }
 });
+
+test("English preference reaches Gemini and GMI system instructions", async (t) => {
+  const previous = {
+    gemini: process.env.GEMINI_API_KEY,
+    gmi: process.env.GMI_API_KEY,
+  };
+  process.env.GEMINI_API_KEY = "test-key";
+  process.env.GMI_API_KEY = "test-gmi";
+  t.after(() => {
+    for (const [name, value] of [
+      ["GEMINI_API_KEY", previous.gemini],
+      ["GMI_API_KEY", previous.gmi],
+    ]) {
+      if (value === undefined) delete process.env[name!];
+      else process.env[name!] = value;
+    }
+  });
+  const instructions: string[] = [];
+  t.mock.method(
+    globalThis,
+    "fetch",
+    async (url: unknown, init: RequestInit) => {
+      const body = JSON.parse(String(init.body));
+      if (String(url).includes("googleapis")) {
+        instructions.push(body.systemInstruction.parts[0].text);
+        return Response.json({
+          candidates: [
+            {
+              finishReason: "STOP",
+              content: { parts: [{ text: JSON.stringify(demoCircuit()) }] },
+            },
+          ],
+        });
+      }
+      instructions.push(body.messages[0].content);
+      return Response.json({
+        choices: [{ message: { content: "Check the physical pin labels." } }],
+      });
+    },
+  );
+  const circuit = await generateCircuit(
+    "Blink an LED",
+    "esp32",
+    undefined,
+    "en",
+  );
+  await reviewCircuit(circuit, "en");
+  assert.match(instructions[0], /Respond in English/);
+  assert.match(instructions[1], /concerns in English/);
+});

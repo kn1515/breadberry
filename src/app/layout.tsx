@@ -7,6 +7,7 @@ import "@fontsource/playfair-display/500.css";
 import "@fontsource/playfair-display/500-italic.css";
 import "@fontsource/oswald/500.css";
 import "./globals.css";
+import { PreferencesProvider } from "@/components/preferences";
 export const metadata: Metadata = {
   icons: { icon: "/favicon.svg" },
   title: "breadberry — 想像を、つなごう。",
@@ -19,8 +20,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ja">
-      <body>{children}</body>
+    <html lang="ja" data-theme="dark" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try { const p = JSON.parse(localStorage.getItem("breadberry-preferences") || "null"); document.documentElement.dataset.theme = p?.theme === "light" ? "light" : "dark"; document.documentElement.lang = p?.locale === "en" ? "en" : "ja"; } catch {}`,
+          }}
+        />
+      </head>
+      <body>
+        <PreferencesProvider>{children}</PreferencesProvider>
+      </body>
     </html>
   );
 }

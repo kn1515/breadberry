@@ -1,4 +1,5 @@
 "use client";
+import { usePreferences, Text } from "./preferences";
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
@@ -22,7 +23,11 @@ import {
 
 const BoardScene = dynamic(() => import("./board-scene"), {
   ssr: false,
-  loading: () => <div className="scene-fallback">3Dエディターを準備中</div>,
+  loading: () => (
+    <div className="scene-fallback">
+      <Text message="3Dエディターを準備中" />
+    </div>
+  ),
 });
 const LedModelPicker = dynamic(() => import("./led-model-picker"), {
   ssr: false,
@@ -37,6 +42,7 @@ export default function LayoutEditor({
   onChange: (circuit: Circuit) => void;
   disabled: boolean;
 }) {
+  const { t } = usePreferences();
   const [selected, setSelected] = useState(circuit.parts[0]?.id ?? "");
   const [kind, setKind] = useState<Kind>("led");
   const [newLedColor, setNewLedColor] = useState<LedColor>("green");
@@ -79,35 +85,35 @@ export default function LayoutEditor({
       change(movePart(circuit, id, hole));
   }
   return (
-    <section className="layout-editor" aria-label="レイアウトエディター">
+    <section className="layout-editor" aria-label={t("レイアウトエディター")}>
       <div className="editor-actions">
         <label>
-          追加するパーツ
+          {t("追加するパーツ")}
           <select
-            aria-label="追加するパーツ"
+            aria-label={t("追加するパーツ")}
             value={kind}
             disabled={disabled}
             onChange={(e) => setKind(e.target.value as Kind)}
           >
             {partKinds.map((k) => (
               <option key={k} value={k}>
-                {catalog[k].name}
+                {t(catalog[k].name)}
               </option>
             ))}
           </select>
         </label>
         {kind === "led" && (
           <label>
-            LEDの色
+            {t("LEDの色")}
             <select
-              aria-label="追加するLEDの色"
+              aria-label={t("追加するLEDの色")}
               value={newLedColor}
               disabled={disabled}
               onChange={(e) => setNewLedColor(e.target.value as LedColor)}
             >
               {ledColorNames.map((color) => (
                 <option key={color} value={color}>
-                  {ledColors[color].label}
+                  {t(ledColors[color].label)}
                 </option>
               ))}
             </select>
@@ -126,7 +132,7 @@ export default function LayoutEditor({
             setSelected(next.parts.at(-1)!.id);
           }}
         >
-          パーツを追加
+          {t("パーツを追加")}
         </button>
         <button
           disabled={disabled || !past.length}
@@ -137,7 +143,7 @@ export default function LayoutEditor({
             onChange(previous);
           }}
         >
-          元に戻す
+          {t("元に戻す")}
         </button>
         <button
           disabled={disabled || !future.length}
@@ -147,7 +153,7 @@ export default function LayoutEditor({
             setFuture(future.slice(1));
           }}
         >
-          やり直す
+          {t("やり直す")}
         </button>
         <button
           className="editor-check"
@@ -156,7 +162,7 @@ export default function LayoutEditor({
             setResultsOpen(true);
           }}
         >
-          レイアウトチェック
+          {t("レイアウトチェック")}
         </button>
       </div>
       {kind === "led" && (
@@ -167,25 +173,28 @@ export default function LayoutEditor({
         />
       )}
       <p className="editor-help" id="editor-3d-help">
-        3Dの部品をクリックして選択し、ドラッグして移動します。空いている穴のクリックでも移動できます。背景のドラッグで回転、スクロールでズーム。Escで移動をキャンセル。配線を変えた場合はコードも確認してください。
+        {t(
+          "3Dの部品をクリックして選択し、ドラッグして移動します。空いている穴のクリックでも移動できます。背景のドラッグで回転、スクロールでズーム。Escで移動をキャンセル。配線を変えた場合はコードも確認してください。",
+        )}
       </p>
       <div className="editor-scene-toolbar">
         <button
           aria-pressed={view === "top"}
           onClick={() => setView((v) => (v === "top" ? "perspective" : "top"))}
         >
-          真上から編集
+          {t("真上から編集")}
         </button>
         <button onClick={() => setReset((value) => value + 1)}>
-          視点をリセット
+          {t("視点をリセット")}
         </button>
         <span>
-          選択: {part ? `${part.id} · ${catalog[part.kind].name}` : "なし"}
+          {t("選択:")}
+          {part ? `${part.id} · ${t(catalog[part.kind].name)}` : t("なし")}
         </span>
       </div>
       <div
         className="editor-scene"
-        aria-label="3D配置エディター"
+        aria-label={t("3D配置エディター")}
         aria-describedby="editor-3d-help"
       >
         <BoardScene
@@ -203,18 +212,18 @@ export default function LayoutEditor({
         />
       </div>
       <fieldset className="editor-properties" disabled={disabled}>
-        <legend>選択中のパーツ</legend>
+        <legend>{t("選択中のパーツ")}</legend>
         <label>
-          部品
+          {t("部品")}
           <select
-            aria-label="編集する部品"
+            aria-label={t("編集する部品")}
             value={part?.id ?? ""}
             onChange={(e) => setSelected(e.target.value)}
           >
-            <option value="">選択してください</option>
+            <option value="">{t("選択してください")}</option>
             {circuit.parts.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.id} · {catalog[p.kind].name}
+                {p.id} · {t(catalog[p.kind].name)}
               </option>
             ))}
           </select>
@@ -223,9 +232,9 @@ export default function LayoutEditor({
           <>
             {part.kind === "led" && (
               <label>
-                LEDの色
+                {t("LEDの色")}
                 <select
-                  aria-label="LEDの色"
+                  aria-label={t("LEDの色")}
                   value={resolveLedColor(part)}
                   onChange={(e) =>
                     change({
@@ -240,16 +249,16 @@ export default function LayoutEditor({
                 >
                   {ledColorNames.map((color) => (
                     <option key={color} value={color}>
-                      {ledColors[color].label}
+                      {t(ledColors[color].label)}
                     </option>
                   ))}
                 </select>
               </label>
             )}
             <label>
-              先頭ピンの穴
+              {t("先頭ピンの穴")}
               <select
-                aria-label="配置する穴"
+                aria-label={t("配置する穴")}
                 value={placement.hole}
                 onChange={(e) => move(part.id, e.target.value)}
               >
@@ -264,9 +273,9 @@ export default function LayoutEditor({
               </select>
             </label>
             <label>
-              値・仕様
+              {t("値・仕様")}
               <input
-                aria-label="パーツの値"
+                aria-label={t("パーツの値")}
                 maxLength={60}
                 value={part.value}
                 onChange={(e) =>
@@ -297,7 +306,7 @@ export default function LayoutEditor({
                 })
               }
             >
-              向きを反転
+              {t("向きを反転")}
             </button>
             <button
               onClick={() => {
@@ -305,7 +314,7 @@ export default function LayoutEditor({
                 setSelected("");
               }}
             >
-              部品を削除
+              {t("部品を削除")}
             </button>
             <span className="editor-pins">
               {catalog[part.kind].pins
@@ -319,31 +328,35 @@ export default function LayoutEditor({
         )}
       </fieldset>
       <details className="editor-wiring">
-        <summary>配線を編集（{circuit.wires.length}本）</summary>
+        <summary>
+          {t("配線を編集（")}
+          {circuit.wires.length}
+          {t("本）")}
+        </summary>
         <div className="editor-actions">
           <label>
-            接続元
+            {t("接続元")}
             <select
-              aria-label="配線の接続元"
+              aria-label={t("配線の接続元")}
               value={from}
               disabled={disabled}
               onChange={(e) => setFrom(e.target.value)}
             >
-              <option value="">選択</option>
+              <option value="">{t("選択")}</option>
               {endpoints.map((pin) => (
                 <option key={pin}>{pin}</option>
               ))}
             </select>
           </label>
           <label>
-            接続先
+            {t("接続先")}
             <select
-              aria-label="配線の接続先"
+              aria-label={t("配線の接続先")}
               value={to}
               disabled={disabled}
               onChange={(e) => setTo(e.target.value)}
             >
-              <option value="">選択</option>
+              <option value="">{t("選択")}</option>
               {endpoints.map((pin) => (
                 <option key={pin}>{pin}</option>
               ))}
@@ -370,13 +383,13 @@ export default function LayoutEditor({
                     from,
                     to,
                     color: "#38bdf8",
-                    explanation: "ユーザーが追加した配線",
+                    explanation: t("ユーザーが追加した配線"),
                   },
                 ],
               })
             }
           >
-            配線を追加
+            {t("配線を追加")}
           </button>
         </div>
         <ul>
@@ -385,7 +398,7 @@ export default function LayoutEditor({
               {w.from} → {w.to}
               <button
                 disabled={disabled}
-                aria-label={`配線 ${w.from} → ${w.to} を削除`}
+                aria-label={t("配線 {0} → {1} を削除", [w.from, w.to])}
                 onClick={() =>
                   change({
                     ...circuit,
@@ -393,7 +406,7 @@ export default function LayoutEditor({
                   })
                 }
               >
-                削除
+                {t("削除")}
               </button>
             </li>
           ))}
@@ -405,31 +418,33 @@ export default function LayoutEditor({
             <div className="editor-results-header">
               <strong>
                 {issues.length
-                  ? `要確認: ${issues.length}件`
-                  : "レイアウトチェック: 問題は見つかりませんでした"}
+                  ? t("要確認: {0}件", [issues.length])
+                  : t("レイアウトチェック: 問題は見つかりませんでした")}
               </strong>
               <button
                 type="button"
-                aria-label="レイアウトチェック結果を閉じる"
+                aria-label={t("レイアウトチェック結果を閉じる")}
                 onClick={() => setResultsOpen(false)}
               >
-                閉じる
+                {t("閉じる")}
               </button>
             </div>
             <ul>
               {issues.map((issue, i) => (
                 <li key={`${issue.code}-${i}`}>
-                  {issue.message}
+                  {t(issue.message)}
                   {issue.parts[0] && (
                     <button onClick={() => setSelected(issue.parts[0])}>
-                      部品を選択
+                      {t("部品を選択")}
                     </button>
                   )}
                 </li>
               ))}
             </ul>
             <p>
-              表示モデルと導通列の検査です。実物の寸法・定格・動作を保証するものではありません。
+              {t(
+                "表示モデルと導通列の検査です。実物の寸法・定格・動作を保証するものではありません。",
+              )}
             </p>
           </div>,
           document.body,

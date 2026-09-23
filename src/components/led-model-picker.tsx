@@ -1,4 +1,5 @@
 "use client";
+import { usePreferences, Text } from "./preferences";
 import { Component, Suspense, type ReactNode } from "react";
 import { Canvas } from "@react-three/fiber";
 import LedModel from "./led-model";
@@ -14,7 +15,9 @@ class PreviewBoundary extends Component<
   }
   render() {
     return this.state.failed ? (
-      <p>3Dプレビューを表示できません。下の色名から選択できます。</p>
+      <p>
+        <Text message="3Dプレビューを表示できません。下の色名から選択できます。" />
+      </p>
     ) : (
       this.props.children
     );
@@ -30,10 +33,11 @@ export default function LedModelPicker({
   onChange: (color: LedColor) => void;
   disabled: boolean;
 }) {
+  const { t } = usePreferences();
   return (
     <details className="led-model-picker" open>
-      <summary>LEDの色別3Dモデル</summary>
-      <p>追加するLEDを選択して「パーツを追加」を押してください。</p>
+      <summary>{t("LEDの色別3Dモデル")}</summary>
+      <p>{t("追加するLEDを選択して「パーツを追加」を押してください。")}</p>
       <div className="led-model-preview">
         <PreviewBoundary>
           <Canvas
@@ -41,8 +45,8 @@ export default function LedModelPicker({
             camera={{ position: [0, 0, 5], zoom: 82 }}
             dpr={[1, 1.5]}
             frameloop="demand"
-            aria-label="8色のLEDモデルプレビュー"
-            fallback={<p>下の色名からLEDを選択してください。</p>}
+            aria-label={t("8色のLEDモデルプレビュー")}
+            fallback={<p>{t("下の色名からLEDを選択してください。")}</p>}
           >
             <ambientLight intensity={1.4} />
             <directionalLight position={[2, 3, 5]} intensity={2} />
@@ -73,7 +77,7 @@ export default function LedModelPicker({
       <div
         className="led-model-options"
         role="group"
-        aria-label="LEDモデルの色"
+        aria-label={t("LEDモデルの色")}
       >
         {ledColorNames.map((color) => (
           <button
@@ -81,14 +85,14 @@ export default function LedModelPicker({
             type="button"
             disabled={disabled}
             aria-pressed={value === color}
-            aria-label={`${ledColors[color].label}のLEDモデルを選択`}
+            aria-label={t("{0}のLEDモデルを選択", [t(ledColors[color].label)])}
             onClick={() => onChange(color)}
           >
             <span
               style={{ background: ledColors[color].color }}
               aria-hidden="true"
             />
-            {ledColors[color].label}
+            {t(ledColors[color].label)}
           </button>
         ))}
       </div>

@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
     const user = owner(req);
     const input = z
       .object({
+        locale: z.enum(["ja", "en"]).default("ja"),
         query: z.string().trim().min(1).max(200),
         circuit: draftCircuitSchema,
         partId: z.string().regex(/^bom-\d{1,2}$/),
@@ -55,6 +56,7 @@ export async function POST(req: NextRequest) {
             input.data.query,
             result.offers,
             () => takeDigiKeyQuota(user),
+            input.data.locale,
           );
     } catch (error) {
       // Preserve real search results for manual selection if AI is unavailable.

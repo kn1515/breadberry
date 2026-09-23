@@ -13,6 +13,7 @@ import {
   type PurchasePart,
   type PurchaseRecommendation,
   type RecommendedProduct,
+  type PurchasePhase,
 } from "./purchase";
 
 const discoverySchema = z.object({
@@ -23,7 +24,7 @@ const discoverySchema = z.object({
         url: z.string().min(1).max(2000),
       }),
     )
-    .max(5),
+    .max(1),
 });
 const selectionSchema = z.object({
   reason: z.string().trim().min(1).max(600),
@@ -52,9 +53,12 @@ async function gemini<T extends z.ZodType>(
   data: unknown,
   tool: "google_search" | "url_context" | null,
   takeQuota: () => Promise<void>,
+  signal?: AbortSignal,
 ) {
   // Charge every call, including discovery and selection of cached DigiKey results.
+  signal?.throwIfAborted();
   await takeQuota();
+  signal?.throwIfAborted();
   const jsonSchema = z.toJSONSchema(schema);
   delete jsonSchema.$schema;
   const model = process.env.GEMINI_MODEL || "gemini-3.8-flash";
@@ -62,6 +66,7 @@ async function gemini<T extends z.ZodType>(
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
     {
       method: "POST",
+      signal,
       headers: {
         "Content-Type": "application/json",
         "x-goog-api-key": process.env.GEMINI_API_KEY!,
@@ -109,6 +114,10 @@ export async function recommendPurchase(
   takeQuota: () => Promise<void>,
   locale: Locale = "ja",
   digiKeyCheckedAt = new Date().toISOString(),
+  options: {
+    signal?: AbortSignal;
+    onPhase?: (phase: PurchasePhase) => void;
+  } = {},
 ): Promise<PurchaseRecommendation> {
   if (!process.env.GEMINI_API_KEY)
     throw new ServiceError(
@@ -127,29 +136,7 @@ export async function recommendPurchase(
     connections: circuit.wires,
     searchQuery: query,
   };
-  // Search all five stores even when DigiKey already has a compatible offer.
-  const discovery = await gemini(
-    discoverySchema,
-    `${compatibility}
-Use Google Search to find real product detail pages for this part at ALL five supplied stores: Akizuki, Sengoku, Kyoritsu, Marutsu and Amazon.co.jp. Return at most one promising product per store. Search even if DigiKey has a suitable product: there is no preferred store. Use only URLs observed in search results; no invented URLs, category/search pages or generic search suggestions. Omit known sold-out, discontinued, preorder and backorder products. At Amazon prefer a specific listing/variant with a clearly identified seller and pack size. An empty products array is valid if nothing is found.`,
-    { ...context, stores: domesticStores },
-    "google_search",
-    takeQuota,
-  );
-  const grounding = discovery.candidate.groundingMetadata;
-  const searchSuggestions =
-    typeof grounding?.searchEntryPoint?.renderedContent === "string"
-      ? grounding.searchEntryPoint.renderedContent
-      : "";
-  const seen = new Set<string>();
-  const products = (
-    grounding?.groundingChunks?.length ? discovery.result.products : []
-  ).flatMap((p) => {
-    const url = storeProductUrl(p.store, p.url);
-    if (!url || seen.has(url)) return [];
-    seen.add(url);
-    return [{ id: `web:${seen.size}`, store: p.store, url }];
-  });
+  let searchSuggestions = "";
   const none = (): PurchaseRecommendation => ({
     partNumber: null,
     best: null,
@@ -159,113 +146,165 @@ Use Google Search to find real product detail pages for this part at ALL five su
       locale,
     ),
   });
-  if (!products.length && !eligible.length) return none();
-  const selection = await gemini(
-    selectionSchema,
-    `${compatibility}
-Use URL Context to read EVERY supplied web product URL, and compare these listings with the supplied DigiKey offers on equal terms. Produce ranked from most suitable to least suitable for this BOM row. Rank by confirmed compatibility, appropriate quantity/pack size, then total JPY purchase cost and known shipping/seller reliability. Do not prefer DigiKey automatically. Include only supplied ids, at most once each. Provide a concise ${locale === "en" ? "English" : "Japanese"} reason and checks; keep the verified product name.
+  async function verify(
+    products: { id: string; store: keyof typeof domesticStores; url: string }[],
+    candidateOffers: PurchaseOffer[],
+  ): Promise<PurchaseRecommendation | null> {
+    options.signal?.throwIfAborted();
+    options.onPhase?.("verification");
+    const selection = await gemini(
+      selectionSchema,
+      `${compatibility}
+Check the supplied candidate now. If a web product is supplied, use URL Context to read that single product page. For DigiKey offers, select one only if it is clearly suitable, reasonably priced for an educational circuit, and sold in an appropriate quantity; reject overkill, misleading packs and costly evaluation kits so another shop can be tried. Do not require an exhaustive store comparison or claim a global lowest price. Rank only these supplied candidates by confirmed compatibility, appropriate quantity/pack size, then total JPY purchase cost and known shipping/seller reliability. Include only supplied ids, at most once each. Provide a concise ${locale === "en" ? "English" : "Japanese"} reason and checks; keep the verified product name.
 For WEB listings, availability must be in_stock ONLY when the retrieved PRODUCT page explicitly confirms availability for the exact variant/seller. Search snippets, 'add to cart' alone, related products, reservations, backorders, unknown stock and inaccessible/blocked/login pages do not prove availability. Set unknown or out_of_stock and compatible:false if uncertain. stockEvidence is a short exact quote (at most 15 words) from that page about stock. unitsPerPack is the number of required physical components in one sale unit, not the number of unrelated assortment pieces; minimumOrder and availableQuantity are in SALE units. Extract these from the page, null if unknown. For a plainly single-item sale use unitsPerPack:1, minimumOrder:1. Do not guess a multipack's size. unitPriceJPY is the price per sale unit including tax if displayed, null when unknown/non-JPY. At Amazon check the current seller and exact selected variant, and put the seller in checks.
 Order only enough sale units to cover requiredPart.quantity (ceil(required / unitsPerPack), respecting minimumOrder); no arbitrary spares. Reject bundles with excessive surplus, especially extra boards. For DigiKey, stock/order limits/prices in the API data are authoritative; assess compatibility and whether the API sale unit is a misleading pack before ranking. Explain pack quantities, meaningful tradeoffs and shipping uncertainty. Return ranked:[] if none can be recommended.`,
-    {
-      ...context,
-      products,
-      offers: eligible.map((o) => ({
-        ...o,
-        id: `digikey:${o.partNumber}`,
-        orderQuantity: orderQuantity(o, part.quantity),
-      })),
-    },
-    products.length ? "url_context" : null,
-    takeQuota,
-  );
-  const contextMetadata =
-    selection.candidate.urlContextMetadata ??
-    selection.candidate.url_context_metadata;
-  const metadata =
-    contextMetadata?.urlMetadata ?? contextMetadata?.url_metadata ?? [];
-  const retrieved = new Set<string>(
-    metadata
-      .filter(
-        (m: { urlRetrievalStatus?: string; url_retrieval_status?: string }) =>
-          (m.urlRetrievalStatus ?? m.url_retrieval_status) ===
-          "URL_RETRIEVAL_STATUS_SUCCESS",
+      {
+        ...context,
+        products,
+        offers: candidateOffers.map((o) => ({
+          ...o,
+          id: `digikey:${o.partNumber}`,
+          orderQuantity: orderQuantity(o, part.quantity),
+        })),
+      },
+      products.length ? "url_context" : null,
+      takeQuota,
+      options.signal,
+    );
+    const contextMetadata =
+      selection.candidate.urlContextMetadata ??
+      selection.candidate.url_context_metadata;
+    const metadata =
+      contextMetadata?.urlMetadata ?? contextMetadata?.url_metadata ?? [];
+    const retrieved = new Set<string>(
+      metadata
+        .filter(
+          (m: { urlRetrievalStatus?: string; url_retrieval_status?: string }) =>
+            (m.urlRetrievalStatus ?? m.url_retrieval_status) ===
+            "URL_RETRIEVAL_STATUS_SUCCESS",
+        )
+        .map(
+          (m: { retrievedUrl?: string; retrieved_url?: string }) =>
+            m.retrievedUrl ?? m.retrieved_url,
+        ),
+    );
+    const checkedAt = new Date().toISOString();
+    for (const choice of selection.result.ranked) {
+      if (!choice.compatible || choice.availability !== "in_stock") continue;
+      let best: RecommendedProduct;
+      const offer = candidateOffers.find(
+        (o) => `digikey:${o.partNumber}` === choice.id,
+      );
+      if (offer) {
+        const quantity = orderQuantity(offer, part.quantity);
+        const price = unitPrice(offer, quantity);
+        best = {
+          store: "digikey",
+          name: offer.manufacturerPartNumber,
+          url: offer.url,
+          quantity,
+          unitsPerPack: 1,
+          totalPrice: price === null ? null : price * quantity,
+          reason: choice.reason,
+          checks: choice.checks,
+          checkedAt: digiKeyCheckedAt,
+          stockEvidence: translate("在庫 {0}（DigiKey API）", locale, [
+            offer.stock,
+          ]),
+        };
+        return {
+          partNumber: offer.partNumber,
+          reason: choice.reason,
+          best,
+          searchSuggestions,
+        };
+      }
+      const product = products.find((p) => p.id === choice.id);
+      if (
+        !product ||
+        ![...retrieved].some(
+          (url) => storeProductUrl(product.store, url) === product.url,
+        ) ||
+        !choice.stockEvidence ||
+        /売り?切れ|在庫(?:なし|切れ|がありません)|品切れ|入荷待ち|欠品|販売終了|out\s*of\s*stock|sold\s*out|unavailable|back.?order|pre.?order/i.test(
+          choice.stockEvidence,
+        ) ||
+        !choice.unitsPerPack ||
+        !choice.minimumOrder
       )
-      .map(
-        (m: { retrievedUrl?: string; retrieved_url?: string }) =>
-          m.retrievedUrl ?? m.retrieved_url,
-      ),
-  );
-  const checkedAt = new Date().toISOString();
-  for (const choice of selection.result.ranked) {
-    if (!choice.compatible || choice.availability !== "in_stock") continue;
-    let best: RecommendedProduct;
-    const offer = eligible.find((o) => `digikey:${o.partNumber}` === choice.id);
-    if (offer) {
-      const quantity = orderQuantity(offer, part.quantity);
-      const price = unitPrice(offer, quantity);
+        continue;
+      const quantity = Math.max(
+        choice.minimumOrder,
+        Math.ceil(part.quantity / choice.unitsPerPack),
+      );
+      const totalUnits = quantity * choice.unitsPerPack;
+      const limit =
+        part.kind === "board" || part.kind === "breadboard"
+          ? part.quantity
+          : maxAutomaticQuantity(part.quantity);
+      if (
+        totalUnits > limit ||
+        (choice.availableQuantity !== null &&
+          choice.availableQuantity < quantity)
+      )
+        continue;
       best = {
-        store: "digikey",
-        name: offer.manufacturerPartNumber,
-        url: offer.url,
+        store: product.store,
+        name: choice.name,
+        url: product.url,
         quantity,
-        unitsPerPack: 1,
-        totalPrice: price === null ? null : price * quantity,
+        unitsPerPack: choice.unitsPerPack,
+        totalPrice:
+          choice.unitPriceJPY === null ? null : choice.unitPriceJPY * quantity,
         reason: choice.reason,
         checks: choice.checks,
-        checkedAt: digiKeyCheckedAt,
-        stockEvidence: translate("在庫 {0}（DigiKey API）", locale, [
-          offer.stock,
-        ]),
+        stockEvidence: choice.stockEvidence,
+        checkedAt,
       };
       return {
-        partNumber: offer.partNumber,
+        partNumber: null,
         reason: choice.reason,
         best,
         searchSuggestions,
       };
     }
-    const product = products.find((p) => p.id === choice.id);
-    if (
-      !product ||
-      ![...retrieved].some(
-        (url) => storeProductUrl(product.store, url) === product.url,
-      ) ||
-      !choice.stockEvidence ||
-      /売り?切れ|在庫(?:なし|切れ|がありません)|品切れ|入荷待ち|欠品|販売終了|out\s*of\s*stock|sold\s*out|unavailable|back.?order|pre.?order/i.test(
-        choice.stockEvidence,
-      ) ||
-      !choice.unitsPerPack ||
-      !choice.minimumOrder
-    )
-      continue;
-    const quantity = Math.max(
-      choice.minimumOrder,
-      Math.ceil(part.quantity / choice.unitsPerPack),
+    return null;
+  }
+
+  // Use already retrieved candidates first; never wait for every store.
+  if (eligible.length) {
+    const result = await verify([], eligible);
+    if (result) return result;
+  }
+  const excludedUrls: string[] = [];
+  // Try one promising listing at a time. Only try another if verification fails.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    options.signal?.throwIfAborted();
+    options.onPhase?.("discovery");
+    const discovery = await gemini(
+      discoverySchema,
+      `${compatibility}
+Use Google Search to find ONE promising real product detail page from the allowed stores. Choose the most likely store for this component and quantity; stop searching as soon as you find a plausible listing. The store list is an allowlist, NOT a checklist: do not search every store or compare all stores. Return at most one product. If excludedUrls are supplied, those candidates failed verification; try a different suitable listing, preferably from another store. Never return an excluded URL. Use only URLs observed in search results; no invented URLs, category/search pages or generic search suggestions. Omit known sold-out, discontinued, preorder and backorder products. At Amazon prefer a specific listing/variant with a clearly identified seller and pack size. An empty products array is valid if nothing is found.`,
+      { ...context, stores: domesticStores, excludedUrls },
+      "google_search",
+      takeQuota,
+      options.signal,
     );
-    const totalUnits = quantity * choice.unitsPerPack;
-    const limit =
-      part.kind === "board" || part.kind === "breadboard"
-        ? part.quantity
-        : maxAutomaticQuantity(part.quantity);
-    if (
-      totalUnits > limit ||
-      (choice.availableQuantity !== null && choice.availableQuantity < quantity)
-    )
-      continue;
-    best = {
-      store: product.store,
-      name: choice.name,
-      url: product.url,
-      quantity,
-      unitsPerPack: choice.unitsPerPack,
-      totalPrice:
-        choice.unitPriceJPY === null ? null : choice.unitPriceJPY * quantity,
-      reason: choice.reason,
-      checks: choice.checks,
-      stockEvidence: choice.stockEvidence,
-      checkedAt,
-    };
-    return { partNumber: null, reason: choice.reason, best, searchSuggestions };
+    const grounding = discovery.candidate.groundingMetadata;
+    if (typeof grounding?.searchEntryPoint?.renderedContent === "string")
+      searchSuggestions += grounding.searchEntryPoint.renderedContent;
+    if (!grounding?.groundingChunks?.length) break;
+    const candidate = discovery.result.products[0];
+    if (!candidate) break;
+    const url = storeProductUrl(candidate.store, candidate.url);
+    if (url && excludedUrls.includes(url)) break;
+    excludedUrls.push(url ?? candidate.url);
+    if (!url) continue;
+    const result = await verify(
+      [{ id: "web:1", store: candidate.store, url }],
+      [],
+    );
+    if (result) return result;
   }
   return none();
 }

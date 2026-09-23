@@ -257,7 +257,10 @@ test("best products from Amazon and DigiKey appear first, sold-out offers disapp
   await page.getByRole("button", { name: "購入する", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "部品を購入する" });
   const best = dialog.getByRole("region", { name: "おすすめ購入リスト" });
-  await expect(best).toHaveAttribute("aria-busy", "false");
+  await expect(dialog.locator(".purchase-list")).toHaveAttribute(
+    "aria-busy",
+    "false",
+  );
   await expect(best.locator(".purchase-best")).toHaveCount(2);
   await expect(
     best.getByRole("link", { name: bestProduct.name }),
@@ -344,4 +347,171 @@ test("Gemini store recommendations work without DigiKey configuration", async ({
   ).toBeVisible();
   await expect(dialog).not.toContainText("準備中");
   await expect(dialog.locator('input[name^="part"]')).toHaveCount(0);
+});
+
+test("stop and retry unfinished parts preserves completed products and permits a partial cart", async ({
+  page,
+}) => {
+  await page.route("**/api/session", (r) =>
+    r.fulfill({ json: { active: true, digikey: true, gemini: true } }),
+  );
+  const counts = new Map<string, number>();
+  let retry = false;
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/api/purchase/search", async (r) => {
+    const { partId } = r.request().postDataJSON();
+    counts.set(partId, (counts.get(partId) ?? 0) + 1);
+    if (partId !== "bom-0" && !retry) await gate;
+    await r
+      .fulfill({
+        json: {
+          offers: [offer],
+          sandbox: false,
+          recommendation: {
+            partNumber: partId === "bom-0" ? offer.partNumber : null,
+            best: partId === "bom-0" ? bestProduct : null,
+            reason: "確認済み",
+            searchSuggestions: "",
+          },
+        },
+      })
+      .catch(() => {});
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "購入する", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.locator(".purchase-best")).toHaveCount(1);
+  await expect(
+    dialog.getByText("順番待ち", { exact: true }).first(),
+  ).toBeVisible();
+  await expect(
+    dialog.getByRole("button", { name: "購入する · DigiKeyのカートへ" }),
+  ).toBeEnabled();
+  await dialog.getByRole("button", { name: "検索を中止", exact: true }).click();
+  await expect(dialog.locator(".purchase-list")).toHaveAttribute(
+    "aria-busy",
+    "false",
+  );
+  await expect(dialog.locator(".purchase-best")).toHaveCount(1);
+  retry = true;
+  release();
+  await dialog
+    .getByRole("button", { name: "未完了の部品を再試行", exact: true })
+    .click();
+  await expect(dialog.locator(".purchase-list")).toHaveAttribute(
+    "aria-busy",
+    "false",
+  );
+  await expect(dialog.locator(".purchase-search-progress > li")).toHaveCount(0);
+  expect(counts.get("bom-0")).toBe(1);
+  await expect(dialog.locator(".purchase-best")).toHaveCount(1);
+});
+
+test("streamed offers are usable while AI runs and its result preserves a manual selection", async ({
+  page,
+}) => {
+  await page.route("**/api/session", (r) =>
+    r.fulfill({ json: { active: true, digikey: true, gemini: true } }),
+  );
+  await page.goto("/");
+  await page.evaluate(
+    ({ offer }) => {
+      const original = window.fetch;
+      window.fetch = async (input, init) => {
+        if (String(input) !== "/api/purchase/search")
+          return original(input, init);
+        const { partId } = JSON.parse(String(init?.body));
+        const encoder = new TextEncoder();
+        return new Response(
+          new ReadableStream({
+            start(controller) {
+              const send = (value: unknown) =>
+                controller.enqueue(
+                  encoder.encode(JSON.stringify(value) + "\n"),
+                );
+              send({ type: "phase", phase: "verification" });
+              if (partId === "bom-0") {
+                send({
+                  type: "offers",
+                  search: { offers: [offer], sandbox: false },
+                });
+                (window as any).finishPurchase = () => {
+                  send({
+                    type: "result",
+                    result: {
+                      offers: [offer],
+                      sandbox: false,
+                      recommendation: {
+                        partNumber: null,
+                        best: null,
+                        reason: "確認済み",
+                        searchSuggestions: "",
+                      },
+                    },
+                  });
+                  controller.close();
+                };
+              }
+            },
+          }),
+          { headers: { "content-type": "application/x-ndjson" } },
+        );
+      };
+    },
+    { offer },
+  );
+  await page.getByRole("button", { name: "購入する", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(
+    dialog.getByText("在庫・仕様を確認中…", { exact: true }).first(),
+  ).toBeVisible();
+  await expect(dialog.getByText(/DigiKeyの候補 1件を取得済み/)).toBeVisible();
+  await dialog.locator(".purchase-details > summary").click();
+  const row = dialog.locator(".purchase-row").first();
+  await row.locator("select").selectOption(offer.partNumber);
+  await row.locator('input[type="number"]').fill("7");
+  await expect(
+    dialog.getByRole("button", { name: "購入する · DigiKeyのカートへ" }),
+  ).toBeEnabled();
+  await page.evaluate(() => (window as any).finishPurchase());
+  await expect(row).toContainText("確認済み");
+  await expect(row.locator("select")).toHaveValue(offer.partNumber);
+  await expect(row.locator('input[type="number"]')).toHaveValue("7");
+  await dialog.getByRole("button", { name: "検索を中止", exact: true }).click();
+  await expect(row.locator("select")).toHaveValue(offer.partNumber);
+});
+
+test("an unresponsive search ends at the batch deadline and leaves queued parts retryable", async ({
+  page,
+}) => {
+  await page.route("**/api/session", (r) =>
+    r.fulfill({ json: { active: true, digikey: true } }),
+  );
+  let searches = 0;
+  await page.route("**/api/purchase/search", () => {
+    searches++;
+  });
+  await page.goto("/");
+  await page.clock.install();
+  await page.getByRole("button", { name: "購入する", exact: true }).click();
+  await expect.poll(() => searches).toBe(3);
+  await page.clock.fastForward(91000);
+  const dialog = page.getByRole("dialog");
+  await expect(
+    dialog.getByRole("button", { name: "検索を中止", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    dialog.getByRole("button", { name: "未完了の部品を再試行", exact: true }),
+  ).toBeVisible();
+  await expect(dialog.locator(".purchase-list")).toHaveAttribute(
+    "aria-busy",
+    "false",
+  );
+  await expect(dialog.locator(".purchase-search-progress")).toContainText(
+    "待ち時間が長いため",
+  );
+  expect(searches).toBe(3);
 });

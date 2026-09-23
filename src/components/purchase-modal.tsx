@@ -9,6 +9,8 @@ import {
   X,
 } from "lucide-react";
 import type { Circuit } from "@/lib/circuit";
+import { requestPurchase } from "@/lib/purchase-client";
+import { withDeadline } from "@/lib/async";
 import {
   canPurchase,
   cartLines,
@@ -19,7 +21,8 @@ import {
   unitPrice,
   type PurchaseOffer,
   type RecommendedProduct,
-  type RecommendedPurchaseSearch,
+  PURCHASE_BATCH_TIMEOUT_MS,
+  type PurchasePhase,
 } from "@/lib/purchase";
 
 type Row = {
@@ -28,6 +31,7 @@ type Row = {
   selected: string;
   quantity: number;
   loading: boolean;
+  phase: PurchasePhase;
   error: string;
   sandbox: boolean;
   recommendation: string;
@@ -59,6 +63,7 @@ export default function PurchaseModal({
       selected: "",
       quantity: p.quantity,
       loading: true,
+      phase: "queued",
       error: "",
       sandbox: false,
       recommendation: "",
@@ -71,66 +76,162 @@ export default function PurchaseModal({
   const [submitted, setSubmitted] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   const abort = useRef<AbortController | null>(null);
+  const batch = useRef<AbortController | null>(null);
+  const requests = useRef(new Map<number, AbortController>());
+  const manualSelection = useRef(new Set<number>());
   const update = (i: number, patch: Partial<Row>) =>
     setRows((old) =>
       old.map((row, n) => (n === i ? { ...row, ...patch } : row)),
     );
 
-  async function search(i: number, query: string, signal: AbortSignal) {
-    update(i, {
-      loading: true,
-      error: "",
-      selected: "",
-      offers: [],
-      recommendation: "",
-      best: null,
-      searchSuggestions: "",
-    });
+  async function search(i: number, query: string, parent: AbortSignal) {
+    requests.current.get(i)?.abort();
+    const controller = new AbortController();
+    requests.current.set(i, controller);
+    manualSelection.current.delete(i);
+    const signal = AbortSignal.any([parent, controller.signal]);
+    const current = () =>
+      requests.current.get(i) === controller && !abort.current?.signal.aborted;
+    update(i, { loading: true, phase: "connecting", error: "", selected: "" });
     setSubmitted(false);
     try {
-      const response = await fetch("/api/purchase/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query, circuit, locale, partId: parts[i].id }),
+      await requestPurchase(
+        { query, circuit, locale, partId: parts[i].id },
         signal,
-      });
-      const data = await response.json();
-      if (!response.ok)
-        throw new Error(data.error || t("商品検索に失敗しました。"));
-      const result = data as RecommendedPurchaseSearch;
-      const offers = result.offers.filter((o) =>
-        canPurchase(o, orderQuantity(o, parts[i].quantity)),
-      );
-      const recommended = result.sandbox
-        ? undefined
-        : offers.find(
-            (o) =>
-              o.partNumber === result.recommendation?.partNumber &&
-              canPurchase(o, orderQuantity(o, parts[i].quantity)),
+        (event) => {
+          if (!current() || signal.aborted) return;
+          if (event.type === "phase") {
+            update(i, { phase: event.phase });
+            return;
+          }
+          if (event.type === "offers") {
+            update(i, {
+              offers: event.search.offers.filter((o) =>
+                canPurchase(o, orderQuantity(o, parts[i].quantity)),
+              ),
+              sandbox: event.search.sandbox,
+            });
+            return;
+          }
+          if (event.type !== "result") return;
+          const result = event.result;
+          const offers = result.offers.filter((o) =>
+            canPurchase(o, orderQuantity(o, parts[i].quantity)),
           );
-      if (!signal.aborted)
-        update(i, {
-          offers,
-          sandbox: result.sandbox,
-          loading: false,
-          selected: recommended?.partNumber ?? "",
-          quantity: recommended
-            ? orderQuantity(recommended, parts[i].quantity)
-            : parts[i].quantity,
-          recommendation: result.recommendation?.reason ?? "",
-          best: result.sandbox ? null : (result.recommendation?.best ?? null),
-          searchSuggestions: result.recommendation?.searchSuggestions ?? "",
-        });
+          const recommended = result.sandbox
+            ? undefined
+            : offers.find(
+                (o) => o.partNumber === result.recommendation?.partNumber,
+              );
+          setRows((old) =>
+            old.map((row, n) =>
+              n !== i
+                ? row
+                : {
+                    ...row,
+                    offers,
+                    sandbox: result.sandbox,
+                    loading: false,
+                    phase: "done",
+                    selected: manualSelection.current.has(i)
+                      ? offers.some((o) => o.partNumber === row.selected)
+                        ? row.selected
+                        : ""
+                      : (recommended?.partNumber ?? ""),
+                    quantity: manualSelection.current.has(i)
+                      ? row.quantity
+                      : recommended
+                        ? orderQuantity(recommended, parts[i].quantity)
+                        : parts[i].quantity,
+                    recommendation: result.recommendation?.reason ?? "",
+                    best: result.sandbox
+                      ? null
+                      : (result.recommendation?.best ?? null),
+                    searchSuggestions:
+                      result.recommendation?.searchSuggestions ?? "",
+                  },
+            ),
+          );
+        },
+      );
     } catch (error) {
-      if (!signal.aborted)
+      if (current())
         update(i, {
           loading: false,
+          phase: "done",
           error:
-            error instanceof Error
-              ? error.message
-              : t("商品検索に失敗しました。"),
+            error instanceof Error ? error.message : "商品検索に失敗しました。",
         });
+    } finally {
+      if (requests.current.get(i) === controller) requests.current.delete(i);
     }
+  }
+
+  async function searchBatch(indices: number[], parent: AbortSignal) {
+    const controller = new AbortController();
+    batch.current = controller;
+    const signal = AbortSignal.any([parent, controller.signal]);
+    const timer = setTimeout(
+      () =>
+        controller.abort(
+          new Error(
+            "検索の待ち時間が長いため一旦終了しました。未完了の部品だけ再試行できます。",
+          ),
+        ),
+      PURCHASE_BATCH_TIMEOUT_MS,
+    );
+    setRows((old) =>
+      old.map((row, i) =>
+        indices.includes(i)
+          ? { ...row, loading: true, phase: "queued", error: "" }
+          : row,
+      ),
+    );
+    let next = 0;
+    try {
+      await Promise.all(
+        Array.from({ length: Math.min(3, indices.length) }, async () => {
+          while (next < indices.length && !signal.aborted) {
+            const i = indices[next++];
+            await search(i, rows[i]?.query.trim() || parts[i].query, signal);
+          }
+        }),
+      );
+    } finally {
+      clearTimeout(timer);
+      if (batch.current === controller && !parent.aborted && signal.aborted)
+        setRows((old) =>
+          old.map((row, i) =>
+            indices.includes(i) && row.loading
+              ? {
+                  ...row,
+                  loading: false,
+                  phase: "done",
+                  error:
+                    signal.reason instanceof Error
+                      ? signal.reason.message
+                      : "検索を中止しました。未完了の部品だけ再試行できます。",
+                }
+              : row,
+          ),
+        );
+      if (batch.current === controller) batch.current = null;
+    }
+  }
+
+  function stopSearch() {
+    const reason = new Error(
+      "検索を中止しました。未完了の部品だけ再試行できます。",
+    );
+    batch.current?.abort(reason);
+    for (const request of requests.current.values()) request.abort(reason);
+    setRows((old) =>
+      old.map((row) =>
+        row.loading
+          ? { ...row, loading: false, phase: "done", error: reason.message }
+          : row,
+      ),
+    );
   }
   useEffect(() => {
     const controller = new AbortController();
@@ -141,14 +242,23 @@ export default function PurchaseModal({
     dialog.current?.showModal();
     void (async () => {
       try {
-        const response = await fetch("/api/session", {
-          signal: controller.signal,
-        });
-        if (!response.ok)
-          throw new Error(
-            t("接続状態を確認できませんでした。閉じて再度お試しください。"),
-          );
-        const config = await response.json();
+        const config = await withDeadline(
+          async (signal) => {
+            const response = await fetch("/api/session", { signal });
+            if (!response.ok)
+              throw new Error(
+                t("接続状態を確認できませんでした。閉じて再度お試しください。"),
+              );
+            return response.json();
+          },
+          10000,
+          controller.signal,
+          new Error(
+            t(
+              "接続状態の確認がタイムアウトしました。閉じて再度お試しください。",
+            ),
+          ),
+        );
         if (controller.signal.aborted) return;
         if ((!config.digikey && !config.gemini) || !config.active) {
           setMessage(
@@ -160,15 +270,9 @@ export default function PurchaseModal({
           return;
         }
         setReady(true);
-        // Bound provider concurrency even for a 30-part editor circuit.
-        let next = 0;
-        await Promise.all(
-          Array.from({ length: Math.min(3, parts.length) }, async () => {
-            while (next < parts.length && !controller.signal.aborted) {
-              const i = next++;
-              await search(i, parts[i].query, controller.signal);
-            }
-          }),
+        await searchBatch(
+          parts.map((_, i) => i),
+          controller.signal,
         );
       } catch (error) {
         if (!controller.signal.aborted) {
@@ -200,8 +304,7 @@ export default function PurchaseModal({
     lines.length > 0 &&
     selected.every((line) => canPurchase(line.offer, line.quantity)) &&
     lines.every((line) => canPurchase(line.offer, line.quantity)) &&
-    !sandbox &&
-    !rows.some((r) => r.loading);
+    !sandbox;
   const knownTotal = lines.reduce(
     (sum, line) =>
       sum + (unitPrice(line.offer, line.quantity) ?? 0) * line.quantity,
@@ -211,6 +314,16 @@ export default function PurchaseModal({
     (line) => unitPrice(line.offer, line.quantity) === null,
   );
   const loading = rows.some((r) => r.loading);
+  const completed = rows.filter((r) => !r.loading && !r.error).length;
+  const unfinished = rows.flatMap((r, i) => (r.error ? [i] : []));
+  const phaseText: Record<PurchasePhase, string> = {
+    queued: "順番待ち",
+    connecting: "検索を開始しています…",
+    digikey: "DigiKeyの商品を検索中…",
+    discovery: "有力な商品を検索中…",
+    verification: "在庫・仕様を確認中…",
+    done: "確認完了",
+  };
 
   return (
     <dialog
@@ -253,7 +366,7 @@ export default function PurchaseModal({
       </div>
       <p id="purchase-help">
         {t(
-          "DigiKey・秋月・千石・共立・マルツ・Amazonを比較し、回路に合う商品を部品ごとに1つ選びます。売り切れ・在庫を確認できない商品はおすすめに含めません。",
+          "DigiKey・秋月・千石・共立・マルツ・Amazonから、回路に合う商品を見つけ次第表示します。全ショップを検索するとは限りません。売り切れ・在庫を確認できない商品はおすすめに含めません。",
         )}
       </p>
       {message && (
@@ -271,25 +384,59 @@ export default function PurchaseModal({
       <section
         className="purchase-recommended"
         aria-label={t("おすすめ購入リスト")}
-        aria-busy={loading}
       >
         <h3>
           <Sparkles size={17} /> {t("おすすめ購入リスト")}
         </h3>
         <p className="purchase-note">
           {t(
-            "確認できた候補の中から、適合性・必要数量・価格を比較して選定しています。在庫・価格は取得時点の情報です。購入前に各商品ページで再確認してください。",
+            "適合性・必要数量を確認し、価格も考慮した商品を部品ごとに1つ表示します。在庫・価格は取得時点の情報です。購入前に各商品ページで再確認してください。",
           )}
         </p>
-        {loading && (
+        {!ready && loading && (
           <p className="purchase-status" role="status">
-            <LoaderCircle size={16} className="spin" />
-            {t("各ショップの商品・在庫を確認中…")}
+            <LoaderCircle size={14} className="spin" />
+            {t("接続状態を確認中…")}
           </p>
+        )}
+        {ready && (
+          <>
+            <div className="purchase-progress">
+              <p role="status">
+                {t("確認済み {0} / {1} 部品", [completed, parts.length])}
+              </p>
+              <progress
+                value={completed}
+                max={parts.length}
+                aria-label={t("商品検索の進捗")}
+              />
+              <p className="purchase-note">
+                {t(
+                  "見つかった商品から表示します。検索は最大90秒で一旦終了し、未完了の部品だけ再試行できます。",
+                )}
+              </p>
+              {loading && (
+                <button type="button" onClick={stopSearch}>
+                  {t("検索を中止")}
+                </button>
+              )}
+              {!loading && unfinished.length > 0 && ready && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (abort.current)
+                      void searchBatch(unfinished, abort.current.signal);
+                  }}
+                >
+                  {t("未完了の部品を再試行")}
+                </button>
+              )}
+            </div>
+          </>
         )}
         <ul className="purchase-best-list">
           {rows.map((row, i) =>
-            row.best && !row.loading && !row.sandbox ? (
+            row.best && !row.sandbox ? (
               <li className="purchase-best" key={parts[i].id}>
                 <div className="purchase-part-heading">
                   <h4>{t(parts[i].name)}</h4>
@@ -338,7 +485,54 @@ export default function PurchaseModal({
             ) : null,
           )}
         </ul>
-        {!loading && !rows.some((row) => row.best) && (
+        {ready && (
+          <ul className="purchase-search-progress">
+            {rows.map((row, i) =>
+              row.loading || row.error ? (
+                <li key={parts[i].id}>
+                  <strong>{t(parts[i].name)}</strong>
+                  {row.loading ? (
+                    <span className="purchase-status">
+                      {row.phase !== "queued" && (
+                        <LoaderCircle size={14} className="spin" />
+                      )}
+                      {t(phaseText[row.phase])}
+                    </span>
+                  ) : (
+                    <>
+                      <span className="purchase-error" role="alert">
+                        {t(row.error)}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={!ready}
+                        onClick={() => {
+                          if (abort.current)
+                            void search(
+                              i,
+                              row.query.trim(),
+                              abort.current.signal,
+                            );
+                        }}
+                      >
+                        {t("この部品を再試行")}
+                      </button>
+                    </>
+                  )}
+                  {row.offers.length > 0 && (
+                    <span className="purchase-note">
+                      {t(
+                        "DigiKeyの候補 {0}件を取得済み。下の詳細から選択できます。",
+                        [row.offers.length],
+                      )}
+                    </span>
+                  )}
+                </li>
+              ) : null,
+            )}
+          </ul>
+        )}
+        {ready && !loading && !rows.some((row) => row.best) && (
           <p className="purchase-status">
             {t(
               "在庫と適合性を確認できる商品が見つかりませんでした。再検索してください。",
@@ -346,7 +540,7 @@ export default function PurchaseModal({
           </p>
         )}
         {rows.map((row, i) =>
-          !row.loading && !row.best && (row.error || row.recommendation) ? (
+          !row.loading && !row.best && !row.error && row.recommendation ? (
             <p className="purchase-note" key={parts[i].id}>
               {t(parts[i].name)}: {t(row.error || row.recommendation)}
             </p>
@@ -416,7 +610,7 @@ export default function PurchaseModal({
                 {row.loading ? (
                   <p className="purchase-status" role="status">
                     <LoaderCircle size={16} className="spin" />{" "}
-                    {t("商品検索・AIによる選定中…")}
+                    {t(phaseText[row.phase])}
                   </p>
                 ) : row.error ? (
                   <p className="purchase-error" role="alert">
@@ -443,6 +637,7 @@ export default function PurchaseModal({
                         aria-label={t("{0}の商品", [t(part.name)])}
                         value={row.selected}
                         onChange={(event) => {
+                          manualSelection.current.add(i);
                           const next = row.offers.find(
                             (o) => o.partNumber === event.target.value,
                           );
@@ -508,6 +703,7 @@ export default function PurchaseModal({
                           step={1}
                           value={row.quantity}
                           onChange={(event) => {
+                            manualSelection.current.add(i);
                             update(i, { quantity: Number(event.target.value) });
                             setSubmitted(false);
                           }}

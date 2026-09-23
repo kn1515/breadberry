@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { ServiceError } from "@/lib/ai";
-import { digiKeyConfigured, searchDigiKey } from "@/lib/digikey";
+import { digiKeyConfigured } from "@/lib/digikey";
 import { draftCircuitSchema, validateDraft } from "@/lib/circuit";
-import {
-  canPurchase,
-  orderQuantity,
-  purchaseParts,
-  type PurchaseRecommendation,
-} from "@/lib/purchase";
-import { recommendPurchase } from "@/lib/purchase-ai";
+import { purchaseParts, type PurchaseSearchEvent } from "@/lib/purchase";
+import { runPurchaseSearch } from "@/lib/purchase-search";
 import {
   apiError,
   bodyJson,
@@ -19,7 +14,7 @@ import {
 } from "@/lib/server";
 
 export const runtime = "nodejs";
-export const maxDuration = 180;
+export const maxDuration = 65;
 export async function POST(req: NextRequest) {
   try {
     checkOrigin(req);
@@ -45,51 +40,71 @@ export async function POST(req: NextRequest) {
     }
     const part = purchaseParts(circuit).find((p) => p.id === input.data.partId);
     if (!part) throw new ServiceError("対象の部品が見つかりません。", 400);
-    const search = digiKeyConfigured()
-      ? await searchDigiKey(input.data.query, () => takeDigiKeyQuota(user))
-      : { offers: [], sandbox: false };
-    const result = {
-      ...search,
-      offers: search.offers.filter((offer) =>
-        canPurchase(offer, orderQuantity(offer, part.quantity)),
-      ),
+    const options = {
+      part,
+      circuit,
+      query: input.data.query,
+      locale: input.data.locale,
+      digikey: digiKeyConfigured(),
+      takeQuota: () => takeDigiKeyQuota(user),
     };
-    let recommendation: PurchaseRecommendation;
-    try {
-      recommendation = result.sandbox
-        ? {
-            partNumber: null,
-            reason: "テスト用の商品情報のため自動選択しません。",
-            best: null,
-            searchSuggestions: "",
-          }
-        : await recommendPurchase(
-            part,
-            circuit,
-            input.data.query,
-            result.offers,
-            () => takeDigiKeyQuota(user),
-            input.data.locale,
-            result.checkedAt,
-          );
-    } catch (error) {
-      // Preserve real search results for manual selection if AI is unavailable.
-      recommendation = {
-        partNumber: null,
-        best: null,
-        searchSuggestions: "",
-        reason:
-          error instanceof ServiceError
-            ? `${error.message} 商品は手動で選択できます。`
-            : "AIの自動選択を利用できません。商品は手動で選択できます。",
-      };
-    }
-    return NextResponse.json(
-      { ...result, recommendation },
-      {
+    if (!req.headers.get("accept")?.includes("application/x-ndjson")) {
+      const result = await runPurchaseSearch({
+        ...options,
+        signal: req.signal,
+        emit: () => {},
+      });
+      return NextResponse.json(result, {
         headers: { "Cache-Control": "no-store" },
+      });
+    }
+    const stop = new AbortController();
+    const signal = AbortSignal.any([req.signal, stop.signal]);
+    const encoder = new TextEncoder();
+    let closed = false;
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const emit = (event: PurchaseSearchEvent) => {
+          if (!closed && !signal.aborted)
+            controller.enqueue(encoder.encode(JSON.stringify(event) + "\n"));
+        };
+        void (async () => {
+          try {
+            const result = await runPurchaseSearch({
+              ...options,
+              signal,
+              emit,
+            });
+            emit({ type: "result", result });
+          } catch (error) {
+            emit({
+              type: "error",
+              status: error instanceof ServiceError ? error.status : 503,
+              error:
+                error instanceof ServiceError
+                  ? error.message
+                  : "商品検索に失敗しました。接続状態を確認して再試行してください。",
+            });
+          } finally {
+            if (!closed) {
+              closed = true;
+              controller.close();
+            }
+          }
+        })();
       },
-    );
+      cancel() {
+        closed = true;
+        stop.abort();
+      },
+    });
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "application/x-ndjson; charset=utf-8",
+        "Cache-Control": "no-store, no-transform",
+        "X-Accel-Buffering": "no",
+      },
+    });
   } catch (error) {
     return apiError(error);
   }

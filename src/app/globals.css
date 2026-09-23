@@ -3639,3 +3639,13 @@ button.parts-catalog {
 @media (max-width: 1000px) {
   body.tour-active main { padding-top: var(--tour-card-height, 280px); }
 }
+
+.purchase-progress { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 14px 0; }
+.purchase-progress > p[role="status"] { font-size: 13px; font-weight: 600; margin: 0; }
+.purchase-progress progress { flex: 1; min-width: 80px; height: 8px; accent-color: var(--success); }
+.purchase-progress > .purchase-note { flex-basis: 100%; margin: 0; }
+.purchase-progress button, .purchase-search-progress button { padding: 8px 12px; min-height: 40px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-raised); color: var(--text); font-size: 12px; cursor: pointer; }
+.purchase-search-progress { display: grid; gap: 8px; list-style: none; padding: 0; margin: 0; }
+.purchase-search-progress > li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 12px; }
+.purchase-search-progress > li > strong { margin-right: auto; }
+.purchase-search-progress .purchase-error, .purchase-search-progress .purchase-note { flex-basis: 100%; }

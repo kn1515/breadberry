@@ -96,6 +96,15 @@ export type PurchaseRecommendation = {
 export type RecommendedPurchaseSearch = PurchaseSearch & {
   recommendation: PurchaseRecommendation;
 };
+export const PURCHASE_SEARCH_TIMEOUT_MS = 60_000;
+export const PURCHASE_BATCH_TIMEOUT_MS = 90_000;
+export type PurchasePhase =
+  "queued" | "connecting" | "digikey" | "discovery" | "verification" | "done";
+export type PurchaseSearchEvent =
+  | { type: "phase"; phase: PurchasePhase }
+  | { type: "offers"; search: PurchaseSearch }
+  | { type: "result"; result: RecommendedPurchaseSearch }
+  | { type: "error"; error: string; status: number };
 
 export function purchaseParts(circuit: Circuit): PurchasePart[] {
   return billOfMaterials(circuit)

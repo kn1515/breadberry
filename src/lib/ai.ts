@@ -1,6 +1,7 @@
 import { translate, type Locale } from "./i18n";
 import type { CircuitContext } from "./conversation";
 import { z } from "zod";
+import { withDeadline } from "./async";
 import {
   boards,
   catalog,
@@ -25,27 +26,35 @@ export async function providerJson(
   timeout: number,
 ): Promise<any> {
   // Provider payload is validated before use.
-  let response: Response;
   try {
-    response = await fetch(url, {
-      ...init,
-      signal: AbortSignal.timeout(timeout),
-    });
-  } catch {
+    return await withDeadline(
+      async (signal) => {
+        const response = await fetch(url, { ...init, signal });
+        if (!response.ok)
+          throw new ServiceError(
+            `AIサービスがリクエストを処理できませんでした（${response.status}）。管理者はモデル名・APIキー・利用枠を確認してください。`,
+            502,
+          );
+        try {
+          return await response.json();
+        } catch (error) {
+          signal.throwIfAborted();
+          throw new ServiceError(
+            "AIサービスから不正な応答が返されました。",
+            502,
+          );
+        }
+      },
+      timeout,
+      init.signal ?? undefined,
+    );
+  } catch (error) {
+    if (init.signal?.aborted) throw init.signal.reason;
+    if (error instanceof ServiceError) throw error;
     throw new ServiceError(
       "AIサービスへの接続がタイムアウトしました。時間をおいて再試行してください。",
       504,
     );
-  }
-  if (!response.ok)
-    throw new ServiceError(
-      `AIサービスがリクエストを処理できませんでした（${response.status}）。管理者はモデル名・APIキー・利用枠を確認してください。`,
-      502,
-    );
-  try {
-    return await response.json();
-  } catch {
-    throw new ServiceError("AIサービスから不正な応答が返されました。", 502);
   }
 }
 export async function generateCircuit(

@@ -161,7 +161,9 @@ export default function Studio() {
     }
   }
   useEffect(() => {
-    void loadConfig();
+    void loadConfig().then((data) => {
+      if (data && !data.active && !data.requiresAccessCode) void connect();
+    });
   }, []);
   useEffect(() => {
     if (!playing) return;

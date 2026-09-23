@@ -52,10 +52,21 @@ export function newSession() {
   const raw = `${id}.${exp}`;
   return `${raw}.${sign(raw)}`;
 }
+function isLoopbackHost(hostname: string) {
+  return ["localhost", "127.0.0.1", "::1", "0.0.0.0"].includes(hostname);
+}
+function isLoopbackOrigin(origin: string) {
+  try {
+    return isLoopbackHost(new URL(origin).hostname);
+  } catch {
+    return false;
+  }
+}
 export function checkOrigin(req: NextRequest) {
   const origin = req.headers.get("origin");
   const allowed = process.env.APP_ORIGIN || req.nextUrl.origin;
-  if (origin && origin !== allowed)
+  const localRequest = isLoopbackHost(req.nextUrl.hostname);
+  if (origin && origin !== allowed && !(localRequest && isLoopbackOrigin(origin)))
     throw new ServiceError("この送信元からは操作できません。", 403);
 }
 export async function bodyJson(req: NextRequest, max = 8192) {

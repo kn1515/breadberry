@@ -10,6 +10,13 @@ import {
 import { ServiceError } from "@/lib/ai";
 import { digiKeyConfigured } from "@/lib/digikey";
 export const runtime = "nodejs";
+function requiresAccessCode(req: NextRequest) {
+  return (
+    process.env.NODE_ENV === "production" &&
+    !["localhost", "127.0.0.1", "::1"].includes(req.nextUrl.hostname) &&
+    !!process.env.APP_ACCESS_TOKEN
+  );
+}
 export async function GET(req: NextRequest) {
   let active = false;
   try {
@@ -23,7 +30,7 @@ export async function GET(req: NextRequest) {
       gmi: !!process.env.GMI_API_KEY,
       digikey: digiKeyConfigured(),
       firestore: !!process.env.GOOGLE_CLOUD_PROJECT,
-      requiresAccessCode: !!process.env.APP_ACCESS_TOKEN,
+      requiresAccessCode: requiresAccessCode(req),
     },
     { headers: { "Cache-Control": "no-store" } },
   );
@@ -36,11 +43,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     } catch {}
     const body = await bodyJson(req);
+    const accessToken = process.env.APP_ACCESS_TOKEN;
     if (
-      process.env.APP_ACCESS_TOKEN &&
+      requiresAccessCode(req) &&
       !constantEqual(
         String(body?.accessCode ?? ""),
-        process.env.APP_ACCESS_TOKEN,
+        accessToken ?? "",
       )
     )
       throw new ServiceError("アクセスコードが正しくありません。", 401);

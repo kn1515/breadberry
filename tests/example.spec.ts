@@ -61,9 +61,11 @@ test("unconfigured services and API authorization are explicit", async ({
   await page.getByLabel("作りたいもの").fill("部屋の温度と湿度を測りたい");
   await page.getByRole("button", { name: "回路を修正", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(page.getByRole("alert")).toContainText(
-    "回路生成は現在利用できません。",
-  );
+  await expect(
+    page
+      .getByRole("complementary", { name: "回路設計チャット", exact: true })
+      .getByRole("alert"),
+  ).toContainText("回路生成は現在利用できません。");
   const response = await request.post("/api/generate", {
     data: { prompt: "温湿度を測定する", board: "esp32" },
   });

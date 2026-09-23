@@ -104,9 +104,11 @@ for (const protectedSession of [false, true]) {
         .fill("test-code");
       await dialog.getByRole("button", { name: "続ける", exact: true }).click();
     }
-    await expect(page.getByRole("alert")).toContainText(
-      "回路生成は現在利用できません。",
-    );
+    await expect(
+      page
+        .getByRole("complementary", { name: "回路設計チャット", exact: true })
+        .getByRole("alert"),
+    ).toContainText("回路生成は現在利用できません。");
     expect(generations).toBe(1);
     expect(starts).toBe(1);
     await expect(page.getByRole("dialog")).toHaveCount(0);

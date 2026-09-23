@@ -87,9 +87,11 @@ test("English generation requests retain the selected language and circuit", asy
   await page
     .getByRole("button", { name: "Revise circuit", exact: true })
     .click();
-  await expect(page.getByRole("alert")).toContainText(
-    "Generation temporarily unavailable",
-  );
+  await expect(
+    page
+      .getByRole("complementary", { name: "Circuit design chat" })
+      .getByRole("alert"),
+  ).toContainText("Generation temporarily unavailable");
   expect(request.locale).toBe("en");
   expect(request.context.circuit.board).toBe("esp32");
 });

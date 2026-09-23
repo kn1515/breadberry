@@ -816,7 +816,7 @@ export default function BoardScene({
     <SceneBoundary>
       <Canvas
         key={`${view}-${reset}`}
-        shadows
+        shadows="percentage"
         camera={{
           position: view === "top" ? [0, 15, -0.2] : [7.8, 10.2, 9.8],
           fov: 39,

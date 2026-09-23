@@ -1,4 +1,5 @@
 "use client";
+import { usePreferences, Text } from "./preferences";
 import {
   Canvas,
   useFrame,
@@ -374,7 +375,10 @@ function Part({
           )}
         </>
       )}
-      <Label at={[x, 1.45, z]} color={active ? "#a5b4fc" : "#d6e3ef"}>
+      <Label
+        at={[x, 1.45, z]}
+        color={active ? "var(--accent)" : "var(--scene-label)"}
+      >
         <span data-part-label={part.id}>
           {part.id} ·{" "}
           {part.kind === "resistor" ? part.value : def.name.split(" ")[0]}
@@ -771,7 +775,7 @@ class SceneBoundary extends Component<
   render() {
     return this.state.failed ? (
       <div className="scene-fallback">
-        3D表示を開始できませんでした。「回路図」タブで接続を確認できます。
+        <Text message="3D表示を開始できませんでした。「回路図」タブで接続を確認できます。" />
       </div>
     ) : (
       this.props.children
@@ -791,6 +795,7 @@ export default function BoardScene({
   reset: number;
   editor?: SceneEditor;
 }) {
+  const { t, theme } = usePreferences();
   const [supported, setSupported] = useState(true);
   const [reduced, setReduced] = useState(false);
   useEffect(() => {
@@ -809,7 +814,9 @@ export default function BoardScene({
   if (!supported)
     return (
       <div className="scene-fallback">
-        WebGLを利用できません。3Dを表示できるブラウザをご利用ください。配置の変更は下の「配置する穴」からも行えます。
+        {t(
+          "WebGLを利用できません。3Dを表示できるブラウザをご利用ください。配置の変更は下の「配置する穴」からも行えます。",
+        )}
       </div>
     );
   return (
@@ -823,7 +830,7 @@ export default function BoardScene({
         }}
         dpr={[1, 1.6]}
         gl={{ antialias: true, alpha: true }}
-        aria-label="ブレッドボードの3D配線モデル"
+        aria-label={t("ブレッドボードの3D配線モデル")}
       >
         <ambientLight intensity={1.2} />
         <hemisphereLight args={["#cfddff", "#273447", 1.5]} />
@@ -848,7 +855,12 @@ export default function BoardScene({
           far={8}
         />
         <gridHelper
-          args={[36, 72, "#263a50", "#1b2a3e"]}
+          args={[
+            36,
+            72,
+            theme === "light" ? "#cbd5e1" : "#263a50",
+            theme === "light" ? "#e2e8f0" : "#1b2a3e",
+          ]}
           position={[0, -0.23, 0]}
         />
       </Canvas>

@@ -3128,3 +3128,419 @@ main > .ambient {
   color: #d5e0ef;
   background: #253652;
 }
+
+/* Theme tokens are shared by controls, modal surfaces, and the 3D workspace. */
+:root {
+  --surface: #152034;
+  --surface-raised: #1b2940;
+  --surface-soft: #111c2e;
+  --text: #e5edf8;
+  --text-secondary: #b6c4d8;
+  --accent: #a5b4fc;
+  --success: #6ee7b7;
+  --danger: #fda4af;
+  --warning-bg: #403521;
+  --scene-label: #d6e3ef;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --surface: #ffffff;
+  --surface-raised: #f1f5fa;
+  --surface-soft: #f7f9fc;
+  --text: #17283f;
+  --text-secondary: #40536c;
+  --muted: #52657b;
+  --line: #d8e0eb;
+  --panel: #ffffff;
+  --accent: #4338ca;
+  --success: #087455;
+  --danger: #a52d44;
+  --warning-bg: #fff3d6;
+  --scene-label: #334155;
+}
+.preference-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.preference-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  background: var(--surface);
+  white-space: nowrap;
+}
+.preference-button:hover {
+  color: var(--accent);
+}
+.header-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+:root[data-theme="light"] body {
+  background: #f5f7fb;
+  color: var(--text);
+}
+:root[data-theme="light"] .grain {
+  opacity: 0.015;
+}
+:root[data-theme="light"] .aurora {
+  opacity: 0.06;
+}
+:root[data-theme="light"]
+  :is(.workspace, .modal, .tutorial-dialog, .editor-results) {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--line);
+  box-shadow: 0 12px 40px #1e293b12;
+}
+:root[data-theme="light"]
+  :is(
+    .workspace-heading,
+    .canvas-toolbar,
+    .playback,
+    .workspace-status,
+    .activity-bar,
+    .parts-panel,
+    .guide-panel,
+    .chat-panel,
+    .code-view,
+    .editor-scene,
+    .led-model-picker
+  ) {
+  background: var(--surface-soft);
+  border-color: var(--line);
+}
+:root[data-theme="light"] :is(.canvas-panel, .canvas-content, .schematic) {
+  background: var(--surface);
+}
+:root[data-theme="light"]
+  :is(
+    .prompt-card,
+    .chat-panel .prompt-card,
+    .chat-message,
+    .tutorial-preview,
+    .tutorial-hint,
+    .config-rows > div,
+    .examples-menu
+  ) {
+  background: var(--surface-raised);
+  border-color: var(--line);
+}
+:root[data-theme="light"]
+  :is(
+    .parts-search,
+    .select-wrap,
+    .catalog-grid button,
+    .scene-tags > span,
+    .scene-tools button,
+    .playback select,
+    .layout-editor input,
+    .layout-editor select,
+    .layout-editor button,
+    .editor-results button,
+    .led-model-options button,
+    .access-field input,
+    .parts-panel .parts-purchase,
+    .step-number
+  ) {
+  background: var(--surface);
+  border-color: var(--line);
+}
+:root[data-theme="light"] :is(.select-wrap option, .layout-editor option) {
+  background: var(--surface);
+  color: var(--text);
+}
+:root[data-theme="light"]
+  :is(
+    .primary-button,
+    .layout-editor .editor-check,
+    .editor-scene-toolbar button[aria-pressed="true"]
+  ) {
+  background: #4f46e5;
+  border-color: #4f46e5;
+  color: white;
+}
+:root[data-theme="light"]
+  :is(
+    .chat-message.user,
+    .chat-mode button[aria-pressed="true"],
+    .step-item.current,
+    .activity-button[aria-pressed="true"],
+    .activity-button[aria-expanded="true"],
+    .scene-tools button.active
+  ) {
+  background: #eaeefe;
+  border-color: #b8c0ef;
+}
+:root[data-theme="light"] :is(.chat-error, .alert.error) {
+  background: #fff0f2;
+  color: var(--danger);
+  border-color: #edb5be;
+}
+:root[data-theme="light"] .alert.notice {
+  background: #e8f6ef;
+  color: #176047;
+  border-color: #b4d9c6;
+}
+:root[data-theme="light"]
+  :is(
+    .settings-button,
+    .beta,
+    .project-badge,
+    .count,
+    .bom-download,
+    .editor-properties,
+    .config-rows,
+    .tutorial-trigger,
+    .led-model-options button
+  ) {
+  border-color: var(--line);
+}
+:root[data-theme="light"]
+  :is(
+    .view-tabs button.selected,
+    .tutorial-trigger,
+    .tutorial-counter,
+    .chat-heading svg,
+    .chat-message strong
+  ) {
+  color: var(--accent);
+}
+:root[data-theme="light"] .workspace:fullscreen {
+  background: var(--surface);
+}
+:root[data-theme="light"] .playback input[type="range"] {
+  background: linear-gradient(
+    to right,
+    #6366f1 var(--progress),
+    #d5deeb var(--progress)
+  );
+}
+:root[data-theme="light"] .how-number {
+  color: #52657b22;
+}
+
+/* Purchase dialogs follow the same palette as the rest of the workspace. */
+.purchase-dialog {
+  color: var(--text);
+  background: var(--surface);
+  border-color: var(--line);
+}
+.purchase-row,
+.purchase-dialog input,
+.purchase-dialog select {
+  color: var(--text);
+  background: var(--surface);
+  border-color: var(--line);
+}
+.purchase-footer,
+.purchase-search button {
+  background: var(--surface-raised);
+  border-color: var(--line);
+}
+.purchase-message {
+  background: var(--warning-bg);
+}
+.purchase-part-heading span {
+  background: var(--surface-raised);
+  color: var(--success);
+}
+.purchase-eyebrow,
+.purchase-links a {
+  color: var(--success);
+}
+#purchase-help,
+.purchase-spec,
+.purchase-note,
+.purchase-status {
+  color: var(--muted);
+}
+.purchase-error {
+  color: var(--danger);
+}
+.purchase-offer {
+  border-color: var(--line);
+}
+.purchase-button {
+  background: #23634c;
+  color: white;
+}
+@media (max-width: 700px) {
+  .topbar {
+    gap: 12px;
+    flex-wrap: wrap;
+    padding-block: 14px;
+    height: auto;
+    min-height: 76px;
+  }
+  .header-actions {
+    gap: 6px;
+  }
+  .preference-controls {
+    gap: 6px;
+  }
+  .preference-button {
+    font-size: 11px;
+    padding: 8px;
+  }
+}
+
+/* Light theme text colors for the existing workspace panels. */
+:root[data-theme="light"] body,
+:root[data-theme="light"] .topbar nav .nav-active,
+:root[data-theme="light"] .settings-button,
+:root[data-theme="light"] .prompt-card textarea,
+:root[data-theme="light"] .select-wrap,
+:root[data-theme="light"] .export-button,
+:root[data-theme="light"] .parts-search input,
+:root[data-theme="light"] .part-info strong,
+:root[data-theme="light"] .playback-track strong,
+:root[data-theme="light"] .step-item strong,
+:root[data-theme="light"] .pin-pair,
+:root[data-theme="light"] .design-note details,
+:root[data-theme="light"] .design-note details strong,
+:root[data-theme="light"] .how-steps h3,
+:root[data-theme="light"] .footer-spark,
+:root[data-theme="light"] .code-view > div,
+:root[data-theme="light"] .examples-menu button,
+:root[data-theme="light"] .setup-link,
+:root[data-theme="light"] .access-field,
+:root[data-theme="light"] .tutorial-dialog,
+:root[data-theme="light"] .tutorial-close,
+:root[data-theme="light"] .tutorial-preview-item,
+:root[data-theme="light"] .tutorial-description,
+:root[data-theme="light"] .tutorial-hint,
+:root[data-theme="light"] .tutorial-back,
+:root[data-theme="light"] .parts-catalog summary,
+:root[data-theme="light"] .catalog-grid button,
+:root[data-theme="light"] .chat-empty p,
+:root[data-theme="light"] .layout-editor button,
+:root[data-theme="light"] .editor-results button,
+:root[data-theme="light"] .layout-editor,
+:root[data-theme="light"] .layout-editor select,
+:root[data-theme="light"] .layout-editor input,
+:root[data-theme="light"] .editor-results,
+:root[data-theme="light"] .activity-button:hover:not(:disabled),
+:root[data-theme="light"] .led-model-picker p,
+:root[data-theme="light"] .led-model-options button {
+  color: var(--text);
+}
+:root[data-theme="light"] .brand-icon,
+:root[data-theme="light"] .prompt-heading svg,
+:root[data-theme="light"] .view-tabs button.selected,
+:root[data-theme="light"] .view-tabs button > span,
+:root[data-theme="light"] .scene-tools button.active,
+:root[data-theme="light"] .play-button,
+:root[data-theme="light"] .playback-track b,
+:root[data-theme="light"] .guide-progress b,
+:root[data-theme="light"] .step-item.current .step-number,
+:root[data-theme="light"] .modal,
+:root[data-theme="light"] .modal-symbol,
+:root[data-theme="light"] .tutorial-trigger,
+:root[data-theme="light"] .tutorial-header > span,
+:root[data-theme="light"] .tutorial-preview-icon,
+:root[data-theme="light"] .tutorial-counter,
+:root[data-theme="light"] .chat-heading svg,
+:root[data-theme="light"] .chat-mode button[aria-pressed="true"],
+:root[data-theme="light"] .chat-empty svg,
+:root[data-theme="light"] .chat-message strong,
+:root[data-theme="light"] .editor-scene-toolbar span,
+:root[data-theme="light"] .activity-button[aria-pressed="true"],
+:root[data-theme="light"] .activity-button[aria-expanded="true"] {
+  color: var(--accent);
+}
+:root[data-theme="light"] .beta,
+:root[data-theme="light"] .topbar nav,
+:root[data-theme="light"] .eyebrow,
+:root[data-theme="light"] .ai-label,
+:root[data-theme="light"] .prompt-card textarea::placeholder,
+:root[data-theme="light"] .select-wrap svg,
+:root[data-theme="light"] .prompt-caption,
+:root[data-theme="light"] .project-breadcrumb,
+:root[data-theme="light"] .project-badge,
+:root[data-theme="light"] .text-button,
+:root[data-theme="light"] .count,
+:root[data-theme="light"] .parts-search,
+:root[data-theme="light"] .parts-search input::placeholder,
+:root[data-theme="light"] .section-caption,
+:root[data-theme="light"] .part-thumbnail > svg,
+:root[data-theme="light"] .part-info small,
+:root[data-theme="light"] .quantity,
+:root[data-theme="light"] .bom-download,
+:root[data-theme="light"] .parts-tip,
+:root[data-theme="light"] .tip-icon,
+:root[data-theme="light"] .parts-tip strong,
+:root[data-theme="light"] .parts-tip > span:last-child,
+:root[data-theme="light"] .view-tabs button,
+:root[data-theme="light"] .toolbar-hint,
+:root[data-theme="light"] .scene-tags > span,
+:root[data-theme="light"] .scene-tools button,
+:root[data-theme="light"] .scene-footer > span,
+:root[data-theme="light"] .playback-track span,
+:root[data-theme="light"] .icon-button,
+:root[data-theme="light"] .playback select,
+:root[data-theme="light"] .guide-panel .panel-title svg,
+:root[data-theme="light"] .guide-intro,
+:root[data-theme="light"] .guide-progress small,
+:root[data-theme="light"] .guide-progress > span:last-child,
+:root[data-theme="light"] .step-number,
+:root[data-theme="light"] .step-item small,
+:root[data-theme="light"] .step-details,
+:root[data-theme="light"] .connection-tip p,
+:root[data-theme="light"] .connection-tip p span,
+:root[data-theme="light"] .workspace-status,
+:root[data-theme="light"] .design-note .eyebrow,
+:root[data-theme="light"] .design-note > p,
+:root[data-theme="light"] .design-note summary,
+:root[data-theme="light"] .design-note ul,
+:root[data-theme="light"] .how-it-works > .eyebrow,
+:root[data-theme="light"] .how-steps svg,
+:root[data-theme="light"] .how-steps p,
+:root[data-theme="light"] footer,
+:root[data-theme="light"] footer .brand,
+:root[data-theme="light"] footer .brand svg,
+:root[data-theme="light"] .schematic > p,
+:root[data-theme="light"] .code-view p,
+:root[data-theme="light"] .scene-fallback,
+:root[data-theme="light"] .modal > p,
+:root[data-theme="light"] .config-rows > div > span:last-child,
+:root[data-theme="light"] .saved-list small,
+:root[data-theme="light"] .saved-list > button > svg,
+:root[data-theme="light"] .empty,
+:root[data-theme="light"] .tutorial-arrow,
+:root[data-theme="light"] .tutorial-reminder,
+:root[data-theme="light"] .parts-catalog p,
+:root[data-theme="light"] .chat-heading > span,
+:root[data-theme="light"] .chat-mode button,
+:root[data-theme="light"] .chat-context,
+:root[data-theme="light"] .chat-empty,
+:root[data-theme="light"] .chat-pending,
+:root[data-theme="light"] .editor-help,
+:root[data-theme="light"] .editor-results p,
+:root[data-theme="light"] .activity-button {
+  color: var(--text-secondary);
+}
+:root[data-theme="light"] .project-icon,
+:root[data-theme="light"] .live-pill,
+:root[data-theme="light"] .step-item.complete .step-number,
+:root[data-theme="light"] .connection-tip,
+:root[data-theme="light"] .code-view pre,
+:root[data-theme="light"] .alert.notice,
+:root[data-theme="light"] .config-rows > div > span.configured,
+:root[data-theme="light"]
+  .tutorial-preview-item:last-of-type
+  .tutorial-preview-icon,
+:root[data-theme="light"] .tutorial-preview-check {
+  color: var(--success);
+}
+:root[data-theme="light"] .alert.error,
+:root[data-theme="light"] .chat-error {
+  color: var(--danger);
+}

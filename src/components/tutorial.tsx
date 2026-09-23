@@ -1,4 +1,5 @@
 "use client";
+import { usePreferences } from "./preferences";
 
 import { useEffect, useRef, useState } from "react";
 import {
@@ -43,6 +44,7 @@ const steps = [
 ];
 
 export default function Tutorial() {
+  const { t } = usePreferences();
   const dialog = useRef<HTMLDialogElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
@@ -69,8 +71,8 @@ export default function Tutorial() {
         ref={trigger}
         type="button"
         className="tutorial-trigger"
-        aria-label="チュートリアルを開く"
-        title="チュートリアルを開く"
+        aria-label={t("チュートリアルを開く")}
+        title={t("チュートリアルを開く")}
         aria-haspopup="dialog"
         aria-controls="tutorial-dialog"
         aria-expanded={open}
@@ -81,7 +83,7 @@ export default function Tutorial() {
         }}
       >
         <BookOpen size={18} aria-hidden="true" />
-        <span>使い方</span>
+        <span>{t("使い方")}</span>
       </button>
       <dialog
         ref={dialog}
@@ -106,29 +108,30 @@ export default function Tutorial() {
       >
         <div className="tutorial-header">
           <span>
-            <BookOpen size={15} aria-hidden="true" /> 約30秒でわかる使い方
+            <BookOpen size={15} aria-hidden="true" />{" "}
+            {t("約30秒でわかる使い方")}
           </span>
           <button
             type="button"
             autoFocus
             className="tutorial-close"
-            aria-label="チュートリアルを閉じる"
+            aria-label={t("チュートリアルを閉じる")}
             onClick={close}
           >
             <X size={19} />
           </button>
         </div>
-        <h2 id="tutorial-title">アイデアから、動く回路へ。</h2>
+        <h2 id="tutorial-title">{t("アイデアから、動く回路へ。")}</h2>
         <div
           className="tutorial-progress"
           role="group"
-          aria-label="チュートリアルのステップ"
+          aria-label={t("チュートリアルのステップ")}
         >
           {steps.map((item, index) => (
             <button
               key={item.title}
               type="button"
-              aria-label={`ステップ${index + 1}：${item.title}`}
+              aria-label={t("ステップ{0}：{1}", [index + 1, t(item.title)])}
               aria-current={step === index ? "step" : undefined}
               onClick={() => setStep(index)}
             >
@@ -147,7 +150,7 @@ export default function Tutorial() {
                   <span className="tutorial-preview-icon">
                     <Icon size={30} />
                   </span>
-                  <span>{current.labels[index]}</span>
+                  <span>{t(current.labels[index])}</span>
                 </div>
               ))}
               <span className="tutorial-preview-check">
@@ -155,9 +158,9 @@ export default function Tutorial() {
               </span>
             </div>
             <p className="tutorial-counter">STEP 0{step + 1} / 03</p>
-            <h3>{current.title}</h3>
-            <p className="tutorial-description">{current.description}</p>
-            <p className="tutorial-hint">{current.hint}</p>
+            <h3>{t(current.title)}</h3>
+            <p className="tutorial-description">{t(current.description)}</p>
+            <p className="tutorial-hint">{t(current.hint)}</p>
           </div>
         </div>
         <div className="tutorial-footer">
@@ -167,19 +170,19 @@ export default function Tutorial() {
             disabled={step === 0}
             onClick={() => setStep((value) => Math.max(0, value - 1))}
           >
-            <ChevronLeft size={16} /> 戻る
+            <ChevronLeft size={16} /> {t("戻る")}
           </button>
           <button
             type="button"
             className="primary-button"
             onClick={() => (last ? close() : setStep((value) => value + 1))}
           >
-            {last ? "使ってみる" : "次へ"}
+            {last ? t("使ってみる") : t("次へ")}
             {last ? <Check size={16} /> : <ArrowRight size={16} />}
           </button>
         </div>
         <p className="tutorial-reminder">
-          ヘッダーの本のアイコンから、いつでも見返せます
+          {t("ヘッダーの本のアイコンから、いつでも見返せます")}
         </p>
       </dialog>
     </>

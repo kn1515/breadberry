@@ -10,6 +10,7 @@ export type ChatMessage = z.infer<typeof messageSchema>;
 export const generateRequestSchema = z.object({
   prompt: z.string().trim().min(1).max(2000),
   board: boardSchema,
+  locale: z.enum(["ja", "en"]).default("ja"),
   context: z
     .object({
       circuit: draftCircuitSchema,

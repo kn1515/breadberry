@@ -42,8 +42,9 @@ export async function POST(req: NextRequest) {
       input.data.prompt,
       input.data.board,
       input.data.context,
+      input.data.locale,
     );
-    const review = await reviewCircuit(circuit);
+    const review = await reviewCircuit(circuit, input.data.locale);
     const project: Project = {
       id: randomUUID(),
       circuit,

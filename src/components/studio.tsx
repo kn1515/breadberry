@@ -1,4 +1,5 @@
 "use client";
+import { usePreferences, Text, PreferenceControls } from "./preferences";
 import dynamic from "next/dynamic";
 import {
   useEffect,
@@ -69,7 +70,7 @@ const BoardScene = dynamic(() => import("./board-scene"), {
   loading: () => (
     <div className="scene-fallback">
       <LoaderCircle className="spin" />
-      3Dワークスペースを準備中
+      <Text message="3Dワークスペースを準備中" />
     </div>
   ),
 });
@@ -104,6 +105,7 @@ function readLocal(): Project[] {
   }
 }
 export default function Studio() {
+  const { t, locale } = usePreferences();
   const [project, setProject] = useState<Project>(() => demoProject());
   const [selectedBoard, setSelectedBoard] = useState<Board>("esp32");
   const [prompt, setPrompt] = useState("");
@@ -284,7 +286,7 @@ export default function Studio() {
       const cfg = await loadConfig();
       if (!cfg?.active) {
         setSettings(true);
-        throw new Error("接続設定からセッションを開始してください。");
+        throw new Error(t("接続設定からセッションを開始してください。"));
       }
       const res = await fetch("/api/generate", {
         method: "POST",
@@ -292,6 +294,7 @@ export default function Studio() {
         body: JSON.stringify({
           prompt: requestPrompt,
           board: selectedBoard,
+          locale,
           ...(newDesign
             ? {}
             : {
@@ -345,7 +348,9 @@ export default function Studio() {
       storage: "browser",
       review: {
         status: "unavailable",
-        text: "手動編集後の補助レビューは未実施です。コードは自動更新されません。",
+        text: t(
+          "手動編集後の補助レビューは未実施です。コードは自動更新されません。",
+        ),
       },
     }));
     setNotice("");
@@ -429,7 +434,7 @@ export default function Studio() {
             if (!r.ok) throw new Error(d.error);
             return d;
           });
-      if (!p) throw new Error("保存データがありません。");
+      if (!p) throw new Error(t("保存データがありません。"));
       if (generating.current) return;
       applyProject(p);
       setHistory(false);
@@ -442,8 +447,8 @@ export default function Studio() {
   }
   function exportBOM() {
     const rows = [
-      ["部品", "仕様", "数量"],
-      ...bom.map((p) => [p.name, p.value, p.quantity]),
+      [t("部品"), t("仕様"), t("数量")],
+      ...bom.map((p) => [t(p.name), t(p.value), p.quantity]),
     ];
     download(
       "breadberry-parts.csv",
@@ -477,13 +482,14 @@ export default function Studio() {
       </div>
       <div className="grain" />
       <header className="topbar">
-        <a href="#" className="brand" aria-label="breadberry ホーム">
+        <a href="#" className="brand" aria-label={t("breadberry ホーム")}>
           <span className="brand-icon">
             <CircuitBoard size={23} />
           </span>
           breadberry<span className="beta">BETA</span>
         </a>
         <div className="header-actions">
+          <PreferenceControls />
           <Tutorial />
           <button
             className="settings-button"
@@ -493,7 +499,7 @@ export default function Studio() {
             }}
           >
             <Settings2 size={16} />
-            <span>接続設定</span>
+            <span>{t("接続設定")}</span>
             <span
               className={`status-dot ${config?.active && config.gemini ? "online" : ""}`}
             />
@@ -502,8 +508,8 @@ export default function Studio() {
       </header>
       {notice && (
         <div className="alert notice" role="status">
-          {notice}
-          <button aria-label="閉じる" onClick={() => setNotice("")}>
+          {t(notice)}
+          <button aria-label={t("閉じる")} onClick={() => setNotice("")}>
             <X size={16} />
           </button>
         </div>
@@ -512,16 +518,16 @@ export default function Studio() {
         <aside
           ref={activityBar}
           className="activity-bar"
-          aria-label="アクティビティバー"
+          aria-label={t("アクティビティバー")}
         >
-          <nav className="activity-group" aria-label="移動">
+          <nav className="activity-group" aria-label={t("移動")}>
             <a
               className="activity-button"
               href="#workspace"
-              title="ワークスペース"
+              title={t("ワークスペース")}
             >
               <CircuitBoard size={18} />
-              <span>ワークスペース</span>
+              <span>{t("ワークスペース")}</span>
             </a>
             <button
               className="activity-button"
@@ -530,13 +536,13 @@ export default function Studio() {
               onClick={() => void openHistory()}
             >
               <FolderOpen size={18} />
-              <span>プロジェクト</span>
+              <span>{t("プロジェクト")}</span>
             </button>
           </nav>
           <div
             className="activity-group"
             role="group"
-            aria-label="ワークスペースモード"
+            aria-label={t("ワークスペースモード")}
           >
             {(["viewer", "editor"] as const).map((value) => (
               <button
@@ -544,12 +550,12 @@ export default function Studio() {
                 className="activity-button"
                 disabled={busy || saving}
                 aria-label={
-                  value === "viewer" ? "Viewer · 閲覧" : "Editor · 編集"
+                  value === "viewer" ? t("Viewer · 閲覧") : t("Editor · 編集")
                 }
                 title={
                   value === "viewer"
-                    ? "3Dと組み立て手順"
-                    : "部品の追加・移動・配線"
+                    ? t("3Dと組み立て手順")
+                    : t("部品の追加・移動・配線")
                 }
                 aria-pressed={mode === value}
                 onClick={() => {
@@ -570,7 +576,7 @@ export default function Studio() {
           <div
             className="activity-group"
             role="group"
-            aria-label="回路ファイル"
+            aria-label={t("回路ファイル")}
           >
             <div className="examples-wrap">
               <button
@@ -581,21 +587,21 @@ export default function Studio() {
                 onClick={() => setExamples((s) => !s)}
               >
                 <Plus size={18} />
-                <span>サンプル</span>
+                <span>{t("サンプル")}</span>
               </button>
               {examples && (
                 <div className="examples-menu" id="activity-examples">
                   <button onClick={() => sample("climate")}>
-                    <Thermometer size={15} /> 温湿度センサー
+                    <Thermometer size={15} /> {t("温湿度センサー")}
                   </button>
                   <button onClick={() => sample("led")}>
-                    <Zap size={15} /> LEDブリンク
+                    <Zap size={15} /> {t("LEDブリンク")}
                   </button>
                   <button onClick={() => sample("temperature")}>
-                    <Thermometer size={15} /> DS18B20 温度計
+                    <Thermometer size={15} /> {t("DS18B20 温度計")}
                   </button>
                   <button onClick={() => sample("display")}>
-                    <Zap size={15} /> OLEDディスプレイ
+                    <Zap size={15} /> {t("OLEDディスプレイ")}
                   </button>
                 </div>
               )}
@@ -610,7 +616,7 @@ export default function Studio() {
               ) : (
                 <Save size={18} />
               )}
-              <span>保存</span>
+              <span>{t("保存")}</span>
             </button>
             <button
               className="activity-button"
@@ -622,17 +628,20 @@ export default function Studio() {
               }
             >
               <Download size={18} />
-              <span>エクスポート</span>
+              <span>{t("エクスポート")}</span>
             </button>
           </div>
-          <nav className="activity-group activity-help" aria-label="サポート">
+          <nav
+            className="activity-group activity-help"
+            aria-label={t("サポート")}
+          >
             <a
               className="activity-button"
               href="#how-it-works"
-              title="使い方を見る"
+              title={t("使い方を見る")}
             >
               <CircleHelp size={18} />
-              <span>ヘルプ</span>
+              <span>{t("ヘルプ")}</span>
             </a>
           </nav>
         </aside>
@@ -645,34 +654,40 @@ export default function Studio() {
               <div className="project-breadcrumb">
                 WORKSPACE <span>/</span>{" "}
                 {project.edited
-                  ? "手動編集した回路"
+                  ? t("手動編集した回路")
                   : project.source === "demo"
                     ? "SAMPLE PROJECT"
                     : "YOUR PROJECT"}
               </div>
-              <h2>{circuit.title}</h2>
+              <h2>
+                {project.source === "demo" ? t(circuit.title) : circuit.title}
+              </h2>
             </div>
             <span className="project-badge">
               {project.edited
-                ? "手動編集した回路"
+                ? t("手動編集した回路")
                 : project.source === "demo"
-                  ? "サンプル"
-                  : "AI生成"}
+                  ? t("サンプル")
+                  : t("AI生成")}
             </span>
           </div>
         </div>
         <div className="workbench">
           <aside className="parts-panel">
             <div className="panel-title">
-              <span>パーツライブラリ</span>
+              <span>{t("パーツライブラリ")}</span>
               <span className="count">{bom.length}</span>
             </div>
             <details className="parts-catalog">
               <summary>
-                対応するセンサー・部品（{partKinds.length}種類）
+                {t("対応するセンサー・部品（")}
+                {partKinds.length}
+                {t("種類）")}
               </summary>
               <p>
-                部品を選ぶと入力欄にセットします。3.3V回路・最大6部品。モジュールは端子名と実物の仕様を確認してください。
+                {t(
+                  "部品を選ぶと入力欄にセットします。3.3V回路・最大6部品。モジュールは端子名と実物の仕様を確認してください。",
+                )}
               </p>
               <div className="catalog-grid">
                 {partKinds.map((kind) => {
@@ -685,19 +700,24 @@ export default function Studio() {
                       disabled={busy || unavailable}
                       title={
                         unavailable
-                          ? "Raspberry Pi 4/5はADC非搭載です"
-                          : catalog[kind].note
+                          ? t("Raspberry Pi 4/5はADC非搭載です")
+                          : t(catalog[kind].note)
                       }
                       onClick={() =>
                         setPrompt(
                           newDesign
-                            ? `${catalog[kind].name}を使う回路と動作確認用のコードを作成してください。`
-                            : `現在の回路に${catalog[kind].name}を追加してください。`,
+                            ? t(
+                                "{0}を使う回路と動作確認用のコードを作成してください。",
+                                [t(catalog[kind].name)],
+                              )
+                            : t("現在の回路に{0}を追加してください。", [
+                                t(catalog[kind].name),
+                              ]),
                         )
                       }
                     >
-                      {catalog[kind].name}
-                      {unavailable ? "（ADCが必要）" : ""}
+                      {t(catalog[kind].name)}
+                      {unavailable ? t("（ADCが必要）") : ""}
                     </button>
                   );
                 })}
@@ -706,18 +726,18 @@ export default function Studio() {
             <label className="parts-search">
               <Search size={14} />
               <input
-                aria-label="パーツを検索"
-                placeholder="パーツを検索…"
+                aria-label={t("パーツを検索")}
+                placeholder={t("パーツを検索…")}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
               <span>⌕</span>
             </label>
-            <div className="section-caption">この回路に必要なもの</div>
+            <div className="section-caption">{t("この回路に必要なもの")}</div>
             <div className="parts-list">
               {bom
                 .filter((p) =>
-                  (p.name + p.value)
+                  (t(p.name) + " " + p.name + " " + t(p.value))
                     .toLowerCase()
                     .includes(query.toLowerCase()),
                 )
@@ -739,7 +759,7 @@ export default function Studio() {
                                 ledColors[p.ledColor ?? "green"].base,
                             } as CSSProperties
                           }
-                          aria-label={`${ledColors[p.ledColor ?? "green"].label} LED`}
+                          aria-label={`${t(ledColors[p.ledColor ?? "green"].label)} LED`}
                         />
                       ) : p.kind === "resistor" ? (
                         <span className="mini-resistor" />
@@ -750,18 +770,20 @@ export default function Studio() {
                       )}
                     </div>
                     <div className="part-info">
-                      <strong>{p.name}</strong>
-                      <small>{p.value}</small>
+                      <strong>{t(p.name)}</strong>
+                      <small>{t(p.value)}</small>
                     </div>
                     <span className="quantity">×{p.quantity}</span>
                   </div>
                 ))}
               {!bom.some((p) =>
-                (p.name + p.value).toLowerCase().includes(query.toLowerCase()),
-              ) && <p className="empty">該当する部品がありません。</p>}
+                (t(p.name) + " " + p.name + " " + t(p.value))
+                  .toLowerCase()
+                  .includes(query.toLowerCase()),
+              ) && <p className="empty">{t("該当する部品がありません。")}</p>}
             </div>
             <button className="bom-download" onClick={exportBOM}>
-              <ArrowDownToLine size={14} /> 部品リストをダウンロード
+              <ArrowDownToLine size={14} /> {t("部品リストをダウンロード")}
             </button>
             <button
               className="bom-download parts-purchase"
@@ -773,18 +795,18 @@ export default function Studio() {
               }}
             >
               <ShoppingCart size={14} />
-              <span>購入する</span>
+              <span>{t("購入する")}</span>
               <Sparkles size={14} />
             </button>
             <div className="parts-tip">
               <span className="tip-icon">
                 <Layers3 size={18} />
               </span>
-              <strong>小さな一歩が、大きな発見に。</strong>
+              <strong>{t("小さな一歩が、大きな発見に。")}</strong>
               <p>
-                すべてのパーツには役割があります。
+                {t("すべてのパーツには役割があります。")}
                 <br />
-                ひとつずつ、つないでみましょう。
+                {t("ひとつずつ、つないでみましょう。")}
               </p>
               <span>LET’S MAKE SOMETHING.</span>
             </div>
@@ -803,7 +825,7 @@ export default function Studio() {
                   <div
                     className="view-tabs"
                     role="tablist"
-                    aria-label="回路の表示"
+                    aria-label={t("回路の表示")}
                   >
                     <button
                       role="tab"
@@ -812,7 +834,8 @@ export default function Studio() {
                       className={tab === "3d" ? "selected" : ""}
                     >
                       <Box size={14} />
-                      ブレッドボード<span>3D</span>
+                      {t("ブレッドボード")}
+                      <span>3D</span>
                     </button>
                     <button
                       role="tab"
@@ -821,7 +844,7 @@ export default function Studio() {
                       className={tab === "schematic" ? "selected" : ""}
                     >
                       <Workflow size={14} />
-                      回路図
+                      {t("回路図")}
                     </button>
                     <button
                       role="tab"
@@ -830,7 +853,7 @@ export default function Studio() {
                       className={tab === "code" ? "selected" : ""}
                     >
                       <Code2 size={14} />
-                      コード
+                      {t("コード")}
                     </button>
                   </div>
                   <span className="toolbar-hint">
@@ -846,7 +869,7 @@ export default function Studio() {
                           <span className="status-dot online" />
                           {boards[circuit.board].name}
                         </span>
-                        <span>400穴ブレッドボード</span>
+                        <span>{t("400穴ブレッドボード")}</span>
                       </div>
                       <BoardScene
                         circuit={circuit}
@@ -856,15 +879,15 @@ export default function Studio() {
                       />
                       <div className="scene-tools">
                         <button
-                          title="表示をリセット"
-                          aria-label="表示をリセット"
+                          title={t("表示をリセット")}
+                          aria-label={t("表示をリセット")}
                           onClick={() => setReset((r) => r + 1)}
                         >
                           <RotateCcw size={16} />
                         </button>
                         <button
-                          title="真上から表示"
-                          aria-label="真上から表示"
+                          title={t("真上から表示")}
+                          aria-label={t("真上から表示")}
                           aria-pressed={view === "top"}
                           className={view === "top" ? "active" : ""}
                           onClick={() =>
@@ -876,8 +899,8 @@ export default function Studio() {
                           <Layers3 size={16} />
                         </button>
                         <button
-                          title="全画面"
-                          aria-label="全画面"
+                          title={t("全画面")}
+                          aria-label={t("全画面")}
                           onClick={() => {
                             if (document.fullscreenElement)
                               void document.exitFullscreen();
@@ -897,9 +920,9 @@ export default function Studio() {
                       <div className="scene-footer">
                         <span>
                           <span className="mouse-icon" />
-                          ドラッグで回転 · スクロールでズーム
+                          {t("ドラッグで回転 · スクロールでズーム")}
                         </span>
-                        <span>配線ガイド · 実寸ではありません</span>
+                        <span>{t("配線ガイド · 実寸ではありません")}</span>
                       </div>
                     </>
                   ) : tab === "schematic" ? (
@@ -925,14 +948,16 @@ export default function Studio() {
                           }
                         >
                           <Download size={14} />
-                          ダウンロード
+                          {t("ダウンロード")}
                         </button>
                       </div>
                       <pre>
                         <code>{circuit.firmware}</code>
                       </pre>
                       <p>
-                        必要なライブラリ・実行環境は下の設計メモをご確認ください。コードは自動実行されません。
+                        {t(
+                          "必要なライブラリ・実行環境は下の設計メモをご確認ください。コードは自動実行されません。",
+                        )}
                       </p>
                     </div>
                   )}
@@ -941,7 +966,7 @@ export default function Studio() {
                   <button
                     className="play-button"
                     onClick={togglePlay}
-                    aria-label={playing ? "一時停止" : "組み立てを再生"}
+                    aria-label={playing ? t("一時停止") : t("組み立てを再生")}
                   >
                     {playing ? (
                       <Pause size={17} fill="currentColor" />
@@ -953,10 +978,10 @@ export default function Studio() {
                     <div>
                       <strong>
                         {step === compiled.steps.length
-                          ? "回路のできあがり。"
+                          ? t("回路のできあがり。")
                           : step === 0
-                            ? "さあ、組み立てましょう。"
-                            : (current?.title ?? "パーツを追加してください")}
+                            ? t("さあ、組み立てましょう。")
+                            : t(current?.title ?? "パーツを追加してください")}
                       </strong>
                       <span>
                         <b>{String(step).padStart(2, "0")}</b> /{" "}
@@ -964,7 +989,7 @@ export default function Studio() {
                       </span>
                     </div>
                     <input
-                      aria-label="組み立て工程"
+                      aria-label={t("組み立て工程")}
                       type="range"
                       min={0}
                       max={compiled.steps.length}
@@ -982,7 +1007,7 @@ export default function Studio() {
                   </div>
                   <button
                     className="icon-button"
-                    aria-label="前の工程"
+                    aria-label={t("前の工程")}
                     disabled={step === 0}
                     onClick={() => {
                       setStep((s) => s - 1);
@@ -993,7 +1018,7 @@ export default function Studio() {
                   </button>
                   <button
                     className="icon-button"
-                    aria-label="次の工程"
+                    aria-label={t("次の工程")}
                     disabled={step === compiled.steps.length}
                     onClick={() => {
                       setStep((s) => s + 1);
@@ -1003,7 +1028,7 @@ export default function Studio() {
                     <ChevronRight size={17} />
                   </button>
                   <select
-                    aria-label="再生速度"
+                    aria-label={t("再生速度")}
                     value={speed}
                     onChange={(e) => setSpeed(Number(e.target.value))}
                   >
@@ -1019,11 +1044,13 @@ export default function Studio() {
             <div className="panel-title">
               <span>
                 <Layers3 size={15} />
-                組み立てガイド
+                {t("組み立てガイド")}
               </span>
               <span className="live-pill">STEP BY STEP</span>
             </div>
-            <p className="guide-intro">ひとつずつ、カタチにしていこう。</p>
+            <p className="guide-intro">
+              {t("ひとつずつ、カタチにしていこう。")}
+            </p>
             <div className="guide-progress">
               <span>
                 <b>{String(step).padStart(2, "0")}</b>
@@ -1031,8 +1058,8 @@ export default function Studio() {
               </span>
               <span>
                 {step === compiled.steps.length
-                  ? "すべての工程を表示中"
-                  : "工程を選んで確認できます"}
+                  ? t("すべての工程を表示中")
+                  : t("工程を選んで確認できます")}
               </span>
             </div>
             <div className="step-list" ref={stepList}>
@@ -1057,22 +1084,24 @@ export default function Studio() {
                   <span>
                     <strong>
                       {s.type === "part"
-                        ? s.title
-                        : `ジャンパ線をつなぐ ${i - circuit.parts.length + 1}`}
+                        ? t(s.title)
+                        : t("ジャンパ線をつなぐ {0}", [
+                            i - circuit.parts.length + 1,
+                          ])}
                     </strong>
                     <small>
                       {s.type === "part"
-                        ? catalog[circuit.parts[i].kind].name
-                        : s.title}
+                        ? t(catalog[circuit.parts[i].kind].name)
+                        : t(s.title)}
                     </small>
                     {i === step - 1 && (
                       <span className="step-details">
-                        {s.detail}
+                        {t(s.detail)}
                         {s.from && (
                           <span className="pin-pair">
-                            {s.from}
+                            {t(s.from)}
                             <ArrowDown size={12} />
-                            {s.to}
+                            {t(s.to ?? "")}
                           </span>
                         )}
                       </span>
@@ -1085,9 +1114,9 @@ export default function Studio() {
             <div className="connection-tip">
               <ShieldCheck size={17} />
               <p>
-                配線中は電源をオフに。
+                {t("配線中は電源をオフに。")}
                 <br />
-                <span>通電前に実物のピン表記を確認。</span>
+                <span>{t("通電前に実物のピン表記を確認。")}</span>
               </p>
             </div>
           </aside>
@@ -1109,20 +1138,20 @@ export default function Studio() {
           <span>
             <span className="status-dot online" />
             {project.edited
-              ? "手動編集あり · Editorでレイアウトを確認してください"
-              : "接続データの整合性チェック済み"}
-            <span className="status-sub"> · 実機動作は未検証</span>
+              ? t("手動編集あり · Editorでレイアウトを確認してください")
+              : t("接続データの整合性チェック済み")}
+            <span className="status-sub"> {t("· 実機動作は未検証")}</span>
           </span>
           <span>
             {project.edited
-              ? "手動編集した回路"
+              ? t("手動編集した回路")
               : project.source === "demo"
-                ? "サンプル回路"
-                : `Gemini · GMI ${project.review.status === "reviewed" ? "レビュー済み" : "レビュー未実施"}`}
+                ? t("サンプル回路")
+                : `Gemini · GMI ${project.review.status === "reviewed" ? t("レビュー済み") : t("レビュー未実施")}`}
             <i />
             {project.storage === "firestore"
-              ? "保存済み"
-              : "ブラウザでプレビュー"}
+              ? t("保存済み")
+              : t("ブラウザでプレビュー")}
           </span>
         </div>
       </section>
@@ -1131,22 +1160,27 @@ export default function Studio() {
           <div className="eyebrow">
             <Sparkles size={13} /> DESIGN NOTES
           </div>
-          <h3>つなぐ前に、ひと呼吸。</h3>
-          <p>{circuit.description}</p>
+          <h3>{t("つなぐ前に、ひと呼吸。")}</h3>
+          <p>
+            {project.source === "demo"
+              ? t(circuit.description)
+              : circuit.description}
+          </p>
           <details>
             <summary>
-              配線・コードの注意点を確認 <ChevronDown size={14} />
+              {t("配線・コードの注意点を確認")}
+              <ChevronDown size={14} />
             </summary>
             <ul>
               {circuit.notes.map((n, i) => (
-                <li key={i}>{n}</li>
+                <li key={i}>{project.source === "demo" ? t(n) : n}</li>
               ))}
             </ul>
             <strong>
-              補助レビュー{" "}
+              {t("補助レビュー")}{" "}
               {project.review.status === "reviewed" ? "· GMI Cloud" : ""}
             </strong>
-            <p className="review-text">{project.review.text}</p>
+            <p className="review-text">{t(project.review.text)}</p>
           </details>
         </div>
         <div id="how-it-works" className="how-it-works">
@@ -1156,20 +1190,20 @@ export default function Studio() {
               {
                 n: "01",
                 icon: Sparkles,
-                title: "アイデアを伝える",
-                text: "つくりたいものを、あなたの言葉で。",
+                title: t("アイデアを伝える"),
+                text: t("つくりたいものを、あなたの言葉で。"),
               },
               {
                 n: "02",
                 icon: Cpu,
-                title: "パーツをそろえる",
-                text: "回路に必要な部品を、ひと目で。",
+                title: t("パーツをそろえる"),
+                text: t("回路に必要な部品を、ひと目で。"),
               },
               {
                 n: "03",
                 icon: Box,
-                title: "ひとつずつ、つなぐ",
-                text: "3Dガイドと一緒に、最初の一歩。",
+                title: t("ひとつずつ、つなぐ"),
+                text: t("3Dガイドと一緒に、最初の一歩。"),
               },
             ].map(({ n, icon: Icon, title, text }) => (
               <div key={n}>
@@ -1189,7 +1223,8 @@ export default function Studio() {
         </a>
         <span>Made for curious minds.</span>
         <span>
-          想像を、つなごう。<span className="footer-spark">✧</span>
+          {t("想像を、つなごう。")}
+          <span className="footer-spark">✧</span>
         </span>
       </footer>
       {purchasing && (
@@ -1214,7 +1249,7 @@ export default function Studio() {
             <button
               autoFocus
               className="modal-close icon-button"
-              aria-label="閉じる"
+              aria-label={t("閉じる")}
               onClick={() => setSettings(false)}
             >
               <X size={18} />
@@ -1222,9 +1257,11 @@ export default function Studio() {
             <div className="modal-symbol">
               <Settings2 />
             </div>
-            <h2 id="settings-title">AIとの接続を、準備しよう。</h2>
+            <h2 id="settings-title">{t("AIとの接続を、準備しよう。")}</h2>
             <p>
-              キーはサーバーの環境変数で管理されます。設定がなくてもサンプル回路を体験できます。
+              {t(
+                "キーはサーバーの環境変数で管理されます。設定がなくてもサンプル回路を体験できます。",
+              )}
             </p>
             <div className="config-rows">
               {[
@@ -1236,14 +1273,14 @@ export default function Studio() {
                 <div key={String(name)}>
                   <span>{name}</span>
                   <span className={ok ? "configured" : ""}>
-                    {ok ? "設定済み" : "未設定"}
+                    {ok ? t("設定済み") : t("未設定")}
                   </span>
                 </div>
               ))}
             </div>
             {config?.requiresAccessCode && (
               <label className="access-field">
-                アクセスコード
+                {t("アクセスコード")}
                 <input
                   type="password"
                   value={accessCode}
@@ -1254,7 +1291,7 @@ export default function Studio() {
             )}
             {error && (
               <div className="alert error" role="alert">
-                {error}
+                {t(error)}
               </div>
             )}
             <button
@@ -1267,7 +1304,7 @@ export default function Studio() {
               ) : (
                 <Zap size={16} />
               )}
-              セッションを開始
+              {t("セッションを開始")}
             </button>
             <a
               className="setup-link"
@@ -1275,7 +1312,8 @@ export default function Studio() {
               target="_blank"
               rel="noreferrer"
             >
-              セットアップ手順を見る <ArrowUpRight size={14} />
+              {t("セットアップ手順を見る")}
+              <ArrowUpRight size={14} />
             </a>
           </dialog>
         </div>
@@ -1292,15 +1330,17 @@ export default function Studio() {
             <button
               autoFocus
               className="modal-close icon-button"
-              aria-label="閉じる"
+              aria-label={t("閉じる")}
               onClick={() => setHistory(false)}
             >
               <X size={18} />
             </button>
             <div className="eyebrow">YOUR COLLECTION</div>
-            <h2 id="history-title">つくる、の続きを。</h2>
-            <p>このブラウザのセッションに紐づくプロジェクトです。</p>
-            {historyError && <div className="alert error">{historyError}</div>}
+            <h2 id="history-title">{t("つくる、の続きを。")}</h2>
+            <p>{t("このブラウザのセッションに紐づくプロジェクトです。")}</p>
+            {historyError && (
+              <div className="alert error">{t(historyError)}</div>
+            )}
             <div className="saved-list">
               {saved.length ? (
                 saved.map((p) => (
@@ -1315,7 +1355,7 @@ export default function Studio() {
                       <strong>{p.title}</strong>
                       <small>
                         {boards[p.board].name} ·{" "}
-                        {p.local ? "ブラウザ保存" : "Firestore"}
+                        {p.local ? t("ブラウザ保存") : "Firestore"}
                       </small>
                     </span>
                     <ArrowUpRight size={17} />
@@ -1324,7 +1364,7 @@ export default function Studio() {
               ) : (
                 <div className="empty">
                   <FolderOpen size={27} />
-                  <p>保存したプロジェクトがここに並びます。</p>
+                  <p>{t("保存したプロジェクトがここに並びます。")}</p>
                   <button
                     className="primary-button"
                     onClick={() => {
@@ -1332,7 +1372,7 @@ export default function Studio() {
                       save();
                     }}
                   >
-                    サンプルを保存する
+                    {t("サンプルを保存する")}
                   </button>
                 </div>
               )}

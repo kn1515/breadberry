@@ -151,3 +151,50 @@ test("no candidates skips Gemini; unknown, unavailable and malformed selections 
     /未設定/,
   );
 });
+
+test("English preference is used for product selection reasons", async (t) => {
+  const oldKey = process.env.GEMINI_API_KEY;
+  process.env.GEMINI_API_KEY = "test-key";
+  t.after(() => {
+    if (oldKey === undefined) delete process.env.GEMINI_API_KEY;
+    else process.env.GEMINI_API_KEY = oldKey;
+  });
+  t.mock.method(
+    globalThis,
+    "fetch",
+    async (_url: unknown, init: RequestInit) => {
+      const body = JSON.parse(String(init.body));
+      assert.match(
+        body.systemInstruction.parts[0].text,
+        /concise English reason/,
+      );
+      return Response.json({
+        candidates: [
+          {
+            finishReason: "STOP",
+            content: {
+              parts: [
+                {
+                  text: JSON.stringify({
+                    partNumber: offer.partNumber,
+                    reason: "Green through-hole LED matches the circuit.",
+                  }),
+                },
+              ],
+            },
+          },
+        ],
+      });
+    },
+  );
+  const result = await recommendPurchase(
+    part,
+    circuit,
+    part.query,
+    [offer],
+    async () => {},
+    "en",
+  );
+  assert.equal(result.partNumber, offer.partNumber);
+  assert.match(result.reason, /matches the circuit/);
+});

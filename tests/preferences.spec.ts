@@ -55,7 +55,9 @@ test("header switches theme and language, preserves edits and restores preferenc
   ).toBeVisible();
   await page.getByRole("button", { name: "Close tutorial" }).click();
   await page.locator(".parts-purchase").click();
-  await expect(page.getByRole("dialog").getByRole("alert").first()).toBeVisible();
+  await expect(
+    page.getByRole("dialog").getByRole("alert").first(),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Close purchase list" }).click();
   await page
     .getByRole("button", { name: "Editor · Edit", exact: true })

@@ -4,6 +4,8 @@ import { demoCircuit } from "../../src/lib/demo";
 import {
   canPurchase,
   cartLines,
+  storeProductUrl,
+  domesticStores,
   orderQuantity,
   purchaseParts,
   unitPrice,
@@ -37,6 +39,58 @@ const payload = {
   ExactMatches: [product],
   SearchLocaleUsed: { Currency: "JPY" },
 };
+
+test("store URLs accept real product paths including Amazon and reject unsafe or search URLs", () => {
+  const urls = {
+    akizuki: "https://akizukidenshi.com/catalog/g/g100001/",
+    sengoku: "https://www.sengoku.co.jp/mod/sgk_cart/detail.php?code=TEST",
+    kyoritsu: "https://eleshop.jp/shop/g/g123456/",
+    marutsu: "https://www.marutsu.co.jp/pc/i/123456/",
+    amazon: "https://www.amazon.co.jp/dp/B012345678",
+  } as const;
+  for (const store of Object.keys(urls) as (keyof typeof urls)[]) {
+    assert.equal(storeProductUrl(store, urls[store]), urls[store]);
+    assert.equal(
+      storeProductUrl(
+        store,
+        `https://${domesticStores[store].domain}/search?q=LED`,
+      ),
+      null,
+    );
+    assert.equal(
+      storeProductUrl(
+        store,
+        urls[store].replace(
+          domesticStores[store].domain,
+          `${domesticStores[store].domain}.evil.test`,
+        ),
+      ),
+      null,
+    );
+    assert.equal(
+      storeProductUrl(store, urls[store].replace("https://", "http://")),
+      null,
+    );
+    assert.equal(
+      storeProductUrl(store, urls[store].replace("https://", "https://user@")),
+      null,
+    );
+  }
+  assert.equal(
+    storeProductUrl(
+      "amazon",
+      "https://www.amazon.co.jp/LED/dp/B012345678/ref=abc?tag=tracking#fragment",
+    ),
+    urls.amazon,
+  );
+  assert.equal(
+    storeProductUrl(
+      "sengoku",
+      "https://www.sengoku.co.jp/mod/sgk_cart/detail.php",
+    ),
+    null,
+  );
+});
 
 test("BOM keeps LED colors, resistor values, board and supplies; no zero wires", () => {
   const circuit = demoCircuit("esp32", "led");
@@ -115,7 +169,9 @@ test("MOQ, tier prices, aggregated stock and distribution cap protect cart quant
 
 test("OAuth, cache, 401 retry, quota and provider failures without leaking secrets", async (t) => {
   const old = { ...process.env };
-  t.after(() => { process.env = old; });
+  t.after(() => {
+    process.env = old;
+  });
   process.env.DIGIKEY_CLIENT_ID = "test-client";
   process.env.DIGIKEY_CLIENT_SECRET = "never-expose-this";
   process.env.DIGIKEY_SANDBOX = "false";

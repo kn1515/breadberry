@@ -133,6 +133,29 @@ export const messages: Record<string, string> = {
   "候補が見つかりません。検索語や型番を変更してください。":
     "No candidates found. Try different search terms or a part number.",
   "AIの選定結果:": "AI recommendation:",
+  "DigiKey・秋月・千石・共立・マルツ・Amazonを比較し、回路に合う商品を部品ごとに1つ選びます。売り切れ・在庫を確認できない商品はおすすめに含めません。":
+    "AI compares DigiKey, Akizuki, Sengoku, Kyoritsu, Marutsu, and Amazon and chooses one suitable product per part. Sold-out products and products with unverified availability are excluded.",
+  おすすめ購入リスト: "Recommended shopping list",
+  "確認できた候補の中から、適合性・必要数量・価格を比較して選定しています。在庫・価格は取得時点の情報です。購入前に各商品ページで再確認してください。":
+    "Selected from verified candidates by compatibility, required quantity, and price. Stock and prices reflect the information retrieved. Check each product page before purchasing.",
+  "各ショップの商品・在庫を確認中…":
+    "Checking products and availability across stores…",
+  "在庫と適合性を確認できる商品が見つかりませんでした。再検索してください。":
+    "No products with verified availability and compatibility were found. Please search again.",
+  "注文数 {0} × {1}個入り（必要数 {2}）":
+    "Order {0} × {1} units per pack (required: {2})",
+  価格は商品ページで確認: "Check the product page for the price",
+  "商品代金 {0}（送料別）": "Product total {0} (excluding shipping)",
+  "購入前の確認:": "Before purchasing:",
+  "在庫確認:": "Availability:",
+  "確認日時:": "Checked at:",
+  "在庫 {0}（DigiKey API）": "In stock: {0} (DigiKey API)",
+  "{0}の検索の参照元": "Search sources for {0}",
+  "検索条件・DigiKeyの商品を変更": "Change search terms or DigiKey products",
+  秋月電子通商: "Akizuki Denshi",
+  千石電商: "Sengoku Densho",
+  共立エレショップ: "Kyoritsu Eleshop",
+  マルツ: "Marutsu",
   購入する商品: "Product to purchase",
   "購入対象に含めない（商品を選択）":
     "Exclude from purchase (select a product)",
@@ -599,4 +622,47 @@ export const messages: Record<string, string> = {
   "保存に失敗しました。回路をJSONでダウンロードして保管してください。":
     "Saving failed. Download the circuit as JSON to keep it.",
   "プロジェクトが見つかりません。": "Project not found.",
+  "確認済み {0} / {1} 部品": "Checked {0} / {1} parts",
+  商品検索の進捗: "Product search progress",
+  "見つかった商品から表示します。検索は最大90秒で一旦終了し、未完了の部品だけ再試行できます。":
+    "Products appear as they are found. Search stops after 90 seconds; you can retry unfinished parts.",
+  検索を中止: "Stop search",
+  未完了の部品を再試行: "Retry unfinished parts",
+  この部品を再試行: "Retry this part",
+  順番待ち: "Queued",
+  "検索を開始しています…": "Starting search…",
+  "DigiKeyの商品を検索中…": "Searching DigiKey…",
+  "各ショップの商品を検索中…": "Searching stores…",
+  "在庫・仕様を確認中…": "Checking stock and specifications…",
+  確認完了: "Checked",
+  "接続状態を確認中…": "Checking connection…",
+  "DigiKeyの候補 {0}件を取得済み。下の詳細から選択できます。":
+    "Found {0} DigiKey options. Select them in the details below.",
+  "検索に時間がかかっているため中断しました。取得済みの候補を確認するか、この部品だけ再試行してください。":
+    "Search timed out. Review the options already found or retry this part.",
+  "検索の待ち時間が長いため一旦終了しました。未完了の部品だけ再試行できます。":
+    "Search stopped after reaching the time limit. You can retry unfinished parts.",
+  "検索を中止しました。未完了の部品だけ再試行できます。":
+    "Search stopped. You can retry unfinished parts.",
+  "接続状態の確認がタイムアウトしました。閉じて再度お試しください。":
+    "Checking the connection timed out. Close and try again.",
+  "利用状況の確認がタイムアウトしました。接続状態を確認して再試行してください。":
+    "Checking usage limits timed out. Check the connection and try again.",
+  "商品検索に失敗しました。接続状態を確認して再試行してください。":
+    "Product search failed. Check the connection and try again.",
+  "商品検索の応答が空です。再試行してください。":
+    "Product search returned an empty response. Try again.",
+  "商品検索の応答を確認できませんでした。":
+    "Could not read the product search response.",
+  "検索の応答が途中で途切れました。取得済みの候補を確認するか再試行してください。":
+    "The search connection was interrupted. Review the options already found or try again.",
+  "DigiKey・秋月・千石・共立・マルツ・Amazonから、回路に合う商品を見つけ次第表示します。全ショップを検索するとは限りません。売り切れ・在庫を確認できない商品はおすすめに含めません。":
+    "Suitable products from DigiKey, Akizuki, Sengoku, Kyoritsu, Marutsu or Amazon appear as soon as they are verified. Not every store is searched. Sold-out products and products with unverified stock are excluded.",
+  "適合性・必要数量を確認し、価格も考慮した商品を部品ごとに1つ表示します。在庫・価格は取得時点の情報です。購入前に各商品ページで再確認してください。":
+    "One suitable product is shown per part after checking specifications, quantity and price. Stock and prices reflect the time checked. Confirm details on the product page before purchasing.",
+  "有力な商品を検索中…": "Searching for a suitable product…",
+  "DigiKeyは検索上限に達したため、今回の検索対象から外しています。ほかのショップは引き続き検索できます。":
+    "DigiKey has reached its search limit and is excluded from this search. Other stores remain available.",
+  "本日のショップ検索・商品確認回数の上限に達しました。":
+    "Today's limit for store searches and product verification has been reached.",
 };

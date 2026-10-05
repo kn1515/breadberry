@@ -31,7 +31,7 @@ openssl rand -hex 32   # SESSION_SECRET に設定する乱数を生成
 | `GEMINI_API_KEY`         | Google AI Studioで発行したAPIキー                                 |
 | `GEMINI_MODEL`           | 既定 `gemini-3.8-flash`。利用可能な構造化出力対応モデルに変更可能 |
 | `GMI_API_KEY`            | GMI CloudのAPIキー。未設定時はレビュー未実施と表示                |
-| `GMI_MODEL`              | 既定 `meta-llama/Llama-3.3-70B-Instruct`                          |
+| `GMI_MODEL`              | 既定 `Qwen/Qwen3.8-Flash`                                        |
 | `GMI_BASE_URL`           | 既定 `https://api.gmi-serving.com/v1`。HTTPSのみ                  |
 | `GOOGLE_CLOUD_PROJECT`   | Firestoreを作成したGoogle CloudプロジェクトID                     |
 | `FIRESTORE_DATABASE_ID`  | 既定 `(default)`                                                  |

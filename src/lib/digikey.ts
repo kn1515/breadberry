@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ServiceError } from "./ai";
+import { abortable } from "./async";
 import type { PurchaseOffer, PurchaseSearch } from "./purchase";
 
 const priceSchema = z.object({
@@ -124,9 +125,12 @@ async function request(url: string, init: RequestInit) {
       ...init,
       cache: "no-store",
       redirect: "error",
-      signal: AbortSignal.timeout(15000),
+      signal: init.signal
+        ? AbortSignal.any([init.signal, AbortSignal.timeout(15000)])
+        : AbortSignal.timeout(15000),
     });
   } catch {
+    init.signal?.throwIfAborted();
     throw new ServiceError(
       "DigiKeyに接続できませんでした。時間をおいて再検索してください。",
       504,
@@ -200,16 +204,23 @@ const cache = new Map<string, { expires: number; result: PurchaseSearch }>();
 export async function searchDigiKey(
   query: string,
   takeQuota: () => Promise<void>,
+  signal?: AbortSignal,
 ): Promise<PurchaseSearch> {
+  signal?.throwIfAborted();
   const c = credentials();
   const key = `${c.base}:${c.id}:${query}`;
   const cached = cache.get(key);
   if (cached && cached.expires > Date.now()) return cached.result;
   for (let attempt = 0; attempt < 2; attempt++) {
-    const bearer = await accessToken(c);
+    const bearer = signal
+      ? await abortable(() => accessToken(c), signal)
+      : await accessToken(c);
+    signal?.throwIfAborted();
     await takeQuota();
+    signal?.throwIfAborted();
     const response = await request(`${c.base}/products/v4/search/keyword`, {
       method: "POST",
+      signal,
       headers: {
         Authorization: `Bearer ${bearer}`,
         "X-DIGIKEY-Client-Id": c.id,
@@ -228,6 +239,7 @@ export async function searchDigiKey(
     const result = {
       offers: normalizeOffers(await json(response)),
       sandbox: c.sandbox,
+      checkedAt: new Date().toISOString(),
     };
     if (cache.size >= 200) cache.delete(cache.keys().next().value!);
     cache.set(key, { result, expires: Date.now() + 5 * 60000 });

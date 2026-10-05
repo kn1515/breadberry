@@ -40,10 +40,7 @@ export function owner(req: NextRequest) {
     !constantEqual(sign(`${id}.${expires}`), signature) ||
     Number(expires) < Date.now()
   )
-    throw new ServiceError(
-      "利用期限が切れました。再度お試しください。",
-      401,
-    );
+    throw new ServiceError("利用期限が切れました。再度お試しください。", 401);
   return id;
 }
 export function newSession() {
@@ -66,7 +63,11 @@ export function checkOrigin(req: NextRequest) {
   const origin = req.headers.get("origin");
   const allowed = process.env.APP_ORIGIN || req.nextUrl.origin;
   const localRequest = isLoopbackHost(req.nextUrl.hostname);
-  if (origin && origin !== allowed && !(localRequest && isLoopbackOrigin(origin)))
+  if (
+    origin &&
+    origin !== allowed &&
+    !(localRequest && isLoopbackOrigin(origin))
+  )
     throw new ServiceError("この送信元からは操作できません。", 403);
 }
 export async function bodyJson(req: NextRequest, max = 8192) {
@@ -135,23 +136,38 @@ export async function saveProject(id: string, project: Project) {
     .set(project);
 }
 
-/** Separate from generation quotas; shared across Cloud Run instances. */
-export async function takeDigiKeyQuota(id: string) {
+/** Provider-specific counters, shared across Cloud Run instances. */
+async function takePurchaseQuota(
+  id: string,
+  provider: "digikey" | "purchase-ai",
+) {
   const db = database();
   const day = new Date().toISOString().slice(0, 10);
-  const global = db.collection("quotas").doc(`digikey-global-${day}`);
-  const user = db.collection("quotas").doc(`digikey-${id}-${day}`);
+  const global = db.collection("quotas").doc(`${provider}-global-${day}`);
+  const user = db.collection("quotas").doc(`${provider}-${id}-${day}`);
+  const prefix = provider === "digikey" ? "DIGIKEY" : "PURCHASE_AI";
   await db.runTransaction(async (tx) => {
     const [g, u] = await tx.getAll(global, user);
     const gc = g.data()?.count ?? 0,
       uc = u.data()?.count ?? 0;
     if (
-      gc >= Number(process.env.DIGIKEY_DAILY_LIMIT || 800) ||
-      uc >= Number(process.env.DIGIKEY_SESSION_DAILY_LIMIT || 100)
+      gc >= Number(process.env[`${prefix}_DAILY_LIMIT`] || 800) ||
+      uc >= Number(process.env[`${prefix}_SESSION_DAILY_LIMIT`] || 100)
     )
-      throw new ServiceError("本日の部品検索回数の上限に達しました。", 429);
+      throw new ServiceError(
+        provider === "digikey"
+          ? "本日の部品検索回数の上限に達しました。"
+          : "本日のショップ検索・商品確認回数の上限に達しました。",
+        429,
+      );
     const expiresAt = new Date(Date.now() + 7 * 86400000);
     tx.set(global, { count: gc + 1, expiresAt });
     tx.set(user, { count: uc + 1, expiresAt });
   });
+}
+export async function takeDigiKeyQuota(id: string) {
+  await takePurchaseQuota(id, "digikey");
+}
+export async function takePurchaseAiQuota(id: string) {
+  await takePurchaseQuota(id, "purchase-ai");
 }

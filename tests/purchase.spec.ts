@@ -586,6 +586,7 @@ test("registered product links remain available when live search fails", async (
   await page.goto("/");
   await page.getByRole("button", { name: "購入する", exact: true }).click();
   const dialog = page.getByRole("dialog");
+  await dialog.locator(".purchase-details > summary").click();
   const candidates = dialog.locator(
     '.purchase-row[aria-label="LEDの購入候補"] details',
   );

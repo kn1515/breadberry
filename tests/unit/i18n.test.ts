@@ -36,6 +36,7 @@ test("English samples, catalog and assembly messages have no untranslated Japane
       "led",
       "temperature",
       "display",
+      "cpu",
     ] as const) {
       const circuit = demoCircuit(board, example);
       const texts = [

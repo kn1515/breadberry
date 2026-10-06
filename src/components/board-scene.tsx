@@ -18,10 +18,14 @@ import {
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { movePart, nearestLayoutHole, partBounds } from "@/lib/layout";
+import { isDip, isLogic } from "@/lib/logic";
 import { resolveLedColor } from "@/lib/led";
 import LedModel from "./led-model";
 import {
   boards,
+  getBreadboards,
+  breadboardPosition,
+  qualifyHole,
   resistorBands,
   catalog,
   isI2c,
@@ -85,7 +89,7 @@ function Holes() {
     </instancedMesh>
   );
 }
-function Breadboard() {
+function Breadboard({ id = "BB1" }: { id?: string }) {
   return (
     <group>
       <mesh receiveShadow position={[0, 0, 0]}>
@@ -103,6 +107,9 @@ function Breadboard() {
         </mesh>
       ))}
       <Holes />
+      <Label at={[0, 0.2, 2.28]} color="#516178">
+        {id}
+      </Label>
       {[1, 5, 10, 15, 20, 25, 30].map((row) => (
         <Label
           key={row}
@@ -260,14 +267,77 @@ export function Part({
   const pins = def.pins.map((p) =>
     layoutHolePosition(holes[`${part.id}.${p}`]),
   );
-  const x = (pins[0][0] + pins[pins.length - 1][0]) / 2,
-    z = pins[0][2];
+  const x =
+      (Math.min(...pins.map((p) => p[0])) +
+        Math.max(...pins.map((p) => p[0]))) /
+      2,
+    z =
+      (Math.min(...pins.map((p) => p[2])) +
+        Math.max(...pins.map((p) => p[2]))) /
+      2;
   return (
     <group ref={group}>
       {pins.map((p, i) => (
         <Segment key={i} a={p} b={[p[0], 0.65, p[2]]} />
       ))}
-      {part.kind === "resistor" ? (
+      {isDip(part.kind) ? (
+        <>
+          {pins.map((pin, i) => (
+            <Segment
+              key={`bend-${i}`}
+              a={[pin[0], 0.65, pin[2]]}
+              b={[pin[0], 0.65, z + (pin[2] < z ? -0.23 : 0.23)]}
+            />
+          ))}
+          <mesh position={[x, 0.72, z]} castShadow>
+            <boxGeometry
+              args={[Math.max(...def.offsets) * 0.24 + 0.3, 0.3, 0.5]}
+            />
+            <meshStandardMaterial color={def.color} roughness={0.65} />
+          </mesh>
+          {isLogic(part.kind) ? (
+            <>
+              <mesh
+                position={[
+                  pins[0][0] + (part.placement?.reversed ? 0.08 : -0.08),
+                  0.875,
+                  z,
+                ]}
+              >
+                <cylinderGeometry args={[0.1, 0.1, 0.012, 20]} />
+                <meshStandardMaterial color="#11151c" />
+              </mesh>
+              <mesh
+                position={[
+                  pins[0][0],
+                  0.88,
+                  z + (part.placement?.reversed ? 0.14 : -0.14),
+                ]}
+              >
+                <sphereGeometry args={[0.035, 10, 10]} />
+                <meshStandardMaterial color="#d7dce5" />
+              </mesh>
+              {labels && (
+                <Label at={[x, 0.91, z]} color="#f1f5f9">
+                  {part.kind.toUpperCase()} · 1: {def.pins[0]}
+                </Label>
+              )}
+            </>
+          ) : (
+            Array.from({ length: 4 }, (_, i) => (
+              <mesh key={i} position={[pins[i][0], 0.92, z]}>
+                <boxGeometry args={[0.1, 0.09, 0.24]} />
+                <meshStandardMaterial color="#f8fafc" />
+              </mesh>
+            ))
+          )}
+        </>
+      ) : part.kind === "capacitor" ? (
+        <mesh position={[x, 0.8, z]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+          <cylinderGeometry args={[0.21, 0.21, 0.13, 16]} />
+          <meshStandardMaterial color={def.color} />
+        </mesh>
+      ) : part.kind === "resistor" ? (
         <>
           <Segment a={[pins[0][0], 0.65, z]} b={[pins[1][0], 0.65, z]} />
           <mesh
@@ -410,13 +480,13 @@ function AnimatedWire({
     () =>
       new THREE.CatmullRomCurve3([
         new THREE.Vector3(...start),
-        new THREE.Vector3(start[0], 0.75 + index * 0.045, start[2]),
+        new THREE.Vector3(start[0], 0.75 + (index % 12) * 0.045, start[2]),
         new THREE.Vector3(
           (start[0] + end[0]) / 2,
-          1.15 + index * 0.06,
+          1.15 + (index % 12) * 0.06,
           (start[2] + end[2]) / 2,
         ),
-        new THREE.Vector3(end[0], 0.8 + index * 0.045, end[2]),
+        new THREE.Vector3(end[0], 0.8 + (index % 12) * 0.045, end[2]),
         new THREE.Vector3(...end),
       ]),
     [start, end, index],
@@ -467,7 +537,9 @@ function SceneWorkspace({
   reset: number;
   editor?: SceneEditor;
 }) {
-  const { camera, gl } = useThree();
+  const { camera, gl, size } = useThree();
+  const breadboards = getBreadboards(circuit);
+  const boardKey = breadboards.map((b) => b.id).join(",");
   const controls = useRef<OrbitControlsImpl>(null);
   const latest = useRef({ circuit, editor });
   latest.current = { circuit, editor };
@@ -484,14 +556,29 @@ function SceneWorkspace({
   );
   const [dragging, setDragging] = useState(false);
   useEffect(() => {
-    const position: [number, number, number] =
-      view === "top" ? [0, 15, -0.2] : [7.8, 10.2, 9.8];
-    controls.current?.target.set(0, 0.3, -0.6);
+    const origins = breadboards.map((b) => breadboardPosition(b.id));
+    const maxX = Math.max(...origins.map((p) => p[0]));
+    const maxZ = Math.max(...origins.map((p) => p[2]));
+    const cx = maxX / 2,
+      cz = maxZ / 2 - 0.6;
+    const scale =
+      breadboards.length === 1
+        ? 1
+        : Math.max(
+            (maxX + 8.15) / 8.15,
+            (maxZ + 9) / 9,
+            (maxX + 8.15) / ((10 * size.width) / size.height),
+          );
+    const position: Point =
+      view === "top"
+        ? [cx, 15 * scale, cz + 0.4]
+        : [cx + 7.8 * scale, 10.2 * scale, cz + 10.4 * scale];
+    controls.current?.target.set(cx, 0.3, cz);
     camera.position.set(...position);
-    camera.lookAt(0, 0.3, -0.6);
+    camera.lookAt(cx, 0.3, cz);
     camera.updateProjectionMatrix();
     controls.current?.update();
-  }, [camera, reset, view]);
+  }, [camera, reset, view, boardKey, size.width, size.height]);
   const displayed = useMemo(
     () => (preview ? movePart(circuit, preview.id, preview.hole) : circuit),
     [circuit, preview],
@@ -524,7 +611,7 @@ function SceneWorkspace({
       const point = raycaster.ray.intersectPlane(plane, new THREE.Vector3());
       if (!point) return null;
       point.sub(state.offset);
-      return nearestLayoutHole(point.x, point.z - 1);
+      return nearestLayoutHole(point.x, point.z - 1, latest.current.circuit);
     }
     function finish() {
       const state = drag.current;
@@ -564,7 +651,11 @@ function SceneWorkspace({
         hole &&
         index >= 0 &&
         !currentEditor?.disabled &&
-        hole !== placementFor(current.parts[index], index).hole
+        hole !==
+          qualifyHole(
+            placementFor(current.parts[index], index).hole,
+            placementFor(current.parts[index], index).breadboard,
+          )
       )
         currentEditor?.onMove(state.id, hole);
     }
@@ -622,7 +713,10 @@ function SceneWorkspace({
     );
     if (!point) return;
     const position = layoutHolePosition(
-      placementFor(circuit.parts[index], index).hole,
+      qualifyHole(
+        placementFor(circuit.parts[index], index).hole,
+        placementFor(circuit.parts[index], index).breadboard,
+      ),
     );
     const origin = new THREE.Vector3(position[0], 0.18, position[2] + 1);
     drag.current = {
@@ -642,29 +736,34 @@ function SceneWorkspace({
   return (
     <>
       <group position={[0, 0, 1]}>
-        <group
-          onClick={
-            editor
-              ? (event) => {
-                  event.stopPropagation();
-                  if (
-                    editor.disabled ||
-                    dragging ||
-                    event.delta > 4 ||
-                    !editor.selected
-                  )
-                    return;
-                  const hole = nearestLayoutHole(
-                    event.point.x,
-                    event.point.z - 1,
-                  );
-                  if (hole) editor.onMove(editor.selected, hole);
-                }
-              : undefined
-          }
-        >
-          <Breadboard />
-        </group>
+        {breadboards.map(({ id }) => (
+          <group
+            key={id}
+            position={breadboardPosition(id)}
+            onClick={
+              editor
+                ? (event) => {
+                    event.stopPropagation();
+                    if (
+                      editor.disabled ||
+                      dragging ||
+                      event.delta > 4 ||
+                      !editor.selected
+                    )
+                      return;
+                    const hole = nearestLayoutHole(
+                      event.point.x,
+                      event.point.z - 1,
+                      circuit,
+                    );
+                    if (hole) editor.onMove(editor.selected, hole);
+                  }
+                : undefined
+            }
+          >
+            <Breadboard id={id} />
+          </group>
+        ))}
         <Controller circuit={displayed} />
         {displayed.parts.map(
           (part, i) =>
@@ -774,7 +873,7 @@ function SceneWorkspace({
         target={[0, 0.3, -0.6]}
         enablePan
         minDistance={6}
-        maxDistance={24}
+        maxDistance={70}
         maxPolarAngle={Math.PI / 2.1}
       />
     </>

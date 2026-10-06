@@ -5,6 +5,11 @@ import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   boards,
+  getBreadboards,
+  qualifyHole,
+  MAX_PARTS,
+  MAX_WIRES,
+  MAX_BREADBOARDS,
   catalog,
   compileCircuit,
   partKinds,
@@ -12,7 +17,16 @@ import {
   type Circuit,
   type Kind,
 } from "@/lib/circuit";
-import { addPart, checkLayout, movePart, removePart } from "@/lib/layout";
+import {
+  addPart,
+  addBreadboard,
+  canRemoveBreadboard,
+  removeBreadboard,
+  checkLayout,
+  movePart,
+  removePart,
+} from "@/lib/layout";
+import { isDip } from "@/lib/logic";
 import {
   ledColorNames,
   ledColors,
@@ -62,7 +76,9 @@ export default function LayoutEditor({
   const index = circuit.parts.findIndex((p) => p.id === selected);
   const part = circuit.parts[index];
   const placement = part ? placementFor(part, index) : null;
+  const breadboards = getBreadboards(circuit);
   const endpoints = [
+    ...breadboards.flatMap((b) => [`${b.id}.VCC`, `${b.id}.GND`]),
     ...Object.keys(boards[circuit.board].pins).map((pin) => `board.${pin}`),
     ...circuit.parts.flatMap((p) =>
       catalog[p.kind].pins
@@ -79,13 +95,39 @@ export default function LayoutEditor({
   function move(id: string, hole: string) {
     if (
       circuit.parts.some(
-        (p, i) => p.id === id && placementFor(p, i).hole !== hole,
+        (p, i) =>
+          p.id === id &&
+          qualifyHole(
+            placementFor(p, i).hole,
+            placementFor(p, i).breadboard,
+          ) !== hole,
       )
     )
       change(movePart(circuit, id, hole));
   }
   return (
     <section className="layout-editor" aria-label={t("レイアウトエディター")}>
+      <div className="editor-actions" aria-label={t("ブレッドボードを管理")}>
+        <strong>{t("ブレッドボード {0}枚", [breadboards.length])}</strong>
+        <button
+          disabled={disabled || breadboards.length >= MAX_BREADBOARDS}
+          onClick={() => change(addBreadboard(circuit))}
+        >
+          {t("ブレッドボードを追加")}
+        </button>
+        {breadboards
+          .filter((b) => b.id !== "BB1")
+          .map((b) => (
+            <button
+              key={b.id}
+              disabled={disabled || !canRemoveBreadboard(circuit, b.id)}
+              title={t("部品や配線があるボードは削除できません")}
+              onClick={() => change(removeBreadboard(circuit, b.id))}
+            >
+              {t("{0}を削除", [b.id])}
+            </button>
+          ))}
+      </div>
       <div className="editor-actions">
         <label>
           {t("追加するパーツ")}
@@ -120,7 +162,7 @@ export default function LayoutEditor({
           </label>
         )}
         <button
-          disabled={disabled || circuit.parts.length >= 30}
+          disabled={disabled || circuit.parts.length >= MAX_PARTS}
           onClick={() => {
             const next = addPart(circuit, kind);
             if (kind === "led") {
@@ -256,13 +298,32 @@ export default function LayoutEditor({
               </label>
             )}
             <label>
+              {t("配置先のブレッドボード")}
+              <select
+                aria-label={t("配置先のブレッドボード")}
+                value={placement.breadboard ?? "BB1"}
+                onChange={(e) =>
+                  move(part.id, qualifyHole(placement.hole, e.target.value))
+                }
+              >
+                {breadboards.map((b) => (
+                  <option key={b.id}>{b.id}</option>
+                ))}
+              </select>
+            </label>
+            <label>
               {t("先頭ピンの穴")}
               <select
                 aria-label={t("配置する穴")}
                 value={placement.hole}
-                onChange={(e) => move(part.id, e.target.value)}
+                onChange={(e) =>
+                  move(
+                    part.id,
+                    qualifyHole(e.target.value, placement.breadboard),
+                  )
+                }
               >
-                {[..."abcdefghij"].flatMap((col) =>
+                {[...(isDip(part.kind) ? "e" : "abcdefghij")].flatMap((col) =>
                   Array.from({ length: 30 }, (_, i) => (
                     <option key={`${col}${i + 1}`} value={`${col}${i + 1}`}>
                       {col.toUpperCase()}
@@ -368,7 +429,7 @@ export default function LayoutEditor({
               !endpoints.includes(from) ||
               !endpoints.includes(to) ||
               from === to ||
-              circuit.wires.length >= 60 ||
+              circuit.wires.length >= MAX_WIRES ||
               circuit.wires.some(
                 (w) =>
                   [w.from, w.to].includes(from) && [w.from, w.to].includes(to),

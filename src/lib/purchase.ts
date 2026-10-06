@@ -1,3 +1,4 @@
+import { isLogic } from "./logic";
 import {
   billOfMaterials,
   catalog,
@@ -122,6 +123,12 @@ export function purchaseParts(circuit: Circuit): PurchasePart[] {
         const ohms = resistanceOhms(p.value);
         query = `resistor ${Number.isFinite(ohms) ? `${ohms} ohm` : p.value} axial through hole`;
       }
+      if (isLogic(p.kind))
+        query = `${p.kind.toUpperCase()} PDIP through hole 3.3V`;
+      if (p.kind === "capacitor")
+        query = `capacitor ${p.value} ceramic radial through hole`;
+      if (p.kind === "dip-switch")
+        query = "DIP switch 4 position SPST through hole";
       const note =
         p.kind in catalog
           ? catalog[p.kind as Kind].note

@@ -1,21 +1,39 @@
 "use client";
 import { usePreferences } from "./preferences";
-import { boards, catalog, type Circuit } from "@/lib/circuit";
+import { boards, getBreadboards, catalog, type Circuit } from "@/lib/circuit";
 import { ledColors, resolveLedColor } from "@/lib/led";
 export default function Schematic({ circuit }: { circuit: Circuit }) {
   const { t } = usePreferences();
   const usedPins = Object.keys(boards[circuit.board].pins).filter((pin) =>
     circuit.wires.some((w) => [w.from, w.to].includes(`board.${pin}`)),
   );
-  const height = Math.max(440, circuit.parts.length * 100 + 60);
+  const rails = getBreadboards(circuit)
+    .flatMap((b) => ["VCC", "GND"].map((pin) => `${b.id}.${pin}`))
+    .filter((pin) => circuit.wires.some((w) => w.from === pin || w.to === pin));
+  const nodes: { y: number; height: number }[] = [];
+  let nextY = 45;
+  circuit.parts.forEach((p) => {
+    const height = Math.max(
+      73,
+      Math.ceil(catalog[p.kind].pins.length / 2) * 30 + 20,
+    );
+    nodes.push({ y: nextY, height });
+    nextY += height + 50;
+  });
+  const height = Math.max(
+    440,
+    nextY + 20,
+    160 + (usedPins.length + rails.length) * 44,
+  );
   const ports: Record<string, [number, number]> = {};
   usedPins.forEach((p, i) => (ports[`board.${p}`] = [210, 95 + i * 44]));
+  rails.forEach((p, i) => (ports[p] = [210, 155 + (usedPins.length + i) * 44]));
   circuit.parts.forEach((p, i) =>
     catalog[p.kind].pins.forEach(
       (pin, j) =>
         (ports[`${p.id}.${pin}`] = [
           480 + (j % 2) * 180,
-          70 + i * 100 + Math.floor(j / 2) * 30,
+          nodes[i].y + 25 + Math.floor(j / 2) * 30,
         ]),
     ),
   );
@@ -62,10 +80,37 @@ export default function Schematic({ circuit }: { circuit: Circuit }) {
             <circle cx="210" cy={ports[`board.${p}`][1]} r="4" fill="#34d399" />
           </g>
         ))}
+        {rails.map((pin) => (
+          <g key={pin}>
+            <rect
+              x="45"
+              y={ports[pin][1] - 17}
+              width="165"
+              height="34"
+              rx="6"
+              fill="var(--surface-raised)"
+              stroke="#495775"
+            />
+            <text
+              x="63"
+              y={ports[pin][1] + 4}
+              fill="var(--text-secondary)"
+              fontSize="12"
+            >
+              {pin}
+            </text>
+            <circle
+              cx="210"
+              cy={ports[pin][1]}
+              r="4"
+              fill={pin.endsWith("VCC") ? "#fb7185" : "#94a3b8"}
+            />
+          </g>
+        ))}
         {circuit.wires.map((w, i) => {
           const a = ports[w.from],
             b = ports[w.to];
-          const mid = 275 + i * 9;
+          const mid = 250 + (i % 22) * 9;
           return (
             <g key={i}>
               <path
@@ -86,16 +131,16 @@ export default function Schematic({ circuit }: { circuit: Circuit }) {
           <g key={p.id}>
             <rect
               x="480"
-              y={45 + i * 100}
+              y={nodes[i].y}
               width="180"
-              height="73"
+              height={nodes[i].height}
               rx="9"
               fill="var(--surface-raised)"
               stroke="#495775"
             />
             <text
               x="570"
-              y={36 + i * 100}
+              y={nodes[i].y - 9}
               textAnchor="middle"
               fill="var(--text)"
               fontSize="12"

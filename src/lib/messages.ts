@@ -1,5 +1,89 @@
 // Japanese source messages and their English translations.
 export const messages: Record<string, string> = {
+  "74HC00 NANDゲート": "74HC00 NAND gates",
+  "74HC08 ANDゲート": "74HC08 AND gates",
+  "74HC32 ORゲート": "74HC32 OR gates",
+  "74HC86 XORゲート": "74HC86 XOR gates",
+  "74HC04 NOTゲート": "74HC04 NOT gates",
+  "74HC14 シュミットトリガ": "74HC14 Schmitt triggers",
+  "74HC74 Dフリップフロップ": "74HC74 D flip-flops",
+  "74HC153 4入力マルチプレクサ": "74HC153 4-input multiplexer",
+  コンデンサ: "Capacitor",
+  "4連DIPスイッチ": "4-position DIP switch",
+  ブレッドボードを管理: "Manage breadboards",
+  "ブレッドボード {0}枚": "{0} breadboards",
+  ブレッドボードを追加: "Add breadboard",
+  部品や配線があるボードは削除できません:
+    "Remove all parts and wires before removing a board",
+  "{0}を削除": "Remove {0}",
+  配置先のブレッドボード: "Destination breadboard",
+  "ロジックICでつくる1bit CPU": "Build a 1-bit CPU with logic ICs",
+  "4枚のブレッドボードで、1bitアキュムレータとALUを組み立てます。DIPスイッチで命令と入力を設定し、ボタンで1命令ずつ実行。マイコンは3.3Vの給電だけに使います。プログラムメモリ・自動実行・分岐は含みません。":
+    "Build a 1-bit accumulator and ALU on four breadboards. Set the instruction and operand with DIP switches and execute one instruction per button press. The controller supplies 3.3V only. No program memory, automatic execution or branching is included.",
+  "SW1: 1=入力D、2=OP0、3=OP1。OFF=0、ON=1。4=RESET（ONでA=0、実行時はOFF）。電源投入後は必ずRESETしてください。":
+    "SW1: 1=operand D, 2=OP0, 3=OP1. OFF=0, ON=1. 4=RESET (ON clears A; OFF to execute). Always reset after power-up.",
+  "OP1 OP0: 00=LOAD D、01=AND（A AND D）、10=XOR（A XOR D）、11=NOT A。SW2を押すとAを更新し、赤LEDでA=1を表示します。":
+    "OP1 OP0: 00=LOAD D, 01=AND (A AND D), 10=XOR (A XOR D), 11=NOT A. Press SW2 to update A. The red LED indicates A=1.",
+  "実行例: RESET→LOAD 1→AND 0→XOR 1→NOT。各命令でSW2を1回押すと、Aは0→1→0→1→0になります。":
+    "Example: RESET → LOAD 1 → AND 0 → XOR 1 → NOT. Press SW2 once per instruction; A follows 0 → 1 → 0 → 1 → 0.",
+  "命令と入力はクロック前に設定し、押している間は変更しないでください。RC＋74HC14でクロックを整形します。ボタンは200ms以上押し、離して300ms以上待ってから次を実行します。":
+    "Set the instruction and operand before clocking and keep them stable during the press. RC + 74HC14 shapes the clock. Hold the button for at least 200ms and wait at least 300ms after release before the next instruction.",
+  "74HCのPDIPを使用し、74HCTや表面実装品に置き換えないでください。ICは中央の溝を跨ぎ、切り欠きと1番ピンを実物のデータシートで確認します。未使用入力は固定、未使用出力は開放します。":
+    "Use 74HC PDIP parts, not 74HCT or surface-mount parts. Straddle the center gap and check the notch and pin 1 against the device datasheet. Tie unused inputs to a defined level and leave unused outputs open.",
+  "電源を切って配線し、各ICの100nFをVCC/GNDの近くに置きます。3.3VとGNDを4枚へ接続してください。レールが途中で分断されている製品では導通を確認し、同極レールを橋渡ししてください。":
+    "Disconnect power before wiring. Place each 100nF capacitor near its IC VCC/GND pins. Connect 3.3V and GND across all four boards. Check continuity and bridge split power rails where needed.",
+  "これは手動命令入力式の最小CPUです。PC・ROM・RAM・分岐命令はありません。回路の実機検証は未実施です。":
+    "This is a minimal CPU with manually entered instructions. It has no PC, ROM, RAM or branch instructions. The hardware has not been tested.",
+  命令に対応するALU結果を選択: "Select the ALU result for the instruction",
+  "1bitアキュムレータAを保持": "Hold the 1-bit accumulator A",
+  手動クロックのチャタリング対策: "Debounce the manual clock",
+  "入力・命令・リセットを設定": "Set operand, instruction and reset",
+  "1命令を実行する手動クロック": "Manual clock to execute one instruction",
+  入力Dのプルダウン: "Pull down operand D",
+  OP0のプルダウン: "Pull down OP0",
+  OP1のプルダウン: "Pull down OP1",
+  RESETのプルアップ: "Pull up RESET",
+  クロックのRCプルアップ: "Clock RC pull-up",
+  クロック放電時の電流制限: "Limit clock discharge current",
+  LEDの電流制限: "Limit LED current",
+  "{0}の電源バイパス": "{0} supply bypass",
+  クロックのRCフィルタ: "Clock RC filter",
+  "アキュムレータA=1を表示": "Indicate accumulator A=1",
+  "GNDへ接続します。": "Connect to GND.",
+  "3.3Vへ接続します。": "Connect to 3.3V.",
+  "基板の給電端子を電源レールへ接続します。":
+    "Connect the controller supply pins to the power rails.",
+  "別のボードの同じ電源レールへ橋渡しします。":
+    "Bridge to the same power rail on the next breadboard.",
+  "OFF時の入力を0に固定します。": "Hold the input at 0 when OFF.",
+  "RESETを通常HIGH、ONでLOWにします。":
+    "Hold RESET HIGH normally; ON pulls it LOW.",
+  "アキュムレータの非同期クリアへ接続します。":
+    "Connect to the accumulator asynchronous clear.",
+  "入力DをANDゲートへ接続します。": "Connect operand D to the AND gate.",
+  "入力DをXORゲートへ接続します。": "Connect operand D to the XOR gate.",
+  "LOAD命令の入力Dを選択候補0へ接続します。":
+    "Connect operand D to mux input 0 for LOAD.",
+  "OP0を選択ビットAへ接続します。": "Connect OP0 to select bit A.",
+  "OP1を選択ビットBへ接続します。": "Connect OP1 to select bit B.",
+  "AをANDゲートへ戻します。": "Feed A back to the AND gate.",
+  "AをXORゲートへ戻します。": "Feed A back to the XOR gate.",
+  "AND結果を選択候補1へ接続します。": "Connect the AND result to mux input 1.",
+  "XOR結果を選択候補2へ接続します。": "Connect the XOR result to mux input 2.",
+  "NOT Aを選択候補3へ接続します。": "Connect NOT A to mux input 3.",
+  "命令の結果を次のAの入力Dへ接続します。":
+    "Connect the instruction result to the next accumulator D input.",
+  "100kΩと1uFでクロック入力を平滑化します。":
+    "Filter the clock input with 100kΩ and 1uF.",
+  "RC信号をシュミット入力へ接続します。":
+    "Connect the RC signal to the Schmitt input.",
+  "放電用抵抗へ接続します。": "Connect to the discharge resistor.",
+  "クロックボタンを10kΩ経由で接続します。":
+    "Connect the clock button through 10kΩ.",
+  "押下時の立ち上がりでAを更新します。":
+    "Update A on the rising edge when pressed.",
+  "Aを2.2kΩ経由でLEDへ出力します。": "Drive the LED from A through 2.2kΩ.",
+  "LEDのアノードへ接続します。": "Connect to the LED anode.",
   登録済みの商品候補: "Registered product candidates",
   "在庫・価格・適合性は未確認です。商品ページで仕様と入数を確認してください。":
     "Stock, price and compatibility are unverified. Check specifications and pack size on the product page.",
@@ -488,8 +572,8 @@ export const messages: Record<string, string> = {
     "Enable I2C on Raspberry Pi OS. Set up Adafruit Blinka and install adafruit-circuitpython-ssd1306 in a virtual environment.",
   "MicroPython用ssd1306.pyドライバを基板の/libへコピーしてください。MicroPython公式ドキュメントのSSD1306ドライバを使用します。":
     "Copy the MicroPython ssd1306.py driver to /lib on the board. Use the SSD1306 driver from the official MicroPython documentation.",
-  "回路は未完成か、自動回路検査の上限（部品6個・配線24本）を超えています。":
-    "The circuit is incomplete or exceeds the automatic check limits (6 parts, 24 wires).",
+  "回路は未完成か、自動回路検査の上限（部品48個・配線240本）を超えています。":
+    "The circuit is incomplete or exceeds the automatic check limits (48 parts, 240 wires).",
   ユーザーが追加した部品: "User-added part",
   "必要数は配線の本数です。セット商品の入数と、オス・メス端子を確認して購入数量を調整してください。":
     "The required count is the number of wires. Check pack size and connector genders before adjusting the order quantity.",

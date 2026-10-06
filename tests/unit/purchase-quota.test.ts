@@ -232,9 +232,10 @@ for (const exhausted of ["global", "session", "provider", "both"] as const) {
           last.result.digikeyLimited &&
           last.result.recommendation.best?.store === "amazon",
       );
-      assert.equal(aiCalls, 2);
-      assert.equal(counts.get(`purchase-ai-global-${day()}`), 2);
-      assert.equal(counts.get(`purchase-ai-${user}-${day()}`), 2);
+      // Catalog verification, fallback discovery, then live product verification.
+      assert.equal(aiCalls, 3);
+      assert.equal(counts.get(`purchase-ai-global-${day()}`), 3);
+      assert.equal(counts.get(`purchase-ai-${user}-${day()}`), 3);
     }
     assert.equal(productCalls, exhausted === "provider" ? 1 : 0);
     assert.equal(counts.get(key), exhausted === "provider" ? 1 : 2);

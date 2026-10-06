@@ -1,8 +1,14 @@
 import { test, type TestContext } from "node:test";
 import assert from "node:assert/strict";
-import { recommendPurchase } from "../../src/lib/purchase-ai";
+import { recommendPurchase as recommendWithCatalog } from "../../src/lib/purchase-ai";
 import { purchaseParts, type PurchaseOffer } from "../../src/lib/purchase";
 import { demoCircuit } from "../../src/lib/demo";
+
+// Existing discovery scenarios deliberately use an empty registry.
+const recommendPurchase: typeof recommendWithCatalog = (...args) => {
+  args[7] = { ...args[7], catalog: [] };
+  return recommendWithCatalog(...args);
+};
 
 const circuit = demoCircuit("esp32", "led");
 const part = purchaseParts(circuit).find((p) => p.kind === "led")!;
@@ -396,4 +402,67 @@ test("cancelling after a failed candidate never starts another store search", as
     /stopped/,
   );
   assert.equal(state.requests.length, 1);
+});
+
+test("registered products skip discovery and still require live retrieval and stock verification", async (t) => {
+  const state = setup(t);
+  const url = "https://akizukidenshi.com/catalog/g/g112117/";
+  state.retrieved = [url];
+  state.ranked = [{ ...choice, id: "catalog:0" }];
+  let calls = 0;
+  const result = await recommendWithCatalog(
+    part,
+    circuit,
+    "red LED",
+    [],
+    async () => {
+      calls++;
+    },
+  );
+  assert.equal(result.best?.url, url);
+  assert.equal(calls, 1);
+  assert.ok(state.requests[0].tools[0].url_context);
+  const input = JSON.parse(state.requests[0].contents[0].parts[0].text);
+  assert.equal(input.products.length, 1);
+  assert.equal(input.requiredPart.ledColor, "green");
+  assert.equal(result.searchSuggestions, "");
+});
+
+test("unavailable catalog candidates fall back to discovery and cannot be retried as new URLs", async (t) => {
+  const state = setup(t);
+  const url = "https://akizukidenshi.com/catalog/g/g112117/";
+  state.retrieved = [url, products[4].url];
+  state.rankedBatches = [
+    [{ ...choice, id: "catalog:0", availability: "out_of_stock" }],
+    [choice],
+  ];
+  const result = await recommendWithCatalog(
+    part,
+    circuit,
+    part.query,
+    [],
+    quota,
+  );
+  assert.equal(result.best?.store, "amazon");
+  assert.equal(state.requests.length, 3);
+  assert.deepEqual(
+    JSON.parse(state.requests[1].contents[0].parts[0].text).excludedUrls,
+    [url],
+  );
+});
+
+test("catalog entries without successful URL retrieval are not recommendations", async (t) => {
+  const state = setup(t);
+  state.retrieved = [];
+  state.ranked = [{ ...choice, id: "catalog:0" }];
+  state.products = [];
+  const result = await recommendWithCatalog(
+    part,
+    circuit,
+    part.query,
+    [],
+    quota,
+  );
+  assert.equal(result.best, null);
+  assert.equal(state.requests.length, 2);
 });

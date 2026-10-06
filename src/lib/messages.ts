@@ -1,5 +1,9 @@
 // Japanese source messages and their English translations.
 export const messages: Record<string, string> = {
+  登録済みの商品候補: "Registered product candidates",
+  "在庫・価格・適合性は未確認です。商品ページで仕様と入数を確認してください。":
+    "Stock, price and compatibility are unverified. Check specifications and pack size on the product page.",
+
   "対応するセンサー・部品": "Supported sensors and parts",
   部品一覧を閉じる: "Close parts catalog",
   "3Dモデルと名前を確認し、使いたい部品を選択してください。":

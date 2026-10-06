@@ -3,6 +3,10 @@ import { z } from "zod";
 import { providerJson, ServiceError } from "./ai";
 import { boards, type Circuit } from "./circuit";
 import {
+  registeredCandidates,
+  type RegisteredProduct,
+} from "./purchase-catalog";
+import {
   canPurchase,
   domesticStores,
   maxAutomaticQuantity,
@@ -117,6 +121,7 @@ export async function recommendPurchase(
   options: {
     signal?: AbortSignal;
     onPhase?: (phase: PurchasePhase) => void;
+    catalog?: readonly RegisteredProduct[];
   } = {},
 ): Promise<PurchaseRecommendation> {
   if (!process.env.GEMINI_API_KEY)
@@ -155,7 +160,7 @@ export async function recommendPurchase(
     const selection = await gemini(
       selectionSchema,
       `${compatibility}
-Check the supplied candidate now. If a web product is supplied, use URL Context to read that single product page. For DigiKey offers, select one only if it is clearly suitable, reasonably priced for an educational circuit, and sold in an appropriate quantity; reject overkill, misleading packs and costly evaluation kits so another shop can be tried. Do not require an exhaustive store comparison or claim a global lowest price. Rank only these supplied candidates by confirmed compatibility, appropriate quantity/pack size, then total JPY purchase cost and known shipping/seller reliability. Include only supplied ids, at most once each. Provide a concise ${locale === "en" ? "English" : "Japanese"} reason and checks; keep the verified product name.
+Check the supplied candidates now. For web products, use URL Context to read each supplied product page. Registered catalog entries are discovery hints only, never evidence of current stock or compatibility. For DigiKey offers, select one only if it is clearly suitable, reasonably priced for an educational circuit, and sold in an appropriate quantity; reject overkill, misleading packs and costly evaluation kits so another shop can be tried. Do not require an exhaustive store comparison or claim a global lowest price. Rank only these supplied candidates by confirmed compatibility, appropriate quantity/pack size, then total JPY purchase cost and known shipping/seller reliability. Include only supplied ids, at most once each. Provide a concise ${locale === "en" ? "English" : "Japanese"} reason and checks; keep the verified product name.
 For WEB listings, availability must be in_stock ONLY when the retrieved PRODUCT page explicitly confirms availability for the exact variant/seller. Search snippets, 'add to cart' alone, related products, reservations, backorders, unknown stock and inaccessible/blocked/login pages do not prove availability. Set unknown or out_of_stock and compatible:false if uncertain. stockEvidence is a short exact quote (at most 15 words) from that page about stock. unitsPerPack is the number of required physical components in one sale unit, not the number of unrelated assortment pieces; minimumOrder and availableQuantity are in SALE units. Extract these from the page, null if unknown. For a plainly single-item sale use unitsPerPack:1, minimumOrder:1. Do not guess a multipack's size. unitPriceJPY is the price per sale unit including tax if displayed, null when unknown/non-JPY. At Amazon check the current seller and exact selected variant, and put the seller in checks.
 Order only enough sale units to cover requiredPart.quantity (ceil(required / unitsPerPack), respecting minimumOrder); no arbitrary spares. Reject bundles with excessive surplus, especially extra boards. For DigiKey, stock/order limits/prices in the API data are authoritative; assess compatibility and whether the API sale unit is a misleading pack before ranking. Explain pack quantities, meaningful tradeoffs and shipping uncertainty. Return ranked:[] if none can be recommended.`,
       {
@@ -276,7 +281,21 @@ Order only enough sale units to cover requiredPart.quantity (ceil(required / uni
     const result = await verify([], eligible);
     if (result) return result;
   }
-  const excludedUrls: string[] = [];
+  const registered = registeredCandidates(part, circuit, options.catalog);
+  const excludedUrls: string[] = registered.map((p) =>
+    storeProductUrl(p.store, p.url)!,
+  );
+  if (registered.length) {
+    const result = await verify(
+      registered.map((p, index) => ({
+        id: `catalog:${index}`,
+        store: p.store,
+        url: storeProductUrl(p.store, p.url)!,
+      })),
+      [],
+    );
+    if (result) return result;
+  }
   // Try one promising listing at a time. Only try another if verification fails.
   for (let attempt = 0; attempt < 2; attempt++) {
     options.signal?.throwIfAborted();

@@ -65,6 +65,8 @@ test("guided tour highlights real controls, plays assembly and restores the view
   expect(generationCalls).toBe(0);
   expect(errors).toEqual([]);
   await page.getByRole("button", { name: "チュートリアルを開く" }).click();
+  // The Escape handler is attached once the tour card takes focus.
+  await expect(tour).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(tour).toHaveCount(0);
   await expect(

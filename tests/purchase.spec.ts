@@ -586,7 +586,9 @@ test("registered product links remain available when live search fails", async (
   await page.goto("/");
   await page.getByRole("button", { name: "購入する", exact: true }).click();
   const dialog = page.getByRole("dialog");
-  const candidates = dialog.locator("details").filter({ hasText: "OSPG5111A" });
+  const candidates = dialog.locator(
+    '.purchase-row[aria-label="LEDの購入候補"] details',
+  );
   await candidates.locator("summary").click();
   await expect(
     candidates.getByRole("link", { name: /OSPG5111A/ }),

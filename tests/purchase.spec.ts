@@ -573,3 +573,26 @@ test("DigiKey quota notice does not block verified products from other stores", 
     dialog.getByRole("button", { name: "購入する · DigiKeyのカートへ" }),
   ).toBeDisabled();
 });
+
+test("registered product links remain available when live search fails", async ({
+  page,
+}) => {
+  await page.route("**/api/session", (r) =>
+    r.fulfill({ json: { active: true, digikey: true } }),
+  );
+  await page.route("**/api/purchase/search", (r) =>
+    r.fulfill({ status: 503, json: { error: "商品検索を利用できません。" } }),
+  );
+  await page.goto("/");
+  await page.getByRole("button", { name: "購入する", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  const candidates = dialog.locator("details").filter({ hasText: "OSPG5111A" });
+  await candidates.locator("summary").click();
+  await expect(
+    candidates.getByRole("link", { name: /OSPG5111A/ }),
+  ).toHaveAttribute("href", "https://akizukidenshi.com/catalog/g/g112117/");
+  await expect(candidates).toContainText("在庫・価格・適合性は未確認です。");
+  await expect(dialog.getByRole("link", { name: /OSR5JA5E34B/ })).toHaveCount(
+    0,
+  );
+});

@@ -9,6 +9,7 @@ import {
   X,
 } from "lucide-react";
 import type { Circuit } from "@/lib/circuit";
+import { registeredCandidates } from "@/lib/purchase-catalog";
 import { requestPurchase } from "@/lib/purchase-client";
 import { withDeadline } from "@/lib/async";
 import {
@@ -57,6 +58,10 @@ export default function PurchaseModal({
   const yen = (value: number) =>
     formatYen(value, locale === "en" ? "en-US" : "ja-JP");
   const parts = useMemo(() => purchaseParts(circuit), [circuit]);
+  const registered = useMemo(
+    () => parts.map((part) => registeredCandidates(part, circuit)),
+    [parts, circuit],
+  );
   const [rows, setRows] = useState<Row[]>(() =>
     parts.map((p) => ({
       query: p.query,
@@ -593,6 +598,30 @@ export default function PurchaseModal({
                 </div>
                 <p className="purchase-spec">{t(part.value)}</p>
                 <p className="purchase-note">{t(part.note)}</p>
+                {registered[i].length > 0 && (
+                  <details className="purchase-note">
+                    <summary>{t("登録済みの商品候補")}</summary>
+                    <p>
+                      {t(
+                        "在庫・価格・適合性は未確認です。商品ページで仕様と入数を確認してください。",
+                      )}
+                    </p>
+                    <ul>
+                      {registered[i].map((product) => (
+                        <li key={product.id}>
+                          <a
+                            href={product.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {t(domesticStores[product.store].name)} ·{" "}
+                            {product.name} <ExternalLink size={14} />
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
                 <form
                   className="purchase-search"
                   onSubmit={(event) => {

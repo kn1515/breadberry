@@ -586,7 +586,11 @@ test("registered product links remain available when live search fails", async (
   await page.goto("/");
   await page.getByRole("button", { name: "購入する", exact: true }).click();
   const dialog = page.getByRole("dialog");
-  const candidates = dialog.locator("details").filter({ hasText: "OSPG5111A" });
+  await dialog.getByText("検索条件・DigiKeyの商品を変更").click();
+  const candidates = dialog
+    .getByLabel("LEDの購入候補")
+    .locator("details")
+    .filter({ hasText: "OSPG5111A" });
   await candidates.locator("summary").click();
   await expect(
     candidates.getByRole("link", { name: /OSPG5111A/ }),

@@ -8,7 +8,7 @@ export default function Schematic({ circuit }: { circuit: Circuit }) {
     circuit.wires.some((w) => [w.from, w.to].includes(`board.${pin}`)),
   );
   const rails = getBreadboards(circuit)
-    .flatMap((b) => ["VCC", "GND"].map((pin) => `${b.id}.${pin}`))
+    .flatMap((b) => ["VCC", "GND"].map((pin) => `rail.${b.id}.${pin}`))
     .filter((pin) => circuit.wires.some((w) => w.from === pin || w.to === pin));
   const nodes: { y: number; height: number }[] = [];
   let nextY = 45;

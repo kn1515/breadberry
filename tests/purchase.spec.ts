@@ -586,6 +586,7 @@ test("registered product links remain available when live search fails", async (
   await page.goto("/");
   await page.getByRole("button", { name: "購入する", exact: true }).click();
   const dialog = page.getByRole("dialog");
+  await dialog.getByText("検索条件・DigiKeyの商品を変更", { exact: true }).click();
   const candidates = dialog.getByRole("region", { name: "LEDの購入候補" });
   await candidates.getByText("登録済みの商品候補", { exact: true }).click();
   await expect(

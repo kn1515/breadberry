@@ -586,8 +586,8 @@ test("registered product links remain available when live search fails", async (
   await page.goto("/");
   await page.getByRole("button", { name: "購入する", exact: true }).click();
   const dialog = page.getByRole("dialog");
-  const candidates = dialog.locator("details").filter({ hasText: "OSPG5111A" });
-  await candidates.locator("summary").click();
+  const candidates = dialog.getByRole("region", { name: "LEDの購入候補" });
+  await candidates.getByText("登録済みの商品候補", { exact: true }).click();
   await expect(
     candidates.getByRole("link", { name: /OSPG5111A/ }),
   ).toHaveAttribute("href", "https://akizukidenshi.com/catalog/g/g112117/");

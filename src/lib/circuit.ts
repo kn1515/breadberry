@@ -1,3 +1,10 @@
+import {
+  logicCatalog,
+  supportCatalog,
+  isDip,
+  isLogic,
+  logicOutput,
+} from "./logic";
 import type { ChatMessage } from "./conversation";
 import { z } from "zod";
 import { ledColorNames, resolveLedColor, type LedColor } from "./led";
@@ -95,6 +102,8 @@ function i2cModule(name: string, color: string, note: string) {
   } as const;
 }
 export const catalog = {
+  ...logicCatalog,
+  ...supportCatalog,
   led: {
     name: "LED",
     pins: ["A", "K"],
@@ -209,7 +218,15 @@ export function resistanceOhms(value: string): number {
     (value.includes("k") ? 1000 : value.includes("M") ? 1e6 : 1)
   );
 }
+export const MAX_PARTS = 48;
+export const MAX_WIRES = 240;
+export const MAX_BREADBOARDS = 6;
 export const circuitSchema = z.object({
+  breadboards: z
+    .array(z.object({ id: z.string().regex(/^BB[1-6]$/) }))
+    .min(1)
+    .max(MAX_BREADBOARDS)
+    .optional(),
   title: z.string().min(1).max(80),
   description: z.string().min(1).max(600),
   board: boardSchema,
@@ -225,12 +242,16 @@ export const circuitSchema = z.object({
           .object({
             hole: z.string().regex(/^[a-j]([1-9]|[12][0-9]|30)$/),
             reversed: z.boolean(),
+            breadboard: z
+              .string()
+              .regex(/^BB[1-6]$/)
+              .optional(),
           })
           .optional(),
       }),
     )
     .min(1)
-    .max(6),
+    .max(MAX_PARTS),
   wires: z
     .array(
       z.object({
@@ -248,7 +269,7 @@ export const circuitSchema = z.object({
       }),
     )
     .min(1)
-    .max(24),
+    .max(MAX_WIRES),
   notes: z.array(z.string().max(500)).max(8),
   firmware: z.string().max(12000),
   firmwareLanguage: z.enum(["cpp", "python"]),
@@ -299,15 +320,19 @@ export function boardPinPosition(board: Board, pin: string): Point {
 }
 /** Editor drafts may be incomplete, but must be safe to render and serialize. */
 export const draftCircuitSchema = circuitSchema.extend({
-  parts: circuitSchema.shape.parts.unwrap().array().max(30),
-  wires: circuitSchema.shape.wires.unwrap().array().max(60),
+  parts: circuitSchema.shape.parts.unwrap().array().max(MAX_PARTS),
+  wires: circuitSchema.shape.wires.unwrap().array().max(MAX_WIRES),
 });
 export function validateDraft(input: unknown): Circuit {
   const c = draftCircuitSchema.parse(input);
+  validateBreadboards(c);
   if (new Set(c.parts.map((p) => p.id)).size !== c.parts.length)
     throw new Error("部品IDが重複しています。");
   const endpoints = new Set(
     Object.keys(boards[c.board].pins).map((pin) => `board.${pin}`),
+  );
+  getBreadboards(c).forEach(({ id }) =>
+    ["VCC", "GND"].forEach((pin) => endpoints.add(`rail.${id}.${pin}`)),
   );
   c.parts.forEach((p) =>
     catalog[p.kind].pins.forEach((pin) => {
@@ -319,32 +344,83 @@ export function validateDraft(input: unknown): Circuit {
   return c;
 }
 export function placementFor(part: Circuit["parts"][number], index: number) {
-  return part.placement ?? { hole: `b${1 + index * 5}`, reversed: false };
+  return (
+    part.placement ?? {
+      hole: `${isDip(part.kind) ? "e" : "b"}${1 + index * 5}`,
+      reversed: false,
+    }
+  );
+}
+export function getBreadboards(c: Circuit) {
+  return c.breadboards ?? [{ id: "BB1" }];
+}
+export function breadboardPosition(id: string): Point {
+  const index = Number(id.slice(2)) - 1;
+  return [(index % 2) * 9, 0, Math.floor(index / 2) * 5.4];
+}
+export function qualifyHole(hole: string, breadboard = "BB1") {
+  return breadboard === "BB1" ? hole : `${breadboard}:${hole}`;
+}
+export function splitHole(hole: string) {
+  const [a, b] = hole.split(":");
+  return { breadboard: b === undefined ? "BB1" : a, hole: b ?? a };
+}
+function validateBreadboards(c: Circuit) {
+  const ids = getBreadboards(c).map((b) => b.id);
+  if (new Set(ids).size !== ids.length)
+    throw new Error("ブレッドボードIDが重複しています。");
+  if (!ids.includes("BB1")) throw new Error("BB1が必要です。");
+  c.parts.forEach((p, i) => {
+    const placement = placementFor(p, i);
+    if (!ids.includes(placement.breadboard ?? "BB1"))
+      throw new Error(`${p.id}: 存在しないブレッドボードです。`);
+    if (isDip(p.kind) && placement.hole[0] !== "e")
+      throw new Error(`${p.id}: DIP部品の先頭ピンはE列に配置してください。`);
+  });
 }
 export function partPinHoles(c: Circuit) {
   const holes: Record<string, string> = {};
   c.parts.forEach((part, index) => {
     const placement = placementFor(part, index);
-    catalog[part.kind].pins.forEach((pin, j) => {
-      holes[`${part.id}.${pin}`] =
-        `${placement.hole[0]}${Number(placement.hole.slice(1)) + (placement.reversed ? -1 : 1) * catalog[part.kind].offsets[j]}`;
+    const def = catalog[part.kind];
+    def.pins.forEach((pin, j) => {
+      const half = def.pins.length / 2;
+      const col = isDip(part.kind)
+        ? j < half
+          ? placement.reversed
+            ? "f"
+            : "e"
+          : placement.reversed
+            ? "e"
+            : "f"
+        : placement.hole[0];
+      const row =
+        Number(placement.hole.slice(1)) +
+        (placement.reversed ? -1 : 1) * def.offsets[j];
+      holes[`${part.id}.${pin}`] = qualifyHole(
+        `${col}${row}`,
+        placement.breadboard,
+      );
     });
   });
   return holes;
 }
 /** Also renders an out-of-bounds draft so users can see and repair it. */
-export function layoutHolePosition(hole: string): Point {
+export function layoutHolePosition(qualified: string): Point {
+  const { breadboard, hole } = splitHole(qualified);
+  const origin = breadboardPosition(breadboard);
   const col = hole.charCodeAt(0) - 97;
   return [
-    (Number(hole.slice(1)) - 15.5) * 0.24,
+    origin[0] + (Number(hole.slice(1)) - 15.5) * 0.24,
     0.18,
-    (col - 4.5) * 0.24 + (col < 5 ? -0.18 : 0.18),
+    origin[2] + (col - 4.5) * 0.24 + (col < 5 ? -0.18 : 0.18),
   ];
 }
 export function compileCircuit(c: Circuit) {
   const pinHoles = partPinHoles(c);
   const occupied = new Set(Object.values(pinHoles));
   const allocationIssues: string[] = [];
+  const railUsed = new Map<string, number>();
   const endpoint = (key: string) => {
     if (key.startsWith("board."))
       return {
@@ -354,18 +430,35 @@ export function compileCircuit(c: Circuit) {
             : `${key.slice(6)} · pin ${boards[c.board].pins[key.slice(6)]}`,
         position: boardPinPosition(c.board, key.slice(6)),
       };
-    const hole = pinHoles[key];
+    if (/^rail\.BB[1-6]\.(VCC|GND)$/.test(key)) {
+      const [, id, rail] = key.split(".");
+      const row = (railUsed.get(key) ?? 0) + 1;
+      railUsed.set(key, row);
+      if (row > 30)
+        allocationIssues.push(`${key}: 電源レールの空き穴がありません。`);
+      const origin = breadboardPosition(id);
+      return {
+        label: `${id} ${rail} ${row} → ${key}`,
+        position: [
+          origin[0] + (row - 15.5) * 0.24,
+          0.18,
+          origin[2] + (rail === "VCC" ? -1.95 : -1.65),
+        ] as Point,
+      };
+    }
+    const qualified = pinHoles[key];
+    const { breadboard, hole } = splitHole(qualified ?? "");
     if (!hole) throw new Error(`存在しないピン: ${key}`);
     const columns =
       hole[0] <= "e" ? ["e", "d", "c", "a", "b"] : ["j", "i", "h", "f", "g"];
     const free = columns
-      .map((col) => `${col}${hole.slice(1)}`)
+      .map((col) => qualifyHole(`${col}${hole.slice(1)}`, breadboard))
       .find((h) => !occupied.has(h));
     if (!free)
       allocationIssues.push(
         `${key}: 導通列にジャンパ線を挿す空き穴がありません。`,
       );
-    const jumperHole = free ?? hole;
+    const jumperHole = free ?? qualified;
     occupied.add(jumperHole);
     return {
       label: `${jumperHole.toUpperCase()} → ${key}`,
@@ -403,11 +496,15 @@ export function compileCircuit(c: Circuit) {
 // short their own pins together: resistors and switches must stay separate.
 export function validateCircuit(input: unknown): Circuit {
   const c = circuitSchema.parse(input);
+  validateBreadboards(c);
   const ids = c.parts.map((p) => p.id);
   if (new Set(ids).size !== ids.length)
     throw new Error("部品IDが重複しています。");
   const valid = new Set(
     Object.keys(boards[c.board].pins).map((p) => `board.${p}`),
+  );
+  getBreadboards(c).forEach(({ id }) =>
+    ["VCC", "GND"].forEach((pin) => valid.add(`rail.${id}.${pin}`)),
   );
   c.parts.forEach((p) =>
     catalog[p.kind].pins.forEach((pin) => {
@@ -429,7 +526,10 @@ export function validateCircuit(input: unknown): Circuit {
     pairs.add(pair);
     for (const e of [w.from, w.to]) {
       degree[e] = (degree[e] ?? 0) + 1;
-      if (degree[e] > (e.startsWith("board.") ? 1 : 4))
+      if (
+        degree[e] >
+        (e.startsWith("board.") ? 1 : /^rail\.BB[1-6]\./.test(e) ? 30 : 4)
+      )
         throw new Error(
           "同じピンに配線が集中しています。抵抗の端子を分岐点にしてください。",
         );
@@ -443,6 +543,37 @@ export function validateCircuit(input: unknown): Circuit {
   const gpios = Object.keys(boards[c.board].pins).filter((p) =>
     p.startsWith("GP"),
   );
+  const canDriveGpio = (pin: string) =>
+    !(c.board === "esp32" && ["GPIO34", "GPIO35"].includes(pin));
+  const drivenNets = new Set(
+    c.parts.flatMap((p) =>
+      catalog[p.kind].pins
+        .filter((pin) => logicOutput(p.kind, pin))
+        .map((pin) => root(`${p.id}.${pin}`)),
+    ),
+  );
+  gpios.filter(canDriveGpio).forEach((pin) => {
+    drivenNets.add(root(`board.${pin}`));
+  });
+  const pullResistor = (net: string) =>
+    c.parts.some(
+      (r) =>
+        r.kind === "resistor" &&
+        resistanceOhms(r.value) > 0 &&
+        ((root(`${r.id}.1`) === net &&
+          [root("board.3V3"), root("board.GND")].includes(
+            root(`${r.id}.2`),
+          )) ||
+          (root(`${r.id}.2`) === net &&
+            [root("board.3V3"), root("board.GND")].includes(
+              root(`${r.id}.1`),
+            ))),
+    );
+  const hasDefinedLevel = (net: string) =>
+    net === root("board.3V3") ||
+    net === root("board.GND") ||
+    drivenNets.has(net) ||
+    pullResistor(net);
   for (let i = 0; i < gpios.length; i++) {
     const net = root(`board.${gpios[i]}`);
     if (net === root("board.3V3") || net === root("board.GND"))
@@ -471,11 +602,43 @@ export function validateCircuit(input: unknown): Circuit {
     const nets = catalog[p.kind].pins
       .filter((pin) => pin !== "NC")
       .map((pin) => root(`${p.id}.${pin}`));
-    if (new Set(nets).size !== nets.length)
+    if (
+      !isLogic(p.kind) &&
+      p.kind !== "dip-switch" &&
+      new Set(nets).size !== nets.length
+    )
       throw new Error(`${p.id} の端子同士が短絡しています。`);
     for (const pin of catalog[p.kind].pins)
-      if (pin !== "NC" && !degree[`${p.id}.${pin}`])
+      if (
+        pin !== "NC" &&
+        !logicOutput(p.kind, pin) &&
+        !degree[`${p.id}.${pin}`]
+      )
         throw new Error(`${p.id}.${pin} が未接続です。`);
+    if (isLogic(p.kind)) {
+      for (const pin of catalog[p.kind].pins) {
+        if (
+          ["VCC", "GND"].includes(pin) ||
+          logicOutput(p.kind, pin)
+        )
+          continue;
+        if (!hasDefinedLevel(root(`${p.id}.${pin}`)))
+          throw new Error(`${p.id}.${pin} の入力レベルが定義されていません。`);
+      }
+      if (
+        root(`${p.id}.VCC`) !== root("board.3V3") ||
+        root(`${p.id}.GND`) !== root("board.GND")
+      )
+        throw new Error(`${p.id} の電源配線を確認してください。`);
+      if (p.kind === "74hc74")
+        for (const unit of [1, 2]) {
+          if (
+            root(`${p.id}.${unit}CLR_N`) === root("board.GND") &&
+            root(`${p.id}.${unit}PRE_N`) === root("board.GND")
+          )
+            throw new Error(`${p.id}: CLR_NとPRE_Nを同時にLOWにできません。`);
+        }
+    }
     if (p.kind === "resistor" && !(resistanceOhms(p.value) > 0))
       throw new Error("抵抗値は 330Ω や 10kΩ の形式で指定してください。");
     if (p.kind === "dht22" || isI2c(p.kind) || p.kind === "ds18b20") {
@@ -513,15 +676,61 @@ export function validateCircuit(input: unknown): Circuit {
       const far = root(`${r.id}.${root(`${r.id}.1`) === ledNet ? "2" : "1"}`);
       if (
         far === ledNet ||
-        !gpios
-          .filter(
-            (g) => !(c.board === "esp32" && ["GPIO34", "GPIO35"].includes(g)),
-          )
-          .some((g) => root(`board.${g}`) === far)
+        ![
+          ...c.parts.flatMap((p) =>
+            catalog[p.kind].pins
+              .filter((pin) => logicOutput(p.kind, pin))
+              .map((pin) => `${p.id}.${pin}`),
+          ),
+          ...gpios
+            .filter(
+              (g) => !(c.board === "esp32" && ["GPIO34", "GPIO35"].includes(g)),
+            )
+            .map((g) => `board.${g}`),
+        ].some((endpoint) => root(endpoint) === far)
       )
-        throw new Error("LEDを抵抗経由でGPIOに接続してください。");
+        throw new Error(
+          "LEDを抵抗経由でGPIOまたはロジックIC出力に接続してください。",
+        );
     }
-    if (isSwitch(p.kind)) {
+    if (isSwitch(p.kind) && c.parts.some((p) => isLogic(p.kind))) {
+      const nets = [root(`${p.id}.1`), root(`${p.id}.2`)];
+      if (nets.includes(root("board.3V3")) && nets.includes(root("board.GND")))
+        throw new Error(`${p.id}: スイッチを閉じると電源が短絡します。`);
+      const signal = nets.find((n) => n !== root("board.GND"));
+      const inputs = c.parts.flatMap((chip) =>
+        isLogic(chip.kind)
+          ? catalog[chip.kind].pins
+              .filter(
+                (pin) =>
+                  !["VCC", "GND"].includes(pin) && !logicOutput(chip.kind, pin),
+              )
+              .map((pin) => `${chip.id}.${pin}`)
+          : [],
+      );
+      const reachesInput = inputs.some(
+        (pin) =>
+          root(pin) === signal ||
+          c.parts.some(
+            (r) =>
+              r.kind === "resistor" &&
+              ((root(`${r.id}.1`) === signal &&
+                root(`${r.id}.2`) === root(pin)) ||
+                (root(`${r.id}.2`) === signal &&
+                  root(`${r.id}.1`) === root(pin))),
+          ),
+      );
+      const reachesGpio = gpios
+        .filter(
+          (g) => !(c.board === "esp32" && ["GPIO34", "GPIO35"].includes(g)),
+        )
+        .some((g) => root(`board.${g}`) === signal);
+      if (!nets.includes(root("board.GND")) || !(reachesInput || reachesGpio))
+        throw new Error(
+          `${p.id}: スイッチはGNDと入力信号の間に接続してください。`,
+        );
+    }
+    if (isSwitch(p.kind) && !c.parts.some((p) => isLogic(p.kind))) {
       const nets = [root(`${p.id}.1`), root(`${p.id}.2`)];
       const signal = nets.find((n) => n !== root("board.GND"));
       const outputPins = gpios.filter(
@@ -620,6 +829,51 @@ export function validateCircuit(input: unknown): Circuit {
       busAddresses.add(key);
     }
   }
+  const closedParent = new Map(parent);
+  const closedRoot = (endpoint: string): string => {
+    const next = closedParent.get(endpoint);
+    return next ? closedRoot(next) : endpoint;
+  };
+  const closeContact = (a: string, b: string) => {
+    const left = closedRoot(a);
+    const right = closedRoot(b);
+    if (left !== right) closedParent.set(left, right);
+  };
+  for (const p of c.parts.filter((p) => p.kind === "dip-switch"))
+    for (let n = 1; n <= 4; n++) {
+      const a = root(`${p.id}.${n}A`),
+        b = root(`${p.id}.${n}B`);
+      if (
+        (a === root("board.3V3") && b === root("board.GND")) ||
+        (b === root("board.3V3") && a === root("board.GND"))
+      )
+        throw new Error(`${p.id}: DIPスイッチを閉じると電源が短絡します。`);
+      closeContact(`${p.id}.${n}A`, `${p.id}.${n}B`);
+    }
+  for (const p of c.parts.filter((p) => isSwitch(p.kind)))
+    closeContact(`${p.id}.1`, `${p.id}.2`);
+  const closedNet = (endpoint: string) => closedRoot(root(endpoint));
+  const closedSupply = new Set([
+    closedNet("board.3V3"),
+    closedNet("board.GND"),
+  ]);
+  const driven = new Set<string>();
+  for (const p of c.parts)
+    for (const pin of catalog[p.kind].pins) {
+      if (!logicOutput(p.kind, pin)) continue;
+      const net = closedNet(`${p.id}.${pin}`);
+      if (
+        closedSupply.has(net) ||
+        driven.has(net) ||
+        gpios.some(
+          (g) => canDriveGpio(g) && closedNet(`board.${g}`) === net,
+        )
+      )
+        throw new Error(
+          `${p.id}.${pin}: IC出力を電源や別の出力に直結できません。`,
+        );
+      driven.add(net);
+    }
   compileCircuit(c);
   return c;
 }
@@ -658,7 +912,7 @@ export function billOfMaterials(c: Circuit) {
     {
       name: "ブレッドボード",
       value: "400穴 · 30列",
-      quantity: 1,
+      quantity: getBreadboards(c).length,
       kind: "breadboard",
     },
     ...grouped.values(),

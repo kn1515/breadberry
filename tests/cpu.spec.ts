@@ -93,7 +93,7 @@ test("CPU sample loads offline, renders IC models and schematic rails, saves and
   await expect(
     page.getByRole("img", { name: "接続データから描画した回路図" }),
   ).toBeVisible();
-  await expect(page.locator(".schematic")).toContainText("BB4.VCC");
+  await expect(page.locator(".schematic")).toContainText("rail.BB4.VCC");
   await page.reload();
   await page.getByRole("button", { name: "プロジェクト", exact: true }).click();
   await page.locator(".saved-list button").first().click();

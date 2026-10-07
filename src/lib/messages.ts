@@ -479,6 +479,16 @@ export const messages: Record<string, string> = {
   "配線が重複しています。": "Duplicate wires.",
   "同じピンに配線が集中しています。抵抗の端子を分岐点にしてください。":
     "Too many wires share a pin. Use a resistor terminal as a branch point.",
+  "{0}: 電源レールの空き穴がありません。":
+    "{0}: No free holes remain on the power rail.",
+  "{0}.{1} の入力レベルが定義されていません。":
+    "{0}.{1} has no defined input level. Connect it to a driver, supply, or pull resistor.",
+  "{0}: スイッチを閉じると電源が短絡します。":
+    "{0}: Closing the switch would short the power rails.",
+  "{0}: DIPスイッチを閉じると電源が短絡します。":
+    "{0}: Closing the DIP switch would short the power rails.",
+  "{0}.{1}: IC出力を電源や別の出力に直結できません。":
+    "{0}.{1}: Do not connect an IC output directly to power or another output.",
   "3.3 V と GND が短絡しています。": "3.3V and GND are shorted.",
   "GPIOを電源に直結できません。": "Do not connect a GPIO directly to power.",
   "GPIO同士を直結できません。": "Do not connect GPIOs directly to each other.",
@@ -492,6 +502,8 @@ export const messages: Record<string, string> = {
     "Use an LED series resistor of at least 220Ω.",
   "LEDを抵抗経由でGPIOに接続してください。":
     "Connect the LED to a GPIO through a resistor.",
+  "LEDを抵抗経由でGPIOまたはロジックIC出力に接続してください。":
+    "Connect the LED through a resistor to a GPIO or logic IC output.",
   "Raspberry Pi I2C1はSCL=GPIO3、SDA=GPIO2を使用してください。":
     "For Raspberry Pi I2C1, use SCL = GPIO3 and SDA = GPIO2.",
   "NTCは10kΩ、端子1=3.3V、端子2=ADCと10kΩ抵抗経由のGNDにしてください。":

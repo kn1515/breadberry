@@ -88,3 +88,16 @@ test("locale requests default to Japanese and reject arbitrary prompt instructio
     "My custom project title",
   );
 });
+
+test("new circuit validation and rail allocation diagnostics are translated", () => {
+  for (const message of [
+    "rail.BB1.VCC: 電源レールの空き穴がありません。",
+    "U1.1Y: 導通列にジャンパ線を挿す空き穴がありません。",
+    "U1.2A の入力レベルが定義されていません。",
+    "LEDを抵抗経由でGPIOまたはロジックIC出力に接続してください。",
+    "SW1: DIPスイッチを閉じると電源が短絡します。",
+    "SW2: スイッチを閉じると電源が短絡します。",
+    "U1.1Y: IC出力を電源や別の出力に直結できません。",
+  ])
+    assert.doesNotMatch(translate(message, "en"), /[ぁ-んァ-ヶ一-龠]/, message);
+});

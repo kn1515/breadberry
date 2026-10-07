@@ -7,6 +7,7 @@ import {
   getBreadboards,
   layoutHolePosition,
   partPinHoles,
+  placementFor,
   qualifyHole,
   validateCircuit,
   validateDraft,
@@ -61,6 +62,21 @@ for (const board of ["esp32", "pico", "raspberry-pi"] as const)
         .reduce((sum, p) => sum + p.quantity, 0),
       6,
     );
+  });
+
+  test("legacy unplaced parts remain on BB1", () => {
+    const c = demoCircuit("esp32", "led");
+    c.breadboards = undefined;
+    c.parts = Array.from({ length: 7 }, (_, i) => ({
+      id: `R${i + 1}`,
+      kind: "resistor" as const,
+      value: "10kΩ",
+      purpose: "legacy",
+    }));
+    c.wires = [];
+    assert.equal(placementFor(c.parts[6], 6).hole, "b31");
+    assert.equal(placementFor(c.parts[6], 6).breadboard, undefined);
+    assert.equal(validateDraft(c).breadboards, undefined);
   });
 
 test("independent board strips and jumper allocations do not short identical hole numbers", () => {
@@ -119,9 +135,20 @@ test("CPU validation rejects floating CMOS inputs, swapped rails, output conflic
   c.wires = c.wires.filter((w) => w.to !== "U1.2A");
   assert.throws(() => validateCircuit(c), /未接続/);
   c = demoCircuit("esp32", "cpu");
-  c.wires.find((w) => w.to === "U4.VCC")!.from = "BB2.GND";
+  c.wires = c.wires.filter(
+    (w) => !["U1.2A", "U1.2B"].includes(w.to),
+  );
+  c.wires.push({
+    from: "U1.2A",
+    to: "U1.2B",
+    color: "#94a3b8",
+    explanation: "floating inputs",
+  });
+  assert.throws(() => validateCircuit(c), /入力レベル/);
+  c = demoCircuit("esp32", "cpu");
+  c.wires.find((w) => w.to === "U4.VCC")!.from = "rail.BB2.GND";
   assert.throws(() => validateCircuit(c), /電源/);
-  for (const to of ["BB1.GND", "U2.1Y"]) {
+  for (const to of ["rail.BB1.GND", "U2.1Y"]) {
     c = demoCircuit("esp32", "cpu");
     c.wires.push({
       from: "U1.1Y",
@@ -132,17 +159,52 @@ test("CPU validation rejects floating CMOS inputs, swapped rails, output conflic
     assert.throws(() => validateCircuit(c), /出力/);
   }
   c = demoCircuit("esp32", "cpu");
-  c.wires.find((w) => w.to === "U4.2PRE_N")!.from = "BB2.GND";
-  c.wires.find((w) => w.to === "U4.2CLR_N")!.from = "BB2.GND";
+  c.wires.find((w) => w.to === "U4.2PRE_N")!.from = "rail.BB2.GND";
+  c.wires.find((w) => w.to === "U4.2CLR_N")!.from = "rail.BB2.GND";
   assert.throws(() => validateCircuit(c), /CLR_N/);
   c = demoCircuit("esp32", "cpu");
   c.wires.push({
     from: "SW1.4B",
-    to: "BB3.VCC",
+    to: "rail.BB3.VCC",
     color: "#fb7185",
     explanation: "short on reset",
   });
   assert.throws(() => validateCircuit(c), /DIP|短絡/);
+});
+
+test("rails cannot collide with a part ID named BB1", () => {
+  const c = demoCircuit("esp32", "cpu");
+  const chip = c.parts.find((p) => p.id === "U1")!;
+  chip.id = "BB1";
+  for (const wire of c.wires) {
+    wire.from = wire.from.replace(/^U1\./, "BB1.");
+    wire.to = wire.to.replace(/^U1\./, "BB1.");
+  }
+  assert.doesNotThrow(() => validateCircuit(c));
+});
+
+test("closed switch contacts cannot connect an IC output to a supply or another output", () => {
+  for (const endpoint of ["SW1.1B", "SW2.1"]) {
+    const c = demoCircuit("esp32", "cpu");
+    c.wires.push({
+      from: "U1.2Y",
+      to: endpoint,
+      color: "#94a3b8",
+      explanation: "output through switch",
+    });
+    assert.throws(() => validateCircuit(c), /出力/);
+  }
+});
+
+test("ESP32 input-only GPIO34 can read a logic output", () => {
+  const c = demoCircuit("esp32", "cpu");
+  c.wires.push({
+    from: "U1.2Y",
+    to: "board.GPIO34",
+    color: "#94a3b8",
+    explanation: "read output",
+  });
+  assert.doesNotThrow(() => validateCircuit(c));
 });
 
 // Evaluate the sample's actual wired nets (including switch contacts and weak pull resistors).

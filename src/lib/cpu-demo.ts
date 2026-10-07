@@ -50,10 +50,10 @@ export function cpuDemo(board: Board): Circuit {
     c.wires.push({ from, to, explanation, color });
   }
   function ground(pin: string, bb: string) {
-    wire(`${bb}.GND`, pin, "GNDへ接続します。", "#94a3b8");
+    wire(`rail.${bb}.GND`, pin, "GNDへ接続します。", "#94a3b8");
   }
   function power(pin: string, bb: string) {
-    wire(`${bb}.VCC`, pin, "3.3Vへ接続します。", "#fb7185");
+    wire(`rail.${bb}.VCC`, pin, "3.3Vへ接続します。", "#fb7185");
   }
   part("U1", "74hc08", "SN74HC08N", "A AND D", "BB1", "e2");
   part("U2", "74hc86", "SN74HC86N", "A XOR D", "BB1", "e13");
@@ -122,14 +122,14 @@ export function cpuDemo(board: Board): Circuit {
   for (const rail of ["VCC", "GND"]) {
     wire(
       `board.${rail === "VCC" ? "3V3" : "GND"}`,
-      `BB1.${rail}`,
+      `rail.BB1.${rail}`,
       "基板の給電端子を電源レールへ接続します。",
       rail === "VCC" ? "#fb7185" : "#94a3b8",
     );
     for (let n = 1; n < 4; n++)
       wire(
-        `BB${n}.${rail}`,
-        `BB${n + 1}.${rail}`,
+        `rail.BB${n}.${rail}`,
+        `rail.BB${n + 1}.${rail}`,
         "別のボードの同じ電源レールへ橋渡しします。",
         rail === "VCC" ? "#fb7185" : "#94a3b8",
       );

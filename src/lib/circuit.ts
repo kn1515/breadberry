@@ -332,7 +332,7 @@ export function validateDraft(input: unknown): Circuit {
     Object.keys(boards[c.board].pins).map((pin) => `board.${pin}`),
   );
   getBreadboards(c).forEach(({ id }) =>
-    ["VCC", "GND"].forEach((pin) => endpoints.add(`${id}.${pin}`)),
+    ["VCC", "GND"].forEach((pin) => endpoints.add(`rail.${id}.${pin}`)),
   );
   c.parts.forEach((p) =>
     catalog[p.kind].pins.forEach((pin) => {
@@ -346,9 +346,8 @@ export function validateDraft(input: unknown): Circuit {
 export function placementFor(part: Circuit["parts"][number], index: number) {
   return (
     part.placement ?? {
-      hole: `${isDip(part.kind) ? "e" : "b"}${1 + (index % 6) * 5}`,
+      hole: `${isDip(part.kind) ? "e" : "b"}${1 + index * 5}`,
       reversed: false,
-      ...(index >= 6 ? { breadboard: `BB${1 + Math.floor(index / 6)}` } : {}),
     }
   );
 }
@@ -431,8 +430,8 @@ export function compileCircuit(c: Circuit) {
             : `${key.slice(6)} · pin ${boards[c.board].pins[key.slice(6)]}`,
         position: boardPinPosition(c.board, key.slice(6)),
       };
-    if (/^BB[1-6]\.(VCC|GND)$/.test(key)) {
-      const [id, rail] = key.split(".");
+    if (/^rail\.BB[1-6]\.(VCC|GND)$/.test(key)) {
+      const [, id, rail] = key.split(".");
       const row = (railUsed.get(key) ?? 0) + 1;
       railUsed.set(key, row);
       if (row > 30)
@@ -505,7 +504,7 @@ export function validateCircuit(input: unknown): Circuit {
     Object.keys(boards[c.board].pins).map((p) => `board.${p}`),
   );
   getBreadboards(c).forEach(({ id }) =>
-    ["VCC", "GND"].forEach((pin) => valid.add(`${id}.${pin}`)),
+    ["VCC", "GND"].forEach((pin) => valid.add(`rail.${id}.${pin}`)),
   );
   c.parts.forEach((p) =>
     catalog[p.kind].pins.forEach((pin) => {
@@ -528,7 +527,8 @@ export function validateCircuit(input: unknown): Circuit {
     for (const e of [w.from, w.to]) {
       degree[e] = (degree[e] ?? 0) + 1;
       if (
-        degree[e] > (e.startsWith("board.") ? 1 : /^BB[1-6]\./.test(e) ? 30 : 4)
+        degree[e] >
+        (e.startsWith("board.") ? 1 : /^rail\.BB[1-6]\./.test(e) ? 30 : 4)
       )
         throw new Error(
           "同じピンに配線が集中しています。抵抗の端子を分岐点にしてください。",
@@ -543,6 +543,37 @@ export function validateCircuit(input: unknown): Circuit {
   const gpios = Object.keys(boards[c.board].pins).filter((p) =>
     p.startsWith("GP"),
   );
+  const canDriveGpio = (pin: string) =>
+    !(c.board === "esp32" && ["GPIO34", "GPIO35"].includes(pin));
+  const drivenNets = new Set(
+    c.parts.flatMap((p) =>
+      catalog[p.kind].pins
+        .filter((pin) => logicOutput(p.kind, pin))
+        .map((pin) => root(`${p.id}.${pin}`)),
+    ),
+  );
+  gpios.filter(canDriveGpio).forEach((pin) => {
+    drivenNets.add(root(`board.${pin}`));
+  });
+  const pullResistor = (net: string) =>
+    c.parts.some(
+      (r) =>
+        r.kind === "resistor" &&
+        resistanceOhms(r.value) > 0 &&
+        ((root(`${r.id}.1`) === net &&
+          [root("board.3V3"), root("board.GND")].includes(
+            root(`${r.id}.2`),
+          )) ||
+          (root(`${r.id}.2`) === net &&
+            [root("board.3V3"), root("board.GND")].includes(
+              root(`${r.id}.1`),
+            ))),
+    );
+  const hasDefinedLevel = (net: string) =>
+    net === root("board.3V3") ||
+    net === root("board.GND") ||
+    drivenNets.has(net) ||
+    pullResistor(net);
   for (let i = 0; i < gpios.length; i++) {
     const net = root(`board.${gpios[i]}`);
     if (net === root("board.3V3") || net === root("board.GND"))
@@ -585,6 +616,15 @@ export function validateCircuit(input: unknown): Circuit {
       )
         throw new Error(`${p.id}.${pin} が未接続です。`);
     if (isLogic(p.kind)) {
+      for (const pin of catalog[p.kind].pins) {
+        if (
+          ["VCC", "GND"].includes(pin) ||
+          logicOutput(p.kind, pin)
+        )
+          continue;
+        if (!hasDefinedLevel(root(`${p.id}.${pin}`)))
+          throw new Error(`${p.id}.${pin} の入力レベルが定義されていません。`);
+      }
       if (
         root(`${p.id}.VCC`) !== root("board.3V3") ||
         root(`${p.id}.GND`) !== root("board.GND")
@@ -789,6 +829,16 @@ export function validateCircuit(input: unknown): Circuit {
       busAddresses.add(key);
     }
   }
+  const closedParent = new Map(parent);
+  const closedRoot = (endpoint: string): string => {
+    const next = closedParent.get(endpoint);
+    return next ? closedRoot(next) : endpoint;
+  };
+  const closeContact = (a: string, b: string) => {
+    const left = closedRoot(a);
+    const right = closedRoot(b);
+    if (left !== right) closedParent.set(left, right);
+  };
   for (const p of c.parts.filter((p) => p.kind === "dip-switch"))
     for (let n = 1; n <= 4; n++) {
       const a = root(`${p.id}.${n}A`),
@@ -798,17 +848,26 @@ export function validateCircuit(input: unknown): Circuit {
         (b === root("board.3V3") && a === root("board.GND"))
       )
         throw new Error(`${p.id}: DIPスイッチを閉じると電源が短絡します。`);
+      closeContact(`${p.id}.${n}A`, `${p.id}.${n}B`);
     }
+  for (const p of c.parts.filter((p) => isSwitch(p.kind)))
+    closeContact(`${p.id}.1`, `${p.id}.2`);
+  const closedNet = (endpoint: string) => closedRoot(root(endpoint));
+  const closedSupply = new Set([
+    closedNet("board.3V3"),
+    closedNet("board.GND"),
+  ]);
   const driven = new Set<string>();
   for (const p of c.parts)
     for (const pin of catalog[p.kind].pins) {
       if (!logicOutput(p.kind, pin)) continue;
-      const net = root(`${p.id}.${pin}`);
+      const net = closedNet(`${p.id}.${pin}`);
       if (
-        net === root("board.3V3") ||
-        net === root("board.GND") ||
+        closedSupply.has(net) ||
         driven.has(net) ||
-        gpios.some((g) => root(`board.${g}`) === net)
+        gpios.some(
+          (g) => canDriveGpio(g) && closedNet(`board.${g}`) === net,
+        )
       )
         throw new Error(
           `${p.id}.${pin}: IC出力を電源や別の出力に直結できません。`,

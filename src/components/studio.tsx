@@ -64,6 +64,7 @@ import PurchaseModal from "./purchase-modal";
 import Tutorial from "./tutorial";
 const PartsCatalog = dynamic(() => import("./parts-catalog"), { ssr: false });
 import { MAX_MESSAGES } from "@/lib/conversation";
+import type { AgentEvent } from "@/lib/agent";
 const BoardScene = dynamic(() => import("./board-scene"), {
   ssr: false,
   loading: () => (
@@ -108,6 +109,7 @@ export default function Studio() {
   const [selectedBoard, setSelectedBoard] = useState<Board>("esp32");
   const [prompt, setPrompt] = useState("");
   const [busy, setBusy] = useState(false);
+  const [liveAgentEvents, setLiveAgentEvents] = useState<AgentEvent[]>([]);
   const [saving, setSaving] = useState(false);
   const [mode, setMode] = useState<"viewer" | "editor">("viewer");
   const [editorSession, setEditorSession] = useState(0);
@@ -320,13 +322,14 @@ export default function Studio() {
     if (!newDesign && (project.messages?.length ?? 0) >= MAX_MESSAGES) return;
     generating.current = true;
     setBusy(true);
+    setLiveAgentEvents([]);
     setError("");
     setNotice("");
     try {
       await prepareSession();
       const res = await fetch("/api/generate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Accept: "application/x-ndjson" },
         body: JSON.stringify({
           prompt: requestPrompt,
           board: selectedBoard,
@@ -341,8 +344,36 @@ export default function Studio() {
               }),
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) {
+        const failure = await res.json();
+        throw new Error(failure.error);
+      }
+      if (!res.body) throw new Error("実行履歴を受信できませんでした。");
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let result: (Project & { warning?: string }) | undefined;
+      const handleLine = (line: string) => {
+        if (!line.trim()) return;
+        const message = JSON.parse(line) as { type: string; data: unknown };
+        if (message.type === "event") setLiveAgentEvents((events) => [...events, message.data as AgentEvent]);
+        if (message.type === "result") result = message.data as Project & { warning?: string };
+        if (message.type === "error") throw new Error((message.data as { message: string }).message);
+      };
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let boundary: number;
+        while ((boundary = buffer.indexOf("\n")) >= 0) {
+          handleLine(buffer.slice(0, boundary));
+          buffer = buffer.slice(boundary + 1);
+        }
+      }
+      buffer += decoder.decode();
+      if (buffer.trim()) handleLine(buffer);
+      if (!result) throw new Error("回路生成結果がありません。");
+      const data = result;
       applyProject(data);
       if (data.storage === "browser") {
         try {
@@ -1126,18 +1157,20 @@ export default function Studio() {
               </p>
             </div>
           </aside>
-          <div className="agent-trace" style={{maxHeight: 220, overflowY: "auto", padding: 12}}>
-            <strong>{t("エージェントが行ったこと")}</strong>
-            {project.agentEvents?.length ? (
-              <ol aria-label={t("エージェントの行動履歴")}>
-                {project.agentEvents.map((event, index) => (
-                  <li key={index}>
-                    <time dateTime={event.at}>{new Date(event.at).toLocaleTimeString()}</time>{" "}
-                    {event.step} #{event.attempt} · {event.outcome} — {event.detail}
-                  </li>
-                ))}
-              </ol>
-            ) : <p>{t("この回路にはエージェントの実行履歴がありません。")}</p>}
+          <div className="agent-trace" style={{ padding: 14, maxHeight: 300, overflowY: "auto" }}>
+            <strong>{t("回路設計の実行履歴")}</strong>
+            <p aria-live="polite">{busy ? t("エージェントが実行中…") : (liveAgentEvents.length || project.agentEvents?.length) ? t("検証完了") : t("実行履歴はまだありません")}</p>
+            <ol role="log" aria-live="polite" aria-label={t("エージェントの行動履歴")}>
+              {(busy || liveAgentEvents.length ? liveAgentEvents : project.agentEvents ?? []).map((event, index) => {
+                const headings: Record<string, string> = { generation: "回路を生成", selection: "部品選定", validation: event.outcome === "failed" ? "接続検査：問題を検出" : "接続検査：問題なし", repair: "回路を自動修正", review: "補助レビュー", complete: "回路設計完了" };
+                return <li key={index} style={{marginTop: 9}}>
+                  <strong>{t(headings[event.step] ?? event.step)} {event.attempt > 1 ? `(${event.attempt}回目)` : ""}</strong>
+                  <span style={{marginLeft: 8}}>{event.outcome === "failed" ? "⚠" : event.outcome === "started" ? "◌" : "✓"}</span>
+                  <p style={{margin: "4px 0", overflowWrap: "anywhere"}}>{t(event.detail)}</p>
+                </li>;
+              })}
+            </ol>
+            <small>{t("AIと接続検査による結果です。実機動作は未検証です。")}</small>
           </div>
           <CircuitChat
             messages={project.messages ?? []}

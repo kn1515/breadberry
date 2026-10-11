@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
 import { validateDraft, type Project } from "@/lib/circuit";
 import { appendExchange, generateRequestSchema } from "@/lib/conversation";
-import { generateCircuit, reviewCircuit, ServiceError } from "@/lib/ai";
+import { ServiceError } from "@/lib/ai";
+import { runCircuitAgent } from "@/lib/agent";
 import {
   apiError,
   bodyJson,
@@ -38,13 +39,7 @@ export async function POST(req: NextRequest) {
     if (!process.env.GEMINI_API_KEY)
       throw new ServiceError("回路生成は現在利用できません。");
     await takeQuota(user);
-    const circuit = await generateCircuit(
-      input.data.prompt,
-      input.data.board,
-      input.data.context,
-      input.data.locale,
-    );
-    const review = await reviewCircuit(circuit, input.data.locale);
+    const { circuit, review, agentEvents, traceId } = await runCircuitAgent(input.data.prompt, input.data.board, input.data.context, input.data.locale, user);
     const project: Project = {
       id: randomUUID(),
       circuit,
@@ -56,6 +51,8 @@ export async function POST(req: NextRequest) {
         circuit,
       ),
       review,
+      agentEvents,
+      traceId,
       storage: "firestore",
     };
     try {

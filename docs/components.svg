@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 940" width="1600" height="940" font-family="'Noto Sans JP', sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1100" width="1600" height="1100" font-family="'Noto Sans JP', sans-serif">
 <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#3c4043" /></marker><marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#80868b" /></marker></defs>
-<rect width="1600" height="940" fill="#ffffff" />
+<rect width="1600" height="1100" fill="#ffffff" />
 <text x="40" y="52" font-size="28" fill="#202124" font-weight="700">breadberry コンポーネント図</text>
 <rect x="40" y="80" width="1160" height="250" rx="16" fill="#fafafa" stroke="#5f6368" stroke-width="2" />
 <image x="60" y="92" width="26" height="26" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHJlY3QgeD0iMiIgeT0iNCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjE2IiByeD0iMi41IiBmaWxsPSIjZmZmIiBzdHJva2U9IiM1ZjYzNjgiIHN0cm9rZS13aWR0aD0iMS44Ii8+PHBhdGggZD0iTTIgOWgyMCIgc3Ryb2tlPSIjNWY2MzY4IiBzdHJva2Utd2lkdGg9IjEuOCIvPjxjaXJjbGUgY3g9IjUuMiIgY3k9IjYuNiIgcj0iLjkiIGZpbGw9IiM1ZjYzNjgiLz48Y2lyY2xlIGN4PSI4IiBjeT0iNi42IiByPSIuOSIgZmlsbD0iIzVmNjM2OCIvPjwvc3ZnPg==" />
@@ -13,7 +13,8 @@
 <rect x="80" y="172" width="144" height="126" rx="8" fill="#ffffff" stroke="#9aa0a6" stroke-width="1.5" />
 <text x="92" y="198" font-size="14" fill="#202124" font-weight="700">CircuitChat</text>
 <text x="92" y="217" font-size="11" fill="#5f6368">circuit-chat.tsx</text>
-<text x="92" y="248" font-size="12" fill="#202124">回路設計チャット</text>
+<text x="92" y="248" font-size="12" fill="#202124">回路設計チャットと</text>
+<text x="92" y="267" font-size="12" fill="#202124">エージェントの履歴</text>
 <rect x="236" y="172" width="144" height="126" rx="8" fill="#ffffff" stroke="#9aa0a6" stroke-width="1.5" />
 <text x="248" y="198" font-size="14" fill="#202124" font-weight="700">BoardScene</text>
 <text x="248" y="217" font-size="11" fill="#5f6368">board-scene.tsx</text>
@@ -61,65 +62,95 @@
 <rect x="980" y="410" width="200" height="65" rx="8" fill="#ffffff" stroke="#4285f4" stroke-width="1.5" />
 <text x="992" y="436" font-size="13" fill="#202124" font-weight="700">/api/session</text>
 <text x="992" y="458" font-size="12" fill="#5f6368">セッション開始・接続状態</text>
-<rect x="40" y="530" width="1160" height="220" rx="16" fill="#f1f6fe" stroke="#4285f4" stroke-width="2" />
+<rect x="40" y="530" width="1160" height="370" rx="16" fill="#f1f6fe" stroke="#4285f4" stroke-width="2" />
 <text x="290" y="559" font-size="16" fill="#1a56c4" font-weight="700">サーバーライブラリ（src/lib）</text>
-<rect x="60" y="580" width="200" height="150" rx="8" fill="#ffffff" stroke="#4285f4" stroke-width="1.5" />
-<text x="72" y="606" font-size="14" fill="#202124" font-weight="700">ai.ts</text>
-<text x="72" y="630" font-size="12" fill="#1a56c4">generateCircuit</text>
-<text x="72" y="648" font-size="12" fill="#1a56c4">reviewCircuit</text>
-<text x="72" y="690" font-size="12" fill="#5f6368">Gemini生成と検査</text>
-<text x="72" y="708" font-size="12" fill="#5f6368">GMI補助レビュー</text>
-<rect x="290" y="580" width="200" height="150" rx="8" fill="#ffffff" stroke="#4285f4" stroke-width="1.5" />
-<text x="302" y="606" font-size="14" fill="#202124" font-weight="700">purchase-ai.ts</text>
-<text x="302" y="630" font-size="12" fill="#1a56c4">recommendPurchase</text>
-<text x="302" y="690" font-size="12" fill="#5f6368">販売店の探索と</text>
-<text x="302" y="708" font-size="12" fill="#5f6368">商品ページの照合</text>
-<rect x="520" y="580" width="200" height="150" rx="8" fill="#ffffff" stroke="#4285f4" stroke-width="1.5" />
-<text x="532" y="606" font-size="14" fill="#202124" font-weight="700">purchase-search.ts</text>
-<text x="532" y="630" font-size="12" fill="#1a56c4">runPurchaseSearch</text>
-<text x="532" y="690" font-size="12" fill="#5f6368">購入検索の進行管理</text>
-<text x="532" y="708" font-size="12" fill="#5f6368">期限・中断・逐次通知</text>
-<rect x="750" y="580" width="200" height="150" rx="8" fill="#ffffff" stroke="#4285f4" stroke-width="1.5" />
-<text x="762" y="606" font-size="14" fill="#202124" font-weight="700">digikey.ts</text>
-<text x="762" y="630" font-size="12" fill="#1a56c4">searchDigiKey</text>
-<text x="762" y="690" font-size="12" fill="#5f6368">OAuth・商品検索</text>
-<text x="762" y="708" font-size="12" fill="#5f6368">結果の正規化</text>
-<rect x="980" y="580" width="200" height="150" rx="8" fill="#ffffff" stroke="#4285f4" stroke-width="1.5" />
-<text x="992" y="606" font-size="14" fill="#202124" font-weight="700">server.ts</text>
-<text x="992" y="630" font-size="12" fill="#1a56c4">owner / checkOrigin</text>
-<text x="992" y="648" font-size="12" fill="#1a56c4">takeQuota / saveProject</text>
-<text x="992" y="690" font-size="12" fill="#5f6368">全ルート共通の基盤</text>
-<text x="992" y="708" font-size="12" fill="#5f6368">セッション・利用回数・保存</text>
+<rect x="60" y="580" width="200" height="134" rx="8" fill="#ffffff" stroke="#4285f4" stroke-width="1.5" />
+<text x="72" y="606" font-size="14" fill="#202124" font-weight="700">agent.ts</text>
+<text x="72" y="630" font-size="12" fill="#1a56c4">runCircuitAgent</text>
+<text x="72" y="674" font-size="12" fill="#5f6368">生成→検査→レビューの</text>
+<text x="72" y="692" font-size="12" fill="#5f6368">自己修正ループ（最大3回）</text>
+<rect x="290" y="580" width="200" height="134" rx="8" fill="#ffffff" stroke="#4285f4" stroke-width="1.5" />
+<text x="302" y="606" font-size="14" fill="#202124" font-weight="700">model-armor.ts</text>
+<text x="302" y="630" font-size="12" fill="#1a56c4">screenPrompt</text>
+<text x="302" y="648" font-size="12" fill="#1a56c4">screenResponse</text>
+<text x="302" y="674" font-size="12" fill="#5f6368">入力と生成結果の</text>
+<text x="302" y="692" font-size="12" fill="#5f6368">安全性検査</text>
+<rect x="750" y="580" width="200" height="134" rx="8" fill="#ffffff" stroke="#4285f4" stroke-width="1.5" />
+<text x="762" y="606" font-size="14" fill="#202124" font-weight="700">tracing.ts</text>
+<text x="762" y="630" font-size="12" fill="#1a56c4">traced / logEvent</text>
+<text x="762" y="674" font-size="12" fill="#5f6368">OpenTelemetryのスパン</text>
+<text x="762" y="692" font-size="12" fill="#5f6368">トレースと紐付く構造化ログ</text>
+<rect x="60" y="730" width="200" height="150" rx="8" fill="#ffffff" stroke="#4285f4" stroke-width="1.5" />
+<text x="72" y="756" font-size="14" fill="#202124" font-weight="700">ai.ts</text>
+<text x="72" y="780" font-size="12" fill="#1a56c4">generateCircuit</text>
+<text x="72" y="798" font-size="12" fill="#1a56c4">reviewCircuit</text>
+<text x="72" y="840" font-size="12" fill="#5f6368">Gemini生成と検査</text>
+<text x="72" y="858" font-size="12" fill="#5f6368">GMI補助レビュー</text>
+<rect x="290" y="730" width="200" height="150" rx="8" fill="#ffffff" stroke="#4285f4" stroke-width="1.5" />
+<text x="302" y="756" font-size="14" fill="#202124" font-weight="700">purchase-ai.ts</text>
+<text x="302" y="780" font-size="12" fill="#1a56c4">recommendPurchase</text>
+<text x="302" y="840" font-size="12" fill="#5f6368">販売店の探索と</text>
+<text x="302" y="858" font-size="12" fill="#5f6368">商品ページの照合</text>
+<rect x="520" y="730" width="200" height="150" rx="8" fill="#ffffff" stroke="#4285f4" stroke-width="1.5" />
+<text x="532" y="756" font-size="14" fill="#202124" font-weight="700">purchase-search.ts</text>
+<text x="532" y="780" font-size="12" fill="#1a56c4">runPurchaseSearch</text>
+<text x="532" y="840" font-size="12" fill="#5f6368">購入検索の進行管理</text>
+<text x="532" y="858" font-size="12" fill="#5f6368">期限・中断・逐次通知</text>
+<rect x="750" y="730" width="200" height="150" rx="8" fill="#ffffff" stroke="#4285f4" stroke-width="1.5" />
+<text x="762" y="756" font-size="14" fill="#202124" font-weight="700">digikey.ts</text>
+<text x="762" y="780" font-size="12" fill="#1a56c4">searchDigiKey</text>
+<text x="762" y="840" font-size="12" fill="#5f6368">OAuth・商品検索</text>
+<text x="762" y="858" font-size="12" fill="#5f6368">結果の正規化</text>
+<rect x="980" y="730" width="200" height="150" rx="8" fill="#ffffff" stroke="#4285f4" stroke-width="1.5" />
+<text x="992" y="756" font-size="14" fill="#202124" font-weight="700">server.ts</text>
+<text x="992" y="780" font-size="12" fill="#1a56c4">owner / checkOrigin</text>
+<text x="992" y="798" font-size="12" fill="#1a56c4">takeQuota / saveProject</text>
+<text x="992" y="840" font-size="12" fill="#5f6368">全ルート共通の基盤</text>
+<text x="992" y="858" font-size="12" fill="#5f6368">セッション・利用回数・保存</text>
 <path d="M160 475 V578" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
-<path d="M620 475 V578" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
-<path d="M900 475 L1040 578" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
-<path d="M1100 475 V578" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
-<path d="M520 655 H492" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
-<path d="M720 655 H748" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
-<rect x="60" y="800" width="200" height="104" rx="12" fill="#ffffff" stroke="#5f6368" stroke-width="2" />
-<image x="74" y="812" width="32" height="32" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTcgMTlhNSA1IDAgMCAxLS42LTkuOTZBNiA2IDAgMCAxIDE4IDkuNWE0Ljc1IDQuNzUgMCAwIDEtLjUgOS41eiIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjNWY2MzY4IiBzdHJva2Utd2lkdGg9IjEuOCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==" />
-<text x="114" y="835" font-size="16" fill="#202124" font-weight="700">GMI Cloud</text>
-<text x="74" y="868" font-size="12" fill="#202124">補助レビュー</text>
-<text x="74" y="887" font-size="12" fill="#202124">（OpenAI互換API）</text>
-<rect x="290" y="800" width="200" height="104" rx="12" fill="#ffffff" stroke="#4285f4" stroke-width="2" />
-<image x="304" y="812" width="32" height="32" href="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjNDI4NWY0IiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTEuMDQgMTkuMzJRMTIgMjEuNTEgMTIgMjRxMC0yLjQ5LjkzLTQuNjguOTYtMi4xOSAyLjU4LTMuODF0My44MS0yLjU1UTIxLjUxIDEyIDI0IDEycS0yLjQ5IDAtNC42OC0uOTNhMTIuMyAxMi4zIDAgMCAxLTMuODEtMi41OCAxMi4zIDEyLjMgMCAwIDEtMi41OC0zLjgxUTEyIDIuNDkgMTIgMHEwIDIuNDktLjk2IDQuNjgtLjkzIDIuMTktMi41NSAzLjgxYTEyLjMgMTIuMyAwIDAgMS0zLjgxIDIuNThRMi40OSAxMiAwIDEycTIuNDkgMCA0LjY4Ljk2IDIuMTkuOTMgMy44MSAyLjU1dDIuNTUgMy44MSIvPjwvc3ZnPg==" />
-<text x="344" y="835" font-size="16" fill="#1a56c4" font-weight="700">Gemini API</text>
-<text x="304" y="868" font-size="12" fill="#202124">構造化JSON出力</text>
-<text x="304" y="887" font-size="12" fill="#202124">Google検索 / URLコンテキスト</text>
-<rect x="750" y="800" width="200" height="104" rx="12" fill="#ffffff" stroke="#5f6368" stroke-width="2" />
-<image x="764" y="812" width="32" height="32" href="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjY2MwMDAwIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTIuMjQ2LjIyMUExMS43ODYgMTEuNzg2IDAgMCAxIDIzLjg5IDEwLjQxOGMuOTEyIDYuNTkzLTMuOTQ0IDEyLjcxMS0xMC41NTggMTMuMjk3LS40NTQuMDQtLjkxMi4wNjMtMS4zNjkuMDY0bC0xMC43MDUuMDAzdi0zLjc0OUgwVjMuOTg3aDEuMjIyVi4yMThsMTEuMDI0LjAwM3pNMTcuOSAxOS40MjNsLTguMjYtNy40MjIgOC4yNS03LjQyMmgtNi45MzhMNS42MTUgOS4zNjFWNC41OThILjU2djE0LjgwM2g1LjEwNXYtNC43MjRsNS4yODkgNC43NDZIMTcuOXoiLz48L3N2Zz4=" />
-<text x="804" y="835" font-size="16" fill="#202124" font-weight="700">DigiKey API</text>
-<text x="764" y="868" font-size="12" fill="#202124">商品検索・在庫・価格</text>
-<rect x="980" y="800" width="200" height="104" rx="12" fill="#ffffff" stroke="#4285f4" stroke-width="2" />
-<image x="994" y="812" width="32" height="32" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNHB4IiBoZWlnaHQ9IjI0cHgiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiM2NjlkZjY7fS5jbHMtMntmaWxsOiNhZWNiZmE7fS5jbHMtM3tmaWxsOiM0Mjg1ZjQ7fTwvc3R5bGU+PC9kZWZzPjx0aXRsZT5JY29uXzI0cHhfRmlyZXN0b3JlX0NvbG9yPC90aXRsZT48ZyBkYXRhLW5hbWU9IlByb2R1Y3QgSWNvbnMiPjxnIGRhdGEtbmFtZT0iY29sb3JlZC0zMi9maXJlc3RvcmUiPjxnID48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0yMSwxMywxMiw5djRsOSw0Wm0wLTdMMTIsMlY2bDksNFoiLz48cG9seWdvbiBpZD0iUmVjdGFuZ2xlLTciIGNsYXNzPSJjbHMtMiIgcG9pbnRzPSIzIDYgMTIgMiAxMiA2IDMgMTAgMyA2Ii8+PHBvbHlnb24gaWQ9IlJlY3RhbmdsZS03LTIiIGRhdGEtbmFtZT0iUmVjdGFuZ2xlLTciIGNsYXNzPSJjbHMtMiIgcG9pbnRzPSIzIDEzIDEyIDkgMTIgMTMgMyAxNyAzIDEzIi8+PHBvbHlnb24gaWQ9IlJlY3RhbmdsZS03LTMiIGRhdGEtbmFtZT0iUmVjdGFuZ2xlLTciIGNsYXNzPSJjbHMtMyIgcG9pbnRzPSIxMiAxOCAxNS4zNyAxNi41IDE5Ljg4IDE4LjUgMTIgMjIgMTIgMTgiLz48L2c+PC9nPjwvZz48L3N2Zz4=" />
-<text x="1034" y="835" font-size="16" fill="#1a56c4" font-weight="700">Cloud Firestore</text>
-<text x="994" y="868" font-size="12" fill="#202124">プロジェクト</text>
-<text x="994" y="887" font-size="12" fill="#202124">利用回数カウンター</text>
-<path d="M130 730 V798" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
-<path d="M225 730 L330 798" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
-<path d="M410 730 V798" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
-<path d="M850 730 V798" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
-<path d="M1080 730 V798" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
+<path d="M160 714 V728" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
+<path d="M620 475 V728" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
+<path d="M940 475 V520 H965 V760 H978" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
+<path d="M1100 475 V728" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
+<path d="M520 805 H492" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
+<path d="M720 805 H748" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
+<rect x="60" y="950" width="176" height="116" rx="12" fill="#ffffff" stroke="#5f6368" stroke-width="2" />
+<image x="72" y="962" width="30" height="30" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTcgMTlhNSA1IDAgMCAxLS42LTkuOTZBNiA2IDAgMCAxIDE4IDkuNWE0Ljc1IDQuNzUgMCAwIDEtLjUgOS41eiIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjNWY2MzY4IiBzdHJva2Utd2lkdGg9IjEuOCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==" />
+<text x="110" y="984" font-size="16" fill="#202124" font-weight="700">GMI Cloud</text>
+<text x="74" y="1016" font-size="12" fill="#202124">補助レビュー</text>
+<text x="74" y="1035" font-size="12" fill="#202124">（OpenAI互換API）</text>
+<rect x="250" y="950" width="176" height="116" rx="12" fill="#ffffff" stroke="#4285f4" stroke-width="2" />
+<image x="262" y="962" width="30" height="30" href="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjNDI4NWY0IiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTEuMDQgMTkuMzJRMTIgMjEuNTEgMTIgMjRxMC0yLjQ5LjkzLTQuNjguOTYtMi4xOSAyLjU4LTMuODF0My44MS0yLjU1UTIxLjUxIDEyIDI0IDEycS0yLjQ5IDAtNC42OC0uOTNhMTIuMyAxMi4zIDAgMCAxLTMuODEtMi41OCAxMi4zIDEyLjMgMCAwIDEtMi41OC0zLjgxUTEyIDIuNDkgMTIgMHEwIDIuNDktLjk2IDQuNjgtLjkzIDIuMTktMi41NSAzLjgxYTEyLjMgMTIuMyAwIDAgMS0zLjgxIDIuNThRMi40OSAxMiAwIDEycTIuNDkgMCA0LjY4Ljk2IDIuMTkuOTMgMy44MSAyLjU1dDIuNTUgMy44MSIvPjwvc3ZnPg==" />
+<text x="300" y="984" font-size="16" fill="#1a56c4" font-weight="700">Gemini API</text>
+<text x="264" y="1016" font-size="12" fill="#202124">構造化JSON出力</text>
+<text x="264" y="1035" font-size="12" fill="#202124">Google検索</text>
+<text x="264" y="1054" font-size="12" fill="#202124">URLコンテキスト</text>
+<rect x="440" y="950" width="176" height="116" rx="12" fill="#ffffff" stroke="#4285f4" stroke-width="2" />
+<image x="452" y="962" width="30" height="30" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTEyIDIuNSA0LjUgNS41djZjMCA0LjYgMy4xIDguMiA3LjUgMTAgNC40LTEuOCA3LjUtNS40IDcuNS0xMHYtNnoiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzQyODVmNCIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48cGF0aCBkPSJtOC42IDEyIDIuNCAyLjQgNC40LTQuNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNDI4NWY0IiBzdHJva2Utd2lkdGg9IjEuOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+" />
+<text x="490" y="984" font-size="16" fill="#1a56c4" font-weight="700">Model Armor</text>
+<text x="454" y="1016" font-size="12" fill="#202124">プロンプトと応答の</text>
+<text x="454" y="1035" font-size="12" fill="#202124">安全性検査</text>
+<rect x="630" y="950" width="176" height="116" rx="12" fill="#ffffff" stroke="#4285f4" stroke-width="2" />
+<image x="642" y="962" width="30" height="30" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHJlY3QgeD0iMyIgeT0iNCIgd2lkdGg9IjEzIiBoZWlnaHQ9IjQiIHJ4PSIxLjIiIGZpbGw9IiM0Mjg1ZjQiLz48cmVjdCB4PSI3IiB5PSIxMCIgd2lkdGg9IjE0IiBoZWlnaHQ9IjQiIHJ4PSIxLjIiIGZpbGw9IiM4YWI0ZjgiLz48cmVjdCB4PSIxMSIgeT0iMTYiIHdpZHRoPSI4IiBoZWlnaHQ9IjQiIHJ4PSIxLjIiIGZpbGw9IiM0Mjg1ZjQiLz48L3N2Zz4=" />
+<text x="680" y="984" font-size="16" fill="#1a56c4" font-weight="700">Cloud Trace</text>
+<text x="644" y="1016" font-size="12" fill="#202124">工程のトレース</text>
+<text x="644" y="1035" font-size="12" fill="#202124">（Telemetry API）</text>
+<rect x="820" y="950" width="176" height="116" rx="12" fill="#ffffff" stroke="#5f6368" stroke-width="2" />
+<image x="832" y="962" width="30" height="30" href="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjY2MwMDAwIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTIuMjQ2LjIyMUExMS43ODYgMTEuNzg2IDAgMCAxIDIzLjg5IDEwLjQxOGMuOTEyIDYuNTkzLTMuOTQ0IDEyLjcxMS0xMC41NTggMTMuMjk3LS40NTQuMDQtLjkxMi4wNjMtMS4zNjkuMDY0bC0xMC43MDUuMDAzdi0zLjc0OUgwVjMuOTg3aDEuMjIyVi4yMThsMTEuMDI0LjAwM3pNMTcuOSAxOS40MjNsLTguMjYtNy40MjIgOC4yNS03LjQyMmgtNi45MzhMNS42MTUgOS4zNjFWNC41OThILjU2djE0LjgwM2g1LjEwNXYtNC43MjRsNS4yODkgNC43NDZIMTcuOXoiLz48L3N2Zz4=" />
+<text x="870" y="984" font-size="16" fill="#202124" font-weight="700">DigiKey API</text>
+<text x="834" y="1016" font-size="12" fill="#202124">商品検索・在庫・価格</text>
+<rect x="1010" y="950" width="176" height="116" rx="12" fill="#ffffff" stroke="#4285f4" stroke-width="2" />
+<image x="1022" y="962" width="30" height="30" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNHB4IiBoZWlnaHQ9IjI0cHgiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiM2NjlkZjY7fS5jbHMtMntmaWxsOiNhZWNiZmE7fS5jbHMtM3tmaWxsOiM0Mjg1ZjQ7fTwvc3R5bGU+PC9kZWZzPjx0aXRsZT5JY29uXzI0cHhfRmlyZXN0b3JlX0NvbG9yPC90aXRsZT48ZyBkYXRhLW5hbWU9IlByb2R1Y3QgSWNvbnMiPjxnIGRhdGEtbmFtZT0iY29sb3JlZC0zMi9maXJlc3RvcmUiPjxnID48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0yMSwxMywxMiw5djRsOSw0Wm0wLTdMMTIsMlY2bDksNFoiLz48cG9seWdvbiBpZD0iUmVjdGFuZ2xlLTciIGNsYXNzPSJjbHMtMiIgcG9pbnRzPSIzIDYgMTIgMiAxMiA2IDMgMTAgMyA2Ii8+PHBvbHlnb24gaWQ9IlJlY3RhbmdsZS03LTIiIGRhdGEtbmFtZT0iUmVjdGFuZ2xlLTciIGNsYXNzPSJjbHMtMiIgcG9pbnRzPSIzIDEzIDEyIDkgMTIgMTMgMyAxNyAzIDEzIi8+PHBvbHlnb24gaWQ9IlJlY3RhbmdsZS03LTMiIGRhdGEtbmFtZT0iUmVjdGFuZ2xlLTciIGNsYXNzPSJjbHMtMyIgcG9pbnRzPSIxMiAxOCAxNS4zNyAxNi41IDE5Ljg4IDE4LjUgMTIgMjIgMTIgMTgiLz48L2c+PC9nPjwvZz48L3N2Zz4=" />
+<text x="1060" y="984" font-size="16" fill="#1a56c4" font-weight="700">Firestore</text>
+<text x="1024" y="1016" font-size="12" fill="#202124">プロジェクト</text>
+<text x="1024" y="1035" font-size="12" fill="#202124">利用回数カウンター</text>
+<path d="M130 880 V948" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
+<path d="M225 880 L300 948" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
+<path d="M400 880 V948" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
+<path d="M490 660 H505 V948" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
+<path d="M750 660 H735 V948" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
+<path d="M880 880 V948" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
+<path d="M1090 880 V948" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
 <rect x="1230" y="80" width="330" height="670" rx="16" fill="#fafafa" stroke="#5f6368" stroke-width="2" />
 <text x="1250" y="111" font-size="16" fill="#202124" font-weight="700">共有ドメイン（src/lib）</text>
 <text x="1250" y="132" font-size="12" fill="#5f6368">クライアントとサーバーで共通のロジック</text>
@@ -156,5 +187,7 @@
 <text x="1312" y="855" font-size="13" fill="#5f6368">import（共有ロジックの利用）</text>
 <rect x="1250" y="872" width="50" height="18" rx="4" fill="#ffffff" stroke="#4285f4" stroke-width="2" />
 <text x="1312" y="886" font-size="13" fill="#5f6368">Google Cloud 上で動く部分</text>
-<text x="1250" y="918" font-size="12" fill="#5f6368">※ すべてのAPIルートが server.ts を利用（矢印は一部省略）</text>
+<text x="1250" y="918" font-size="12" fill="#5f6368">※ すべてのAPIルートが server.ts を利用</text>
+<text x="1250" y="938" font-size="12" fill="#5f6368">※ 生成の各工程を tracing.ts で記録</text>
+<text x="1250" y="958" font-size="12" fill="#5f6368">（矢印は一部省略）</text>
 </svg>

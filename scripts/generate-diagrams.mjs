@@ -45,6 +45,16 @@ const ICON = {
   cloud: glyph(
     '<path d="M7 19a5 5 0 0 1-.6-9.96A6 6 0 0 1 18 9.5a4.75 4.75 0 0 1-.5 9.5z" fill="#fff" stroke="#5f6368" stroke-width="1.8" stroke-linejoin="round"/>',
   ),
+  // Model ArmorとCloud Traceは公式アイコンを同梱していないため、簡易な図形で表します。
+  armor: glyph(
+    '<path d="M12 2.5 4.5 5.5v6c0 4.6 3.1 8.2 7.5 10 4.4-1.8 7.5-5.4 7.5-10v-6z" fill="#fff" stroke="#4285f4" stroke-width="1.8" stroke-linejoin="round"/>' +
+      '<path d="m8.6 12 2.4 2.4 4.4-4.6" fill="none" stroke="#4285f4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
+  ),
+  trace: glyph(
+    '<rect x="3" y="4" width="13" height="4" rx="1.2" fill="#4285f4"/>' +
+      '<rect x="7" y="10" width="14" height="4" rx="1.2" fill="#8ab4f8"/>' +
+      '<rect x="11" y="16" width="8" height="4" rx="1.2" fill="#4285f4"/>',
+  ),
   user: glyph(
     '<circle cx="12" cy="8" r="4" fill="#fff" stroke="#5f6368" stroke-width="1.8"/>' +
       '<path d="M4 21a8 8 0 0 1 16 0" fill="#fff" stroke="#5f6368" stroke-width="1.8" stroke-linecap="round"/>',
@@ -110,11 +120,11 @@ function service(x, y, w, h, icon, title, lines, gc = true) {
 // ---------------------------------------------------------------- システム構成図
 function architecture() {
   const b = [];
-  b.push(rect(370, 90, 840, 730, GC, "#f1f6fe", 2, 16, "8 6"));
+  b.push(rect(370, 90, 840, 992, GC, "#f1f6fe", 2, 16, "8 6"));
   b.push(img("gcp", 392, 104, 26));
   b.push(text(428, 124, "Google Cloud（asia-northeast1）", 18, BLUE, true));
 
-  b.push(rect(40, 150, 260, 370));
+  b.push(rect(40, 150, 260, 400));
   b.push(img("browser", 60, 166, 40));
   b.push(text(112, 194, "ブラウザ", 20, INK, true));
   b.push(img("react", 224, 174, 24));
@@ -122,22 +132,23 @@ function architecture() {
   b.push(text(60, 228, "React 19 / Three.js", 14, GREY));
   [
     "回路設計チャット",
+    "エージェントの進行表示",
     "3Dブレッドボード",
     "回路図 / 部品表",
     "組み立て工程ガイド",
     "レイアウトエディタ",
     "部品の購入提案",
   ].forEach((t, i) => b.push(text(60, 268 + 30 * i, "・" + t, 15)));
-  b.push(text(60, 490, "署名付きCookie（bb_session）", 13, GREY));
+  b.push(text(60, 520, "署名付きCookie（bb_session）", 13, GREY));
 
-  b.push(rect(400, 150, 380, 370, GC, "#ffffff", 3));
+  b.push(rect(400, 150, 380, 632, GC, "#ffffff", 3));
   b.push(img("run", 420, 166, 40));
   b.push(text(472, 194, "Cloud Run", 20, BLUE, true));
   b.push(img("next", 704, 174, 24));
   b.push(img("docker", 736, 174, 24));
   b.push(text(420, 228, "Next.js 16 App Router（Dockerコンテナ）", 14, GREY));
   [
-    ["POST /api/generate", "回路生成 → 接続検査 → レビュー → 保存"],
+    ["POST /api/generate", "回路設計エージェントの実行と保存"],
     ["POST /api/purchase/search", "部品の在庫・販売店の検索と照合"],
     ["/api/projects, /api/projects/[id]", "回路の保存・一覧・取得"],
     ["/api/session ・ GET /api/health", "HMAC署名セッション / ヘルスチェック"],
@@ -145,7 +156,19 @@ function architecture() {
     b.push(text(420, 266 + 56 * i, t, 14, INK, true));
     b.push(text(436, 288 + 56 * i, d, 14, GREY));
   });
-  b.push(text(420, 496, "Zodスキーマ検査・ネット検査・利用回数制限", 13, GREY));
+
+  b.push(rect(416, 490, 348, 232, GC, "#f1f6fe", 1.5, 10));
+  b.push(text(432, 518, "回路設計エージェント", 16, BLUE, true));
+  [
+    "① 入力の安全性検査（Model Armor）",
+    "② Geminiで回路を生成",
+    "③ スキーマ検査・接続検査",
+    "④ 補助レビュー（PASS / FIX）",
+    "⑤ 不合格なら指摘を付けて再生成（最大3回）",
+    "⑥ 生成結果の安全性検査 → 保存",
+  ].forEach((t, i) => b.push(text(432, 548 + 26 * i, t, 13)));
+  b.push(text(432, 708, "進行はNDJSONでブラウザへ逐次送信", 12, GREY));
+  b.push(text(420, 756, "Zodスキーマ検査・ネット検査・利用回数制限", 13, GREY));
 
   b.push(
     ...service(900, 150, 280, 108, "gemini", "Gemini API", [
@@ -153,11 +176,18 @@ function architecture() {
       ["Google検索 / URLコンテキスト", INK],
     ]),
     ...service(900, 290, 280, 108, "firestore", "Cloud Firestore", [
-      ["プロジェクト（回路＋会話履歴）", INK],
+      ["プロジェクト（回路＋会話＋履歴）", INK],
       ["日次の利用回数カウンター", INK],
     ]),
     ...service(900, 430, 280, 90, "secret", "Secret Manager", [
       ["APIキー・セッション署名キー", INK],
+    ]),
+    ...service(900, 552, 280, 108, "armor", "Model Armor", [
+      ["入力と生成結果の安全性検査", INK],
+      ["プロンプトインジェクションの検出", GREY],
+    ]),
+    ...service(900, 692, 280, 90, "trace", "Cloud Trace / Logging", [
+      ["生成工程のトレースと構造化ログ", INK],
     ]),
     ...service(
       1270,
@@ -192,14 +222,17 @@ function architecture() {
   b.push(path("M780 204 H898"));
   b.push(path("M780 344 H898", LINE, false, true));
   b.push(path("M900 475 H782"));
+  b.push(path("M780 606 H898", LINE, false, true));
+  b.push(path("M780 737 H898"));
+  b.push(text(839, 727, "OTLP", 12, LINE, false, "middle"));
   b.push(path("M780 274 H1415 V260"));
   b.push(path("M780 414 H1415 V400"));
 
-  b.push(text(40, 620, "デプロイ（main へのPRマージ時）", 16, GREY, true));
+  b.push(text(40, 882, "デプロイ（main へのPRマージ時）", 16, GREY, true));
   b.push(
     ...service(
       40,
-      650,
+      912,
       260,
       110,
       "actions",
@@ -210,27 +243,27 @@ function architecture() {
       ],
       false,
     ),
-    ...service(400, 650, 260, 110, "build", "Cloud Build", [
+    ...service(400, 912, 260, 110, "build", "Cloud Build", [
       ["Dockerイメージのビルド", INK],
     ]),
-    ...service(760, 650, 260, 110, "registry", "Artifact Registry", [
+    ...service(760, 912, 260, 110, "registry", "Artifact Registry", [
       ["コンテナイメージの保管", INK],
     ]),
   );
-  b.push(path("M300 705 H398", CI, true));
-  b.push(path("M660 705 H758", CI, true));
-  b.push(path("M890 650 V585 H590 V522", CI, true));
-  b.push(text(740, 575, "gcloud run deploy", 13, GREY, false, "middle"));
+  b.push(path("M300 967 H398", CI, true));
+  b.push(path("M660 967 H758", CI, true));
+  b.push(path("M890 912 V847 H590 V784", CI, true));
+  b.push(text(740, 837, "gcloud run deploy", 13, GREY, false, "middle"));
 
-  b.push(path("M1270 690 H1320"));
-  b.push(text(1332, 695, "実行時の通信", 13, GREY));
-  b.push(path("M1270 720 H1320", CI, true));
-  b.push(text(1332, 725, "ビルド・デプロイ", 13, GREY));
-  b.push(rect(1270, 742, 50, 18, GC, "#ffffff", 2, 4));
-  b.push(text(1332, 756, "Google Cloud のサービス", 13, GREY));
-  b.push(rect(1270, 772, 50, 18, GREY, "#ffffff", 2, 4));
-  b.push(text(1332, 786, "外部サービス・クライアント", 13, GREY));
-  return doc(1600, 860, "breadberry システム構成図", b);
+  b.push(path("M1270 952 H1320"));
+  b.push(text(1332, 957, "実行時の通信", 13, GREY));
+  b.push(path("M1270 982 H1320", CI, true));
+  b.push(text(1332, 987, "ビルド・デプロイ", 13, GREY));
+  b.push(rect(1270, 1004, 50, 18, GC, "#ffffff", 2, 4));
+  b.push(text(1332, 1018, "Google Cloud のサービス", 13, GREY));
+  b.push(rect(1270, 1034, 50, 18, GREY, "#ffffff", 2, 4));
+  b.push(text(1332, 1048, "外部サービス・クライアント", 13, GREY));
+  return doc(1600, 1122, "breadberry システム構成図", b);
 }
 
 // ---------------------------------------------------------------- コンポーネント図
@@ -264,7 +297,11 @@ function components() {
     ),
   );
   [
-    ["CircuitChat", "circuit-chat.tsx", ["回路設計チャット"]],
+    [
+      "CircuitChat",
+      "circuit-chat.tsx",
+      ["回路設計チャットと", "エージェントの履歴"],
+    ],
     ["BoardScene", "board-scene.tsx", ["3D描画と", "組み立てアニメ"]],
     ["Schematic", "schematic.tsx", ["ネットリストの", "接続図"]],
     ["LayoutEditor", "layout-editor.tsx", ["配置の編集と", "干渉チェック"]],
@@ -306,8 +343,42 @@ function components() {
     b.push(text(X[i] + 12, 458, d, 12, GREY));
   });
 
-  b.push(rect(40, 530, 1160, 220, GC, "#f1f6fe", 2, 16));
+  b.push(rect(40, 530, 1160, 370, GC, "#f1f6fe", 2, 16));
   b.push(text(290, 559, "サーバーライブラリ（src/lib）", 16, BLUE, true));
+  const library = (x, y, h, name, functions, lines) => {
+    b.push(rect(x, y, 200, h, GC, "#ffffff", 1.5, 8));
+    b.push(text(x + 12, y + 26, name, 14, INK, true));
+    functions.forEach((f, j) =>
+      b.push(text(x + 12, y + 50 + 18 * j, f, 12, BLUE)),
+    );
+    lines.forEach((d, j) =>
+      b.push(text(x + 12, y + h - 40 + 18 * j, d, 12, GREY)),
+    );
+  };
+  // 上段：回路生成の制御・安全性検査・可観測性
+  [
+    [
+      0,
+      "agent.ts",
+      ["runCircuitAgent"],
+      ["生成→検査→レビューの", "自己修正ループ（最大3回）"],
+    ],
+    [
+      1,
+      "model-armor.ts",
+      ["screenPrompt", "screenResponse"],
+      ["入力と生成結果の", "安全性検査"],
+    ],
+    [
+      3,
+      "tracing.ts",
+      ["traced / logEvent"],
+      ["OpenTelemetryのスパン", "トレースと紐付く構造化ログ"],
+    ],
+  ].forEach(([i, name, functions, lines]) =>
+    library(X[i], 580, 134, name, functions, lines),
+  );
+  // 下段：外部サービスの呼び出しと共通基盤
   [
     [
       "ai.ts",
@@ -330,50 +401,44 @@ function components() {
       ["owner / checkOrigin", "takeQuota / saveProject"],
       ["全ルート共通の基盤", "セッション・利用回数・保存"],
     ],
-  ].forEach(([name, functions, lines], i) => {
-    b.push(rect(X[i], 580, 200, 150, GC, "#ffffff", 1.5, 8));
-    b.push(text(X[i] + 12, 606, name, 14, INK, true));
-    functions.forEach((f, j) =>
-      b.push(text(X[i] + 12, 630 + 18 * j, f, 12, BLUE)),
-    );
-    lines.forEach((d, j) => b.push(text(X[i] + 12, 690 + 18 * j, d, 12, GREY)));
-  });
+  ].forEach(([name, functions, lines], i) =>
+    library(X[i], 730, 150, name, functions, lines),
+  );
 
   b.push(path("M160 475 V578"));
-  b.push(path("M620 475 V578"));
-  b.push(path("M900 475 L1040 578"));
-  b.push(path("M1100 475 V578"));
-  b.push(path("M520 655 H492"));
-  b.push(path("M720 655 H748"));
+  b.push(path("M160 714 V728"));
+  b.push(path("M620 475 V728"));
+  b.push(path("M940 475 V520 H965 V760 H978"));
+  b.push(path("M1100 475 V728"));
+  b.push(path("M520 805 H492"));
+  b.push(path("M720 805 H748"));
 
+  const E = [60, 250, 440, 630, 820, 1010];
   [
-    [60, "cloud", "GMI Cloud", ["補助レビュー", "（OpenAI互換API）"], false],
+    ["cloud", "GMI Cloud", ["補助レビュー", "（OpenAI互換API）"], false],
     [
-      290,
       "gemini",
       "Gemini API",
-      ["構造化JSON出力", "Google検索 / URLコンテキスト"],
+      ["構造化JSON出力", "Google検索", "URLコンテキスト"],
       true,
     ],
-    [750, "digikey", "DigiKey API", ["商品検索・在庫・価格"], false],
-    [
-      980,
-      "firestore",
-      "Cloud Firestore",
-      ["プロジェクト", "利用回数カウンター"],
-      true,
-    ],
-  ].forEach(([x, icon, name, lines, gc]) => {
-    b.push(rect(x, 800, 200, 104, gc ? GC : GREY));
-    b.push(img(icon, x + 14, 812, 32));
-    b.push(text(x + 54, 835, name, 16, gc ? BLUE : INK, true));
-    lines.forEach((d, j) => b.push(text(x + 14, 868 + 19 * j, d, 12)));
+    ["armor", "Model Armor", ["プロンプトと応答の", "安全性検査"], true],
+    ["trace", "Cloud Trace", ["工程のトレース", "（Telemetry API）"], true],
+    ["digikey", "DigiKey API", ["商品検索・在庫・価格"], false],
+    ["firestore", "Firestore", ["プロジェクト", "利用回数カウンター"], true],
+  ].forEach(([icon, name, lines, gc], i) => {
+    b.push(rect(E[i], 950, 176, 116, gc ? GC : GREY));
+    b.push(img(icon, E[i] + 12, 962, 30));
+    b.push(text(E[i] + 50, 984, name, 16, gc ? BLUE : INK, true));
+    lines.forEach((d, j) => b.push(text(E[i] + 14, 1016 + 19 * j, d, 12)));
   });
-  b.push(path("M130 730 V798"));
-  b.push(path("M225 730 L330 798"));
-  b.push(path("M410 730 V798"));
-  b.push(path("M850 730 V798"));
-  b.push(path("M1080 730 V798"));
+  b.push(path("M130 880 V948"));
+  b.push(path("M225 880 L300 948"));
+  b.push(path("M400 880 V948"));
+  b.push(path("M490 660 H505 V948"));
+  b.push(path("M750 660 H735 V948"));
+  b.push(path("M880 880 V948"));
+  b.push(path("M1090 880 V948"));
 
   b.push(rect(1230, 80, 330, 670, GREY, "#fafafa", 2, 16));
   b.push(text(1250, 111, "共有ドメイン（src/lib）", 16, INK, true));
@@ -401,30 +466,28 @@ function components() {
   b.push(text(1312, 855, "import（共有ロジックの利用）", 13, GREY));
   b.push(rect(1250, 872, 50, 18, GC, "#ffffff", 2, 4));
   b.push(text(1312, 886, "Google Cloud 上で動く部分", 13, GREY));
-  b.push(
-    text(
-      1250,
-      918,
-      "※ すべてのAPIルートが server.ts を利用（矢印は一部省略）",
-      12,
-      GREY,
-    ),
-  );
-  return doc(1600, 940, "breadberry コンポーネント図", b);
+  [
+    "※ すべてのAPIルートが server.ts を利用",
+    "※ 生成の各工程を tracing.ts で記録",
+    "（矢印は一部省略）",
+  ].forEach((t, i) => b.push(text(1250, 918 + 20 * i, t, 12, GREY)));
+  return doc(1600, 1100, "breadberry コンポーネント図", b);
 }
 
 // ---------------------------------------------------------------- 処理シーケンス図
 function sequence() {
   const P = {
     user: [110, "user", "ユーザー", false],
-    web: [330, "browser", "ブラウザ", false],
-    run: [600, "run", "Cloud Run", true],
-    fs: [860, "firestore", "Cloud Firestore", true],
-    gem: [1080, "gemini", "Gemini API", true],
-    gmi: [1290, "cloud", "GMI Cloud", false],
-    dk: [1480, "digikey", "DigiKey API", false],
+    web: [320, "browser", "ブラウザ", false],
+    run: [560, "run", "Cloud Run", true],
+    armor: [790, "armor", "Model Armor", true],
+    fs: [1000, "firestore", "Cloud Firestore", true],
+    gem: [1210, "gemini", "Gemini API", true],
+    gmi: [1420, "cloud", "GMI Cloud", false],
+    dk: [1630, "digikey", "DigiKey API", false],
   };
-  const H = 1480;
+  const W = 1750,
+    H = 1808;
   const b = [];
   for (const [x, icon, name, gc] of Object.values(P)) {
     b.push(
@@ -436,7 +499,7 @@ function sequence() {
   }
   const frame = (y1, y2, label) => {
     const w = 28 + 16 * label.length;
-    b.push(rect(30, y1, 1540, y2 - y1, "#9aa0a6", "none", 1.5, 10));
+    b.push(rect(30, y1, W - 60, y2 - y1, "#9aa0a6", "none", 1.5, 10));
     b.push(
       `<path d="M30 ${y1 + 30} H${30 + w - 12} L${30 + w} ${y1 + 18} V${y1} H40 a10 10 0 0 0 -10 10 z" fill="#e8eaed" stroke="#9aa0a6" stroke-width="1.5" />`,
     );
@@ -461,7 +524,7 @@ function sequence() {
     b.push(text(x, y - 3, t, 13, INK, false, "middle"));
   };
 
-  frame(190, 918, "回路の生成・修正");
+  frame(190, 1246, "回路の生成・修正");
   let y = (i) => 248 + 46 * i;
   msg(y(0), "user", "web", "要望・基板を入力");
   msg(y(1), "web", "run", "POST /api/session（未開始時）");
@@ -469,24 +532,25 @@ function sequence() {
   msg(y(3), "web", "run", "POST /api/generate");
   note(y(4), "run", "送信元・セッション・入力を検査");
   msg(y(5), "run", "fs", "利用回数を消費（上限超過は429）");
-  msg(y(6), "run", "gem", "generateContent（JSONスキーマ指定）");
-  msg(y(7), "gem", "run", "回路ネットリスト（JSON）", true);
-  note(y(8), "run", "スキーマ検査・接続検査");
-  msg(y(9), "run", "gmi", "補助レビューを依頼");
-  msg(
-    y(10),
-    "gmi",
-    "run",
-    "レビュー結果（失敗時は「未実施」として継続）",
-    true,
-  );
-  msg(y(11), "run", "fs", "プロジェクトを保存");
-  msg(y(12), "run", "web", "回路・会話・レビュー", true);
-  note(y(13), "web", "3D・回路図・部品表を描画");
-  msg(y(14), "web", "user", "組み立て手順を表示", true);
+  msg(y(6), "run", "armor", "入力の安全性検査");
+  msg(y(7), "armor", "run", "検査結果（検出時は拒否）", true);
+  msg(y(8), "run", "gem", "generateContent（JSONスキーマ指定）");
+  msg(y(9), "gem", "run", "回路ネットリスト（JSON）", true);
+  note(y(10), "run", "スキーマ検査・接続検査");
+  msg(y(11), "run", "gmi", "補助レビューを依頼");
+  msg(y(12), "gmi", "run", "PASS / FIX（失敗時は「未実施」として継続）", true);
+  note(y(13), "run", "検査エラー・FIXのときは指摘を付けて再生成（最大3回）");
+  msg(y(14), "run", "web", "エージェントの進行を逐次送信（NDJSON）", true);
+  msg(y(15), "run", "armor", "生成結果の安全性検査");
+  msg(y(16), "armor", "run", "検査結果（検出時は拒否）", true);
+  msg(y(17), "run", "fs", "プロジェクトを保存");
+  note(y(18), "run", "各工程のスパンをCloud Traceへ送信");
+  msg(y(19), "run", "web", "回路・会話・レビュー・エージェントの履歴", true);
+  note(y(20), "web", "3D・回路図・部品表を描画");
+  msg(y(21), "web", "user", "組み立て手順を表示", true);
 
-  frame(940, 1430, "部品の購入提案");
-  y = (i) => 998 + 46 * i;
+  frame(1268, 1758, "部品の購入提案");
+  y = (i) => 1326 + 46 * i;
   msg(y(0), "user", "web", "購入先を検索");
   msg(y(1), "web", "run", "POST /api/purchase/search");
   msg(y(2), "run", "fs", "利用回数を消費");
@@ -502,7 +566,7 @@ function sequence() {
   msg(y(7), "gem", "run", "推奨候補と理由", true);
   msg(y(8), "run", "web", "推奨結果", true);
   msg(y(9), "web", "user", "購入候補を表示", true);
-  return doc(1600, H, "breadberry 処理シーケンス図", b);
+  return doc(W, H, "breadberry 処理シーケンス図", b);
 }
 
 const diagrams = { architecture, components, sequence };

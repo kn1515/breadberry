@@ -74,6 +74,18 @@ for SECRET in breadberry-gemini-key breadberry-gmi-key breadberry-session-secret
 done
 ```
 
+### Model Armor と Cloud Trace
+
+実行アカウントにトレースの書き込み権限を付けます。Cloud Trace はデプロイ時に既定で有効です。
+
+```bash
+gcloud services enable telemetry.googleapis.com cloudtrace.googleapis.com --project "$GOOGLE_CLOUD_PROJECT"
+gcloud projects add-iam-policy-binding "$GOOGLE_CLOUD_PROJECT" \
+  --member="serviceAccount:${RUNTIME_SA}" --role=roles/telemetry.tracesWriter
+```
+
+Model Armor は任意です。テンプレートの作成と `roles/modelarmor.user` の付与は、README の「Model Armor と Cloud Trace」を参照してください。どちらも権限がない場合は生成を止めず、警告ログを記録します。
+
 ### 4. ビルド・デプロイ
 
 ```bash
@@ -159,6 +171,8 @@ GitHub リポジトリの **Settings > Secrets and variables > Actions > Variabl
 | `CLOUD_RUN_SERVICE` | 任意。未指定時は `breadberry` |
 | `ARTIFACT_REPOSITORY` | 任意。未指定時は `breadberry` |
 | `GEMINI_MODEL` / `GMI_MODEL` / `APP_ORIGIN` | 任意。ローカルの同名環境変数と同じ用途 |
+| `MODEL_ARMOR_TEMPLATE` / `MODEL_ARMOR_LOCATION` / `MODEL_ARMOR_MODE` | 任意。Model Armor のテンプレート ID・リージョン・動作（`block` / `inspect`）。テンプレート未設定なら無効 |
+| `CLOUD_TRACE` | 任意。未指定時は `true`（Cloud Trace へ送信）。`false` で無効 |
 
 `production` Environment を作成して承認者を設定すると、マージ後のデプロイ前に GitHub 上で承認を必須にできます。
 

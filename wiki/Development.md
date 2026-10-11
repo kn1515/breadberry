@@ -23,7 +23,10 @@ breadberry/
 │   │   └── schematic.tsx     # ネットリストの接続図
 │   └── lib/
 │       ├── circuit.ts        # 共通スキーマ、ピン表、配置、部品表、接続検査
+│       ├── agent.ts          # 生成・検査・レビューを繰り返す回路設計エージェント
 │       ├── ai.ts             # Gemini 生成と GMI 補助レビュー
+│       ├── model-armor.ts    # Model Armor による入力・生成結果の検査
+│       ├── tracing.ts        # Cloud Trace へのトレースと構造化ログ
 │       ├── conversation.ts   # 会話コンテキストの型・制約
 │       ├── demo.ts           # APIキー不要のサンプル回路
 │       └── server.ts         # セッション、Firestore、利用回数制限

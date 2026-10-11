@@ -55,19 +55,19 @@ Next.js / TypeScript / Tailwind CSS / Three.js（React Three Fiber）/ Gemini AP
 
 ![breadberry システム構成図](docs/architecture.png)
 
-ブラウザからの要求はCloud Run上のNext.jsが受け、Gemini APIで回路を生成し、接続検査とGMI Cloudの補助レビューを経てCloud Firestoreへ保存します。部品の購入提案ではDigiKey APIとGeminiのGoogle検索・URLコンテキストを使います。APIキーと署名キーはSecret Managerから渡します。
+ブラウザからの要求はCloud Run上のNext.jsが受け、回路設計エージェントがGemini APIで回路を生成します。接続検査とGMI Cloudの補助レビューで不備が見つかると、指摘を付けて再生成し（最大3回）、合格した設計をCloud Firestoreへ保存します。入力と生成結果はModel Armorで検査し、各工程はCloud TraceとCloud Loggingに記録します。部品の購入提案ではDigiKey APIとGeminiのGoogle検索・URLコンテキストを使います。APIキーと署名キーはSecret Managerから渡します。
 
 ### コンポーネント図
 
 ![breadberry コンポーネント図](docs/components.png)
 
-ブラウザのReactコンポーネント、Cloud Run上のAPIルートとサーバーライブラリ、両者が共有する回路ドメインのロジックに分かれます。部品表・3D・接続図・工程は、共有ドメインの同じ回路ネットリストから導出します。
+ブラウザのReactコンポーネント、Cloud Run上のAPIルートとサーバーライブラリ、両者が共有する回路ドメインのロジックに分かれます。サーバーライブラリの上段は回路生成の制御（`agent.ts`）・安全性検査（`model-armor.ts`）・可観測性（`tracing.ts`）、下段は外部サービスの呼び出しと共通基盤です。部品表・3D・接続図・工程は、共有ドメインの同じ回路ネットリストから導出します。
 
 ### 処理シーケンス図
 
 ![breadberry 処理シーケンス図](docs/sequence.png)
 
-回路の生成・修正と、部品の購入提案の流れです。補助レビューが失敗した場合は「未実施」として設計を保持し、処理を続けます。
+回路の生成・修正と、部品の購入提案の流れです。生成中は、エージェントの進行をNDJSONでブラウザへ逐次送信します。補助レビューを取得できなかった場合は「未実施」として設計を保持し、処理を続けます。Model Armorに接続できない場合も、検査を省略して処理を続けます。
 
 図は `scripts/generate-diagrams.mjs` で生成しています。内容を変更したらスクリプトを編集し、`npm run diagrams` で `docs/` のSVGとPNGを再生成します（PNGの描画にPlaywrightのChromiumを使うため、初回は `npx playwright install chromium` が必要です）。アイコンは `docs/icons/` にあります。詳細は [Architecture](wiki/Architecture.md) を参照してください。
 
@@ -471,6 +471,7 @@ GitHub Actionsでも実行します。APIキー・Google Cloudプロジェクト
 - `src/components/board-scene.tsx`：部品・基板・ジャンパ線の3D描画とアニメーション
 - `src/components/schematic.tsx`：ネットリストの接続図
 - `src/lib/circuit.ts`：共通スキーマ、ピン表、配置、部品表、接続検査
+- `src/lib/agent.ts`：生成・検査・レビューを繰り返す回路設計エージェント
 - `src/lib/ai.ts`：Gemini生成とGMI補助レビュー
 - `src/lib/server.ts`：セッション、Firestore、利用回数制限
 - `src/lib/model-armor.ts`：Model Armorによる入力・生成結果の検査

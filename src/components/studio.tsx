@@ -267,6 +267,7 @@ export default function Studio() {
     setMode("viewer");
     setEditorSession((s) => s + 1);
     setProject(p);
+    setLiveAgentEvents([]);
     setNewDesign(false);
     setPrompt("");
     setError("");
@@ -1161,7 +1162,7 @@ export default function Studio() {
             <strong>{t("回路設計の実行履歴")}</strong>
             <p aria-live="polite">{busy ? t("エージェントが実行中…") : (liveAgentEvents.length || project.agentEvents?.length) ? t("検証完了") : t("実行履歴はまだありません")}</p>
             <ol role="log" aria-live="polite" aria-label={t("エージェントの行動履歴")}>
-              {(busy || liveAgentEvents.length ? liveAgentEvents : project.agentEvents ?? []).map((event, index) => {
+              {(busy ? liveAgentEvents : project.agentEvents ?? []).map((event, index) => {
                 const headings: Record<string, string> = { generation: "回路を生成", selection: "部品選定", validation: event.outcome === "failed" ? "接続検査：問題を検出" : "接続検査：問題なし", repair: "回路を自動修正", review: "補助レビュー", complete: "回路設計完了" };
                 return <li key={index} style={{marginTop: 9}}>
                   <strong>{t(headings[event.step] ?? event.step)} {event.attempt > 1 ? `(${event.attempt}回目)` : ""}</strong>

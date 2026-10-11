@@ -4,6 +4,8 @@
 
 Next.js / TypeScript / Tailwind CSS / Three.js（React Three Fiber）/ Gemini API / GMI Cloud / Cloud Firestore。Fritzingの部品・回路・インスペクターという構成を参考にした、オリジナルのダッシュボードです。
 
+**公開デモ：** [https://breadberry-924602448759.asia-northeast1.run.app/](https://breadberry-924602448759.asia-northeast1.run.app/)（Cloud Run・認証不要）
+
 ![breadberry ワークスペース](docs/preview.jpg)
 
 ## できること
@@ -204,11 +206,11 @@ done
 make deploy
 ```
 
-`scripts/deploy.sh` がCloud BuildでDockerをビルドし、Cloud Runへデプロイします。東京リージョン、1GiBメモリ、最大3インスタンス、180秒タイムアウト、**IAMで保護された非公開サービス**が既定です。環境変数 `REGION` / `SERVICE` / `SERVICE_ACCOUNT` で変更できます。
+`scripts/deploy.sh` がCloud BuildでDockerをビルドし、Cloud Runへデプロイします。東京リージョン、1GiBメモリ、最大3インスタンス、180秒タイムアウト、**認証なしでアクセスできる公開サービス**が既定です。環境変数 `REGION` / `SERVICE` / `SERVICE_ACCOUNT` で変更できます。IAMで保護された非公開サービスにする場合は `ALLOW_UNAUTHENTICATED=false make deploy` を実行します。
 
 `APP_ORIGIN` を指定して実行すると、そのURLを操作の送信元として許可します（末尾 `/` なし）。未指定の場合はCloud Runに設定済みの値を保持します。他の追加済み環境変数も再デプロイ時に保持します。
 
-`scripts/deploy.sh` はDigiKeyを含む上記5個のシークレットを `--update-secrets` でCloud Runの実行時環境変数に自動登録します。各シークレットの参照は `latest` に更新し、それ以外の追加シークレット参照は保持します。DigiKeyの2個もデプロイ前に作成・権限付与が必要です。`DIGIKEY_SANDBOX` は既定で `false` を登録します。旧 `APP_ACCESS_TOKEN` のシークレット参照はデプロイ時に解除します。Secret Managerのシークレット自体は削除しません。Cloud RunのIAMアクセス制御は従来どおりです。
+`scripts/deploy.sh` はDigiKeyを含む上記5個のシークレットを `--update-secrets` でCloud Runの実行時環境変数に自動登録します。各シークレットの参照は `latest` に更新し、それ以外の追加シークレット参照は保持します。DigiKeyの2個もデプロイ前に作成・権限付与が必要です。`DIGIKEY_SANDBOX` は既定で `false` を登録します。旧 `APP_ACCESS_TOKEN` のシークレット参照はデプロイ時に解除します。Secret Managerのシークレット自体は削除しません。Cloud RunのIAMアクセス制御（公開・非公開）は `ALLOW_UNAUTHENTICATED` の指定に従って毎回設定します。
 
 一度Cloud RunのURLを `APP_ORIGIN` に設定済みなら、以降は `make deploy` だけで再デプロイできます。毎回 `gcloud run services update --update-env-vars APP_ORIGIN=...` を実行する必要はありません。URLを変更する場合や、localhost用の設定から戻す場合にだけ更新してください。
 
@@ -301,7 +303,16 @@ GitHubリポジトリの **Settings > Secrets and variables > Actions > Variable
 
 `production` Environmentを作成して承認者を設定すると、マージ後のデプロイ前にGitHub上で承認を必須にできます。Cloud Build実行用サービスアカウントには、従来どおりArtifact Registryへの書き込み権限が必要です。
 
-非公開のまま自分で確認するには、まずlocalhostを許可してプロキシを起動します：
+デプロイ後は、許可する送信元をCloud RunのURLに設定します：
+
+```bash
+export APP_ORIGIN="https://YOUR_SERVICE_URL"
+gcloud run services update breadberry --region "$REGION" \
+  --project "$GOOGLE_CLOUD_PROJECT" \
+  --update-env-vars "APP_ORIGIN=${APP_ORIGIN}"
+```
+
+`ALLOW_UNAUTHENTICATED=false` で非公開にした場合は、localhostを許可してプロキシ経由で確認します：
 
 ```bash
 gcloud run services update breadberry --region "$REGION" \
@@ -314,18 +325,9 @@ gcloud run services proxy breadberry --region "$REGION" \
 
 [http://localhost:8080](http://localhost:8080) を開きます。`127.0.0.1` や別のポートは異なる送信元として扱われるため、設定と同じURLを使ってください。
 
-Cloud RunのURLでアクセスするときは、許可する送信元をそのURLに切り替えます：
-
-```bash
-export APP_ORIGIN="https://YOUR_SERVICE_URL"
-gcloud run services update breadberry --region "$REGION" \
-  --project "$GOOGLE_CLOUD_PROJECT" \
-  --update-env-vars "APP_ORIGIN=${APP_ORIGIN}"
-```
-
 現在の実装で許可する送信元は1つです。localhostと公開URLの両方を同時には指定できません。「この送信元からは操作できません。」という403は、セッション開始などの操作時にブラウザの送信元と許可URLが一致しない場合にアプリが返します。Cloud RunのIAM認証による `Error: Forbidden` とは別の設定です。
 
-一般公開する場合は、Cloud RunのInvoker権限を運用に合わせて変更してください。公開URLに合わせて `APP_ORIGIN` を設定します。本格的な複数ユーザー運用にはFirebase Authentication等の認証を追加してください。
+公開サービスでは誰でもアクセスできるため、生成回数の全体上限・個別上限で利用量を制限しています。本格的な複数ユーザー運用にはFirebase Authentication等の認証を追加してください。
 
 Firestoreのクライアント直接アクセスを禁止するルールと、生成回数カウンターの7日TTLを適用できます。
 

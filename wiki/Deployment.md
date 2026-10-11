@@ -84,9 +84,9 @@ make deploy
 
 - 東京リージョン（asia-northeast1）
 - 1GiB メモリ、最大3インスタンス、180秒タイムアウト
-- **IAM で保護された非公開サービス**
+- **認証なしでアクセスできる公開サービス**
 
-環境変数 `REGION` / `SERVICE` / `SERVICE_ACCOUNT` で変更できます。
+環境変数 `REGION` / `SERVICE` / `SERVICE_ACCOUNT` で変更できます。IAM で保護された非公開サービスにする場合は `ALLOW_UNAUTHENTICATED=false make deploy` を実行します。
 
 #### APP_ORIGIN の扱い
 
@@ -164,7 +164,18 @@ GitHub リポジトリの **Settings > Secrets and variables > Actions > Variabl
 
 ## デプロイ後の動作確認
 
-非公開のまま自分で確認するには、まず localhost を許可してプロキシを起動します：
+公開デモは [https://breadberry-924602448759.asia-northeast1.run.app/](https://breadberry-924602448759.asia-northeast1.run.app/) で動作しています。
+
+デプロイ後は、許可する送信元を Cloud Run の URL に設定します：
+
+```bash
+export APP_ORIGIN="https://YOUR_SERVICE_URL"
+gcloud run services update breadberry --region "$REGION" \
+  --project "$GOOGLE_CLOUD_PROJECT" \
+  --update-env-vars "APP_ORIGIN=${APP_ORIGIN}"
+```
+
+`ALLOW_UNAUTHENTICATED=false` で非公開にした場合は、localhost を許可してプロキシ経由で確認します：
 
 ```bash
 gcloud run services update breadberry --region "$REGION" \
@@ -177,25 +188,16 @@ gcloud run services proxy breadberry --region "$REGION" \
 
 [http://localhost:8080](http://localhost:8080) を開きます。`127.0.0.1` や別のポートは異なる送信元として扱われるため、設定と同じ URL を使ってください。
 
-Cloud Run の URL でアクセスするときは、許可する送信元をその URL に切り替えます：
-
-```bash
-export APP_ORIGIN="https://YOUR_SERVICE_URL"
-gcloud run services update breadberry --region "$REGION" \
-  --project "$GOOGLE_CLOUD_PROJECT" \
-  --update-env-vars "APP_ORIGIN=${APP_ORIGIN}"
-```
-
 現在の実装で許可する送信元は1つです。localhost と公開 URL の両方を同時には指定できません。
 
 ### トラブルシューティング
 
 - **「この送信元からは操作できません。」という 403**：セッション開始などの操作時にブラウザの送信元と `APP_ORIGIN` が一致していません。Cloud Run の IAM 認証による `Error: Forbidden` とは別の設定です
-- **`Error: Forbidden`（IAM）**：Cloud Run サービスが非公開（IAM 保護）のまま認証なしでアクセスしています。`gcloud run services proxy` を使うか、Invoker 権限を確認してください
+- **`Error: Forbidden`（IAM）**：`ALLOW_UNAUTHENTICATED=false` でデプロイした非公開サービスに認証なしでアクセスしています。`gcloud run services proxy` を使うか、公開設定で再デプロイしてください
 
 ## 一般公開
 
-一般公開する場合は、Cloud Run の Invoker 権限を運用に合わせて変更してください。公開 URL に合わせて `APP_ORIGIN` を設定します。本格的な複数ユーザー運用には Firebase Authentication 等の認証を追加してください。
+公開サービスでは誰でもアクセスできるため、生成回数の全体上限・個別上限で利用量を制限しています。本格的な複数ユーザー運用には Firebase Authentication 等の認証を追加してください。
 
 Firestore のクライアント直接アクセスを禁止するルールと、生成回数カウンターの 7 日 TTL を適用できます：
 

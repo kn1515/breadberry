@@ -4,6 +4,8 @@ breadberry のシステム構成、API、データ構造の概要です。
 
 ## 全体構成
 
+![breadberry システムアーキテクチャ](../docs/architecture.png)
+
 ```
 ブラウザ (React / Three.js)
     │
@@ -14,6 +16,7 @@ Next.js App Router (src/app)
             ├── POST /api/generate ... Gemini生成 + GMIレビュー + Firestore保存
             ├── GET  /api/projects ... 保存プロジェクト一覧
             ├── GET  /api/projects/[id] ... プロジェクト取得
+            ├── POST /api/purchase/search ... 部品の購入先検索（DigiKey + Gemini）
             ├── POST /api/session ... HMAC署名セッション開始
             └── GET  /api/health ... ヘルスチェック
     │
@@ -21,6 +24,7 @@ Next.js App Router (src/app)
 外部サービス
     ├── Gemini API ... 回路の構造化JSON生成
     ├── GMI Cloud ... 生成結果の補助レビュー
+    ├── DigiKey API ... 部品の検索・在庫・価格
     └── Cloud Firestore ... プロジェクト保存・利用回数管理
 ```
 

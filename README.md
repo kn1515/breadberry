@@ -40,6 +40,12 @@ Next.js / TypeScript / Tailwind CSS / Three.js（React Three Fiber）/ Gemini AP
 
 `POST /api/generate` は従来の `{ prompt, board }` に加え、任意の `context: { circuit, messages }` を受け取ります。`messages` は `{ role: "user" | "assistant", content: string }` の配列です。入力サイズ・会話・修正元の回路を検査し、生成結果も従来の接続検査を通してから保存します。応答の `messages` に今回の依頼と生成された回路の説明を追加します。
 
+## システム構成
+
+![breadberry システムアーキテクチャ](docs/architecture.png)
+
+ブラウザからの要求はCloud Run上のNext.jsが受け、Gemini APIで回路を生成し、接続検査とGMI Cloudの補助レビューを経てCloud Firestoreへ保存します。部品の購入提案ではDigiKey APIとGeminiのGoogle検索・URLコンテキストを使います。APIキーと署名キーはSecret Managerから渡します。図の元データは `docs/architecture.svg` です。詳細は [Architecture](wiki/Architecture.md) を参照してください。
+
 ## セットアップ
 
 Node.js 24 と npm が必要です。
@@ -520,3 +526,40 @@ RESET → LOAD 1 → AND 0 → XOR 1 → NOTを順に実行するとAは0 → 1 
 - [FastAdd公式仕様（POST）](https://forum.digikey.com/t/digikey-fastadd-bulk-add-parts-into-a-digikey-cart-via-third-party-tooling-and-urls/61356)
 
 検証: `npm run typecheck && npm test && npm run build`、`npx playwright test tests/purchase.spec.ts`。自動テストは商品APIとカート送信をモックし、実カートを変更しません。実機確認は本番キーで接続後、少数の候補を選び、別タブのDigiKeyカートで型番・数量を確認してください。
+
+## ライセンス
+
+breadberry本体は [ISC License](LICENSE) で公開しています。
+
+以下のオープンソースソフトウェアを利用しています。各ソフトウェアの著作権は、それぞれの著作権者に帰属します。ライセンス全文は `node_modules/<パッケージ名>/` 内のライセンスファイル、または各配布元で確認できます。
+
+### 実行時に使用するもの
+
+| ソフトウェア | 用途 | ライセンス |
+| --- | --- | --- |
+| [Next.js](https://github.com/vercel/next.js) | Webフレームワーク | MIT |
+| [React](https://github.com/facebook/react) / React DOM | UI | MIT |
+| [three.js](https://github.com/mrdoob/three.js) | 3D描画 | MIT |
+| [React Three Fiber](https://github.com/pmndrs/react-three-fiber) | three.jsのReactレンダラー | MIT |
+| [drei](https://github.com/pmndrs/drei) | React Three Fiberの補助部品 | MIT |
+| [Zod](https://github.com/colinhacks/zod) | スキーマ検査 | MIT |
+| [Lucide](https://github.com/lucide-icons/lucide)（lucide-react） | アイコン | ISC |
+| [@google-cloud/firestore](https://github.com/googleapis/nodejs-firestore) | Firestoreクライアント | Apache-2.0 |
+| [Fontsource](https://github.com/fontsource/font-files) で配布される Inter / Noto Sans JP / Oswald / Playfair Display | フォント | SIL Open Font License 1.1 |
+
+### 開発・ビルド・テストに使用するもの
+
+| ソフトウェア | 用途 | ライセンス |
+| --- | --- | --- |
+| [Tailwind CSS](https://github.com/tailwindlabs/tailwindcss)（@tailwindcss/postcss を含む） | スタイル | MIT |
+| [TypeScript](https://github.com/microsoft/TypeScript) | 型検査 | Apache-2.0 |
+| [Playwright](https://github.com/microsoft/playwright) | E2Eテスト | Apache-2.0 |
+| [tsx](https://github.com/privatenumber/tsx) | TypeScriptの実行 | MIT |
+| [Prettier](https://github.com/prettier/prettier) | コード整形 | MIT |
+| [DefinitelyTyped](https://github.com/DefinitelyTyped/DefinitelyTyped)（@types/node, @types/react, @types/react-dom, @types/three） | 型定義 | MIT |
+
+上記は `package.json` に直接記載している依存です。間接的な依存を含む一覧は `npx license-checker --summary` などで確認できます。
+
+`public/models/led/` の3Dモデルは `scripts/generate-led-models.ts` で生成した本プロジェクトのオリジナルです。Fritzingは画面構成の参考にしたもので、Fritzingのコード・部品データ・画像は含みません。
+
+Gemini API、GMI Cloud、DigiKey API、Google Cloudの各サービスは、それぞれの利用規約に従って利用しています。

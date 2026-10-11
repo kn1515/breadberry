@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 860" width="1600" height="860" font-family="'Noto Sans JP', sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#3c4043" />
+    </marker>
+    <marker id="arrow-ci" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#80868b" />
+    </marker>
+  </defs>
+
+  <rect width="1600" height="860" fill="#ffffff" />
+  <text x="40" y="52" font-size="28" font-weight="700" fill="#202124">breadberry システムアーキテクチャ</text>
+
+  <!-- Google Cloud -->
+  <rect x="370" y="90" width="840" height="730" rx="16" fill="#f1f6fe" stroke="#4285f4" stroke-width="2" stroke-dasharray="8 6" />
+  <text x="394" y="124" font-size="18" font-weight="700" fill="#1a56c4">Google Cloud（asia-northeast1）</text>
+
+  <!-- ブラウザ -->
+  <rect x="40" y="150" width="260" height="370" rx="12" fill="#ffffff" stroke="#5f6368" stroke-width="2" />
+  <text x="60" y="186" font-size="20" font-weight="700" fill="#202124">ブラウザ</text>
+  <text x="60" y="214" font-size="14" fill="#5f6368">React 19 / Three.js</text>
+  <g font-size="15" fill="#202124">
+    <text x="60" y="262">・回路設計チャット</text>
+    <text x="60" y="292">・3Dブレッドボード</text>
+    <text x="60" y="322">・回路図 / 部品表</text>
+    <text x="60" y="352">・組み立て工程ガイド</text>
+    <text x="60" y="382">・レイアウトエディタ</text>
+    <text x="60" y="412">・部品の購入提案</text>
+  </g>
+  <text x="60" y="490" font-size="13" fill="#5f6368">署名付きCookie（bb_session）</text>
+
+  <!-- Cloud Run -->
+  <rect x="400" y="150" width="380" height="370" rx="12" fill="#ffffff" stroke="#4285f4" stroke-width="3" />
+  <text x="420" y="186" font-size="20" font-weight="700" fill="#1a56c4">Cloud Run</text>
+  <text x="420" y="214" font-size="14" fill="#5f6368">Next.js 16 App Router（Dockerコンテナ）</text>
+  <g font-size="14" fill="#202124">
+    <text x="420" y="258" font-weight="700">POST /api/generate</text>
+    <text x="436" y="280" fill="#5f6368">回路生成 → 接続検査 → レビュー → 保存</text>
+    <text x="420" y="314" font-weight="700">POST /api/purchase/search</text>
+    <text x="436" y="336" fill="#5f6368">部品の在庫・販売店の検索と照合</text>
+    <text x="420" y="370" font-weight="700">GET /api/projects, /api/projects/[id]</text>
+    <text x="436" y="392" fill="#5f6368">保存した回路の一覧・取得</text>
+    <text x="420" y="426" font-weight="700">POST /api/session ・ GET /api/health</text>
+    <text x="436" y="448" fill="#5f6368">HMAC署名セッション / ヘルスチェック</text>
+  </g>
+  <text x="420" y="496" font-size="13" fill="#5f6368">Zodスキーマ検査・ネット検査・利用回数制限</text>
+
+  <!-- Google Cloud サービス -->
+  <rect x="900" y="150" width="280" height="100" rx="12" fill="#ffffff" stroke="#4285f4" stroke-width="2" />
+  <text x="920" y="184" font-size="18" font-weight="700" fill="#1a56c4">Gemini API</text>
+  <text x="920" y="210" font-size="13" fill="#202124">回路の構造化JSON生成</text>
+  <text x="920" y="232" font-size="13" fill="#202124">Google検索 / URLコンテキスト</text>
+
+  <rect x="900" y="290" width="280" height="100" rx="12" fill="#ffffff" stroke="#4285f4" stroke-width="2" />
+  <text x="920" y="324" font-size="18" font-weight="700" fill="#1a56c4">Cloud Firestore</text>
+  <text x="920" y="350" font-size="13" fill="#202124">プロジェクト（回路＋会話履歴）</text>
+  <text x="920" y="372" font-size="13" fill="#202124">日次の利用回数カウンター</text>
+
+  <rect x="900" y="430" width="280" height="90" rx="12" fill="#ffffff" stroke="#4285f4" stroke-width="2" />
+  <text x="920" y="464" font-size="18" font-weight="700" fill="#1a56c4">Secret Manager</text>
+  <text x="920" y="490" font-size="13" fill="#202124">APIキー・セッション署名キー</text>
+
+  <!-- 外部サービス -->
+  <rect x="1270" y="150" width="290" height="100" rx="12" fill="#ffffff" stroke="#5f6368" stroke-width="2" />
+  <text x="1290" y="184" font-size="18" font-weight="700" fill="#202124">GMI Cloud</text>
+  <text x="1290" y="210" font-size="13" fill="#202124">生成結果の補助レビュー</text>
+  <text x="1290" y="232" font-size="13" fill="#5f6368">電圧・配線・ピン・コードの整合性</text>
+
+  <rect x="1270" y="290" width="290" height="100" rx="12" fill="#ffffff" stroke="#5f6368" stroke-width="2" />
+  <text x="1290" y="324" font-size="18" font-weight="700" fill="#202124">DigiKey API</text>
+  <text x="1290" y="350" font-size="13" fill="#202124">部品の検索・在庫・価格</text>
+  <text x="1290" y="372" font-size="13" fill="#5f6368">OAuth 2.0（クライアント認証）</text>
+
+  <!-- 実行時の通信 -->
+  <g stroke="#3c4043" stroke-width="2" fill="none">
+    <path d="M300 335 H398" marker-end="url(#arrow)" marker-start="url(#arrow)" />
+    <path d="M780 200 H898" marker-end="url(#arrow)" />
+    <path d="M780 340 H898" marker-end="url(#arrow)" marker-start="url(#arrow)" />
+    <path d="M900 475 H782" marker-end="url(#arrow)" />
+    <path d="M780 270 H1415 V252" marker-end="url(#arrow)" />
+    <path d="M780 410 H1415 V392" marker-end="url(#arrow)" />
+  </g>
+  <text x="335" y="325" font-size="13" fill="#3c4043" text-anchor="middle">HTTPS</text>
+
+  <!-- CI/CD -->
+  <text x="40" y="620" font-size="16" font-weight="700" fill="#5f6368">デプロイ（main へのPRマージ時）</text>
+
+  <rect x="40" y="650" width="260" height="110" rx="12" fill="#ffffff" stroke="#5f6368" stroke-width="2" />
+  <text x="60" y="686" font-size="18" font-weight="700" fill="#202124">GitHub Actions</text>
+  <text x="60" y="712" font-size="13" fill="#202124">make deploy</text>
+  <text x="60" y="734" font-size="13" fill="#5f6368">Workload Identity 連携で認証</text>
+
+  <rect x="400" y="650" width="260" height="110" rx="12" fill="#ffffff" stroke="#4285f4" stroke-width="2" />
+  <text x="420" y="686" font-size="18" font-weight="700" fill="#1a56c4">Cloud Build</text>
+  <text x="420" y="712" font-size="13" fill="#202124">Dockerイメージのビルド</text>
+
+  <rect x="760" y="650" width="260" height="110" rx="12" fill="#ffffff" stroke="#4285f4" stroke-width="2" />
+  <text x="780" y="686" font-size="18" font-weight="700" fill="#1a56c4">Artifact Registry</text>
+  <text x="780" y="712" font-size="13" fill="#202124">コンテナイメージの保管</text>
+
+  <g stroke="#80868b" stroke-width="2" fill="none" stroke-dasharray="6 5">
+    <path d="M300 705 H398" marker-end="url(#arrow-ci)" />
+    <path d="M660 705 H758" marker-end="url(#arrow-ci)" />
+    <path d="M890 650 V585 H590 V522" marker-end="url(#arrow-ci)" />
+  </g>
+  <text x="740" y="575" font-size="13" fill="#5f6368" text-anchor="middle">gcloud run deploy</text>
+
+  <!-- 凡例 -->
+  <g font-size="13" fill="#5f6368">
+    <path d="M1270 690 H1320" stroke="#3c4043" stroke-width="2" marker-end="url(#arrow)" />
+    <text x="1332" y="695">実行時の通信</text>
+    <path d="M1270 720 H1320" stroke="#80868b" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arrow-ci)" />
+    <text x="1332" y="725">ビルド・デプロイ</text>
+    <rect x="1270" y="742" width="50" height="18" rx="4" fill="#ffffff" stroke="#4285f4" stroke-width="2" />
+    <text x="1332" y="756">Google Cloud のサービス</text>
+    <rect x="1270" y="772" width="50" height="18" rx="4" fill="#ffffff" stroke="#5f6368" stroke-width="2" />
+    <text x="1332" y="786">外部サービス・クライアント</text>
+  </g>
+</svg>

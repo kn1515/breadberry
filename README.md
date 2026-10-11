@@ -64,6 +64,18 @@ Next.js / TypeScript / Tailwind CSS / Three.js（React Three Fiber）/ Gemini AP
 
 図は `scripts/generate-diagrams.mjs` で生成しています。内容を変更したらスクリプトを編集し、`npm run diagrams` で `docs/` のSVGとPNGを再生成します（PNGの描画にPlaywrightのChromiumを使うため、初回は `npx playwright install chromium` が必要です）。アイコンは `docs/icons/` にあります。詳細は [Architecture](wiki/Architecture.md) を参照してください。
 
+## 品質・運用・拡張性
+
+| 観点 | 実装 |
+| --- | --- |
+| テスト | ユニットテスト15ファイル・137件（`tests/unit/`）と、PlaywrightのE2Eテスト8ファイル（`tests/`）。GitHub Actionsでpushとプルリクエストのたびに型検査・ユニットテスト・ビルド・E2Eを実行 |
+| デプロイ | `main` へのPRマージでCloud Runへ自動デプロイ。GitHub OIDCとWorkload Identity Federationで短時間の認証情報を発行し、サービスアカウント鍵を作成しない |
+| 秘密情報 | APIキーと署名キーはSecret ManagerからCloud Runの実行時環境変数へ渡す。リポジトリ・イメージ・ビルド時の環境変数には含めない |
+| 利用量の制御 | 生成・部品検索の回数を、全体とセッションごとの日次上限で制限。Firestoreトランザクションで計数するため、複数インスタンスでも上限を超えない |
+| 費用の抑制 | Cloud Runは最小0・最大3インスタンスで、アクセスがない間はインスタンスを起動しない。生成モデルは既定でGemini Flash（`GEMINI_MODEL` で変更可） |
+
+**拡張性：** 部品は `src/lib/circuit.ts` の `catalog` に1件追加すれば、Geminiへ渡すカタログと出力スキーマ、型検査と共通の接続検査、配置、部品表、接続図、3D（汎用形状）が対応します。これらが同じカタログと回路ネットリストを参照するためです。部品固有の3D形状と検査ルールは必要に応じて追加します。手順は [Development](wiki/Development.md) を参照してください。
+
 ## セットアップ
 
 Node.js 24 と npm が必要です。
@@ -344,9 +356,9 @@ firebase deploy --only firestore --project "$GOOGLE_CLOUD_PROJECT"
 | ESP32              | ESP32-WROOMの30ピンDevKit V1を想定。S3/C3や38ピン基板とは異なる    |
 | Raspberry Pi Pico  | RP2040のPico。MicroPython                                            |
 | Raspberry Pi 4 / 5 | 40ピンGPIOヘッダー。BCM番号と物理番号を区別。Linux上のPython       |
-| 部品               | LED、抵抗、DHT22、押しボタン、BH1750、CdS、および下表の追加9種類（計15種類） |
+| 部品               | LED、抵抗、DHT22、押しボタン、BH1750、CdS、下表の追加9種類、74HCロジックIC 8種類・コンデンサ・4連DIPスイッチ（計25種類） |
 | アナログ部品       | CdS・NTC・可変抵抗はESP32 ADC1 / Pico ADCを使用。Pi 4/5はADC非搭載のため対象外 |
-| 規模               | 1枚の30列ブレッドボード、最大6部品・24ジャンパ線・3.3V             |
+| 規模               | 30列ブレッドボードを最大6枚、最大48部品・240ジャンパ線・3.3V。配置を省略した小規模回路（6部品まで）は1枚に自動配置 |
 
 ### 追加したセンサー・部品
 

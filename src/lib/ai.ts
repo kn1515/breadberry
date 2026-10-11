@@ -182,7 +182,9 @@ export async function reviewCircuit(
     };
   try {
     const base = process.env.GMI_BASE_URL || "https://api.gmi-serving.com/v1";
-    if (new URL(base).protocol !== "https:") throw new Error("HTTPS required");
+    const provider = new URL(base);
+    const allowedHosts = (process.env.AI_PROVIDER_ALLOWED_HOSTS || "api.gmi-serving.com").split(",").map((host) => host.trim().toLowerCase()).filter(Boolean);
+    if (provider.protocol !== "https:" || provider.username || provider.password || provider.port || !allowedHosts.includes(provider.hostname.toLowerCase())) throw new Error("AI provider URL is not allowlisted");
     const data = await providerJson(
       `${base.replace(/\/$/, "")}/chat/completions`,
       {

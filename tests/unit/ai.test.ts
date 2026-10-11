@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { generateCircuit, reviewCircuit } from "../../src/lib/ai";
 import { demoCircuit } from "../../src/lib/demo";
+import { MAX_PARTS, MAX_WIRES } from "../../src/lib/circuit";
 test("Gemini request uses structured JSON; GMI performs supplementary review", async () => {
   const oldFetch = globalThis.fetch;
   const oldKey = process.env.GEMINI_API_KEY;
@@ -34,6 +35,13 @@ test("Gemini request uses structured JSON; GMI performs supplementary review", a
     const r = await reviewCircuit(c);
     assert.equal(r.status, "reviewed");
     assert.ok(calls[0].body.generationConfig.responseJsonSchema);
+    const schema = calls[0].body.generationConfig.responseJsonSchema;
+    assert.equal(schema.properties.parts.maxItems, undefined);
+    assert.equal(schema.properties.wires.maxItems, undefined);
+    assert.match(schema.properties.parts.description, /48/);
+    assert.match(schema.properties.wires.description, /240/);
+    assert.equal(schema.properties.parts.minItems, 1);
+    assert.equal(schema.properties.wires.minItems, 1);
     assert.ok(calls[1].url.endsWith("/chat/completions"));
     assert.ok(calls[1].body.messages[1].content.includes("DHT22"));
   } finally {
@@ -42,6 +50,43 @@ test("Gemini request uses structured JSON; GMI performs supplementary review", a
     else process.env.GEMINI_API_KEY = oldKey;
     if (oldGmi === undefined) delete process.env.GMI_API_KEY;
     else process.env.GMI_API_KEY = oldGmi;
+  }
+});
+
+test("generated circuits still reject excessive parts and wires", async (t) => {
+  const oldKey = process.env.GEMINI_API_KEY;
+  process.env.GEMINI_API_KEY = "test-key";
+  t.after(() => {
+    if (oldKey === undefined) delete process.env.GEMINI_API_KEY;
+    else process.env.GEMINI_API_KEY = oldKey;
+  });
+  const circuit = demoCircuit("esp32", "led");
+  let generated = circuit;
+  t.mock.method(globalThis, "fetch", async () =>
+    Response.json({
+      candidates: [
+        {
+          finishReason: "STOP",
+          content: { parts: [{ text: JSON.stringify(generated) }] },
+        },
+      ],
+    }),
+  );
+  for (const oversized of [
+    {
+      ...circuit,
+      parts: Array.from({ length: MAX_PARTS + 1 }, () => circuit.parts[0]),
+    },
+    {
+      ...circuit,
+      wires: Array.from({ length: MAX_WIRES + 1 }, () => circuit.wires[0]),
+    },
+  ]) {
+    generated = oversized;
+    await assert.rejects(generateCircuit("LEDを点滅させて", "esp32"), {
+      status: 422,
+      message: /接続検査を通過しませんでした/,
+    });
   }
 });
 test("missing Gemini is explicit; GMI failure never reports reviewed", async () => {

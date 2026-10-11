@@ -1126,6 +1126,19 @@ export default function Studio() {
               </p>
             </div>
           </aside>
+          <div className="agent-trace" style={{maxHeight: 220, overflowY: "auto", padding: 12}}>
+            <strong>{t("エージェントが行ったこと")}</strong>
+            {project.agentEvents?.length ? (
+              <ol aria-label={t("エージェントの行動履歴")}>
+                {project.agentEvents.map((event, index) => (
+                  <li key={index}>
+                    <time dateTime={event.at}>{new Date(event.at).toLocaleTimeString()}</time>{" "}
+                    {event.step} #{event.attempt} · {event.outcome} — {event.detail}
+                  </li>
+                ))}
+              </ol>
+            ) : <p>{t("この回路にはエージェントの実行履歴がありません。")}</p>}
+          </div>
           <CircuitChat
             messages={project.messages ?? []}
             prompt={prompt}

@@ -356,32 +356,39 @@ export default function Studio() {
         setNotice(data.storage === "browser" ? data.warning || "ブラウザに保存しました。" : "回路を生成し、保存しました。");
         return;
       }
-      if (!res.body) throw new Error("実行履歴を受信できませんでした。");
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-      let result: (Project & { warning?: string }) | undefined;
-      const handleLine = (line: string) => {
-        if (!line.trim()) return;
-        const message = JSON.parse(line) as { type: string; data: unknown };
-        if (message.type === "event") setLiveAgentEvents((events) => [...events, message.data as AgentEvent]);
-        if (message.type === "result") result = message.data as Project & { warning?: string };
-        if (message.type === "error") throw new Error((message.data as { message: string }).message);
-      };
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        let boundary: number;
-        while ((boundary = buffer.indexOf("\n")) >= 0) {
-          handleLine(buffer.slice(0, boundary));
-          buffer = buffer.slice(boundary + 1);
+      let data: Project & { warning?: string };
+      if (res.headers.get("content-type")?.includes("application/x-ndjson")) {
+        if (!res.body) throw new Error("実行履歴を受信できませんでした。");
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let result: (Project & { warning?: string }) | undefined;
+        const handleLine = (line: string) => {
+          if (!line.trim()) return;
+          const message = JSON.parse(line) as { type: string; data: unknown };
+          if (message.type === "event") setLiveAgentEvents((events) => [...events, message.data as AgentEvent]);
+          if (message.type === "result") result = message.data as Project & { warning?: string };
+          if (message.type === "error") throw new Error((message.data as { message: string }).message);
+        };
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          let boundary: number;
+          while ((boundary = buffer.indexOf("\n")) >= 0) {
+            handleLine(buffer.slice(0, boundary));
+            buffer = buffer.slice(boundary + 1);
+          }
         }
+        buffer += decoder.decode();
+        if (buffer.trim()) handleLine(buffer);
+        if (!result) throw new Error("回路生成結果がありません。");
+        data = result;
+  
+      } else {
+        // Legacy JSON responses and Playwright API mocks remain supported.
+        data = await res.json();
       }
-      buffer += decoder.decode();
-      if (buffer.trim()) handleLine(buffer);
-      if (!result) throw new Error("回路生成結果がありません。");
-      const data = result;
       applyProject(data);
       if (data.storage === "browser") {
         try {

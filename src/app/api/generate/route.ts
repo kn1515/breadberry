@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { validateDraft, type Project } from "@/lib/circuit";
 import { appendExchange, generateRequestSchema } from "@/lib/conversation";
 import { generateCircuit, reviewCircuit, ServiceError } from "@/lib/ai";
+import { screenPrompt, screenResponse } from "@/lib/model-armor";
+import { flushTraces, traced } from "@/lib/tracing";
 import {
   apiError,
   bodyJson,
@@ -13,6 +16,31 @@ import {
 } from "@/lib/server";
 export const runtime = "nodejs";
 export const maxDuration = 180;
+const design = traced(
+  "Circuit design request",
+  "chain",
+  async (input: z.infer<typeof generateRequestSchema>) => {
+    await screenPrompt(input.prompt);
+    const circuit = await generateCircuit(
+      input.prompt,
+      input.board,
+      input.context,
+      input.locale,
+    );
+    const [review] = await Promise.all([
+      reviewCircuit(circuit, input.locale),
+      screenResponse(
+        [
+          circuit.title,
+          circuit.description,
+          ...circuit.notes,
+          circuit.firmware,
+        ].join("\n"),
+      ),
+    ]);
+    return { circuit, review };
+  },
+);
 export async function POST(req: NextRequest) {
   try {
     checkOrigin(req);
@@ -38,13 +66,7 @@ export async function POST(req: NextRequest) {
     if (!process.env.GEMINI_API_KEY)
       throw new ServiceError("回路生成は現在利用できません。");
     await takeQuota(user);
-    const circuit = await generateCircuit(
-      input.data.prompt,
-      input.data.board,
-      input.data.context,
-      input.data.locale,
-    );
-    const review = await reviewCircuit(circuit, input.data.locale);
+    const { circuit, review } = await design(input.data);
     const project: Project = {
       id: randomUUID(),
       circuit,
@@ -71,5 +93,7 @@ export async function POST(req: NextRequest) {
     }
   } catch (e) {
     return apiError(e);
+  } finally {
+    await flushTraces();
   }
 }

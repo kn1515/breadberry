@@ -612,6 +612,10 @@ export const messages: Record<string, string> = {
   "JSONの形式が不正です。": "Invalid JSON format.",
   "処理に失敗しました。Firestoreの接続・権限を確認し、再試行してください。":
     "The operation failed. Check Firestore connectivity and permissions, then try again.",
+  "入力が安全性検査で拒否されました。電子工作の依頼として書き直してください。":
+    "Your request was rejected by the safety check. Please rewrite it as an electronics request.",
+  "生成した設計が安全性検査を通過しませんでした。要件を変えて再試行してください。":
+    "The generated design did not pass the safety check. Change the requirements and try again.",
   "本日の生成回数の上限に達しました。":
     "You have reached today’s generation limit.",
   "本日の部品検索回数の上限に達しました。":

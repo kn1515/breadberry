@@ -3,7 +3,13 @@ const config: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
   reactStrictMode: false,
-  serverExternalPackages: ["@google-cloud/firestore"],
+  serverExternalPackages: [
+    "@google-cloud/firestore",
+    "google-auth-library",
+    "@opentelemetry/api",
+    "@opentelemetry/exporter-trace-otlp-proto",
+    "@opentelemetry/sdk-trace-base",
+  ],
   async headers() {
     return [
       {

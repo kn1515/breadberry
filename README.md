@@ -68,9 +68,11 @@ Next.js / TypeScript / Tailwind CSS / Three.js（React Three Fiber）/ Gemini AP
 
 | 観点 | 実装 |
 | --- | --- |
-| テスト | ユニットテスト15ファイル・137件（`tests/unit/`）と、PlaywrightのE2Eテスト8ファイル（`tests/`）。GitHub Actionsでpushとプルリクエストのたびに型検査・ユニットテスト・ビルド・E2Eを実行 |
+| テスト | ユニットテスト17ファイル・146件（`tests/unit/`）と、PlaywrightのE2Eテスト8ファイル（`tests/`）。GitHub Actionsでpushとプルリクエストのたびに型検査・ユニットテスト・ビルド・E2Eを実行 |
 | デプロイ | `main` へのPRマージでCloud Runへ自動デプロイ。GitHub OIDCとWorkload Identity Federationで短時間の認証情報を発行し、サービスアカウント鍵を作成しない |
 | 秘密情報 | APIキーと署名キーはSecret ManagerからCloud Runの実行時環境変数へ渡す。リポジトリ・イメージ・ビルド時の環境変数には含めない |
+| AIの安全対策 | Model Armorで、利用者の入力（プロンプトインジェクション・ジェイルブレイク）とGeminiの生成結果を検査し、検出時は拒否。Model Armorに接続できない場合は検査を省略して処理を続け、型検査と接続検査は常に実行 |
+| 可観測性 | OpenTelemetryで、安全性検査・Gemini呼び出し（トークン数を含む）・接続検査・補助レビューを1件の生成要求ごとにCloud Traceへ記録。検査の検出・失敗はCloud LoggingへJSONで記録し、トレースと相互に辿れる |
 | 利用量の制御 | 生成・部品検索の回数を、全体とセッションごとの日次上限で制限。Firestoreトランザクションで計数するため、複数インスタンスでも上限を超えない |
 | 費用の抑制 | Cloud Runは最小0・最大3インスタンスで、アクセスがない間はインスタンスを起動しない。生成モデルは既定でGemini Flash（`GEMINI_MODEL` で変更可） |
 
@@ -109,6 +111,10 @@ openssl rand -hex 32
 | `APP_ORIGIN`             | リバースプロキシ使用時の実際のアクセス元URL。末尾 `/` なし        |
 | `DAILY_GENERATION_LIMIT` | アプリ全体の1日生成上限。既定200                                  |
 | `SESSION_DAILY_LIMIT`    | セッションごとの1日生成上限。既定20                               |
+| `MODEL_ARMOR_TEMPLATE` | 任意。Model ArmorのテンプレートID。設定すると入力と生成結果を検査する |
+| `MODEL_ARMOR_LOCATION` | 任意。テンプレートのリージョン。既定 `asia-northeast1` |
+| `MODEL_ARMOR_MODE` | 任意。`block`（既定）は検出時に拒否、`inspect` は記録のみ |
+| `CLOUD_TRACE` | 任意。`true` で生成の各工程をCloud Traceへ送信する。Cloud Runへのデプロイでは既定で `true` |
 
 ### ローカルでGeminiを使う
 
@@ -211,6 +217,38 @@ for SECRET in breadberry-gemini-key breadberry-gmi-key breadberry-session-secret
     --member="serviceAccount:${RUNTIME_SA}" --role=roles/secretmanager.secretAccessor
 done
 ```
+
+### Model ArmorとCloud Trace
+
+Model Armorは未設定なら無効で、従来どおり動作します。Cloud Traceはデプロイ時に既定で有効です。
+
+**Model Armor：** テンプレートを作成し、実行アカウントに利用権限を付けます。
+
+```bash
+gcloud services enable modelarmor.googleapis.com --project "$GOOGLE_CLOUD_PROJECT"
+gcloud config set api_endpoint_overrides/modelarmor "https://modelarmor.asia-northeast1.rep.googleapis.com/"
+gcloud model-armor templates create breadberry --project "$GOOGLE_CLOUD_PROJECT" --location asia-northeast1 \
+  --pi-and-jailbreak-filter-settings-enforcement=enabled \
+  --pi-and-jailbreak-filter-settings-confidence-level=medium-and-above
+gcloud projects add-iam-policy-binding "$GOOGLE_CLOUD_PROJECT" \
+  --member="serviceAccount:${RUNTIME_SA}" --role=roles/modelarmor.user
+```
+
+東京リージョンは悪意のあるURLのフィルターに対応していないため、指定しません。
+
+`MODEL_ARMOR_TEMPLATE=breadberry make deploy` で有効になります。誤検出を確認する間は `MODEL_ARMOR_MODE=inspect` を指定すると、検出を記録するだけで拒否しません。
+
+**Cloud Trace：** 実行アカウントにトレースの書き込み権限を付けます。APIキーは不要です。
+
+```bash
+gcloud services enable telemetry.googleapis.com cloudtrace.googleapis.com --project "$GOOGLE_CLOUD_PROJECT"
+gcloud projects add-iam-policy-binding "$GOOGLE_CLOUD_PROJECT" \
+  --member="serviceAccount:${RUNTIME_SA}" --role=roles/telemetry.tracesWriter
+```
+
+生成のたびに、Cloud ConsoleのTrace エクスプローラーに `Circuit design request` のトレースが記録されます。権限がない場合も生成は続行し、`cloud_trace_export_failed` の警告だけをログに出します。`CLOUD_TRACE=false make deploy` で無効にできます。
+
+GitHub Actionsでデプロイする場合は、リポジトリ変数 `MODEL_ARMOR_TEMPLATE` / `MODEL_ARMOR_LOCATION` / `MODEL_ARMOR_MODE` / `CLOUD_TRACE` に同じ値を設定します。未設定のModel Armorは無効、Cloud Traceは有効としてデプロイします。
 
 ### 4. ビルド・デプロイ
 
@@ -401,6 +439,8 @@ Pi 4/5はマイコンではなくLinux SBCです。ESP32/Picoとは生成コー�
 - 生成要求は全体・個別の上限をFirestoreトランザクションで消費します。失敗した要求も利用回数に含まれます。全体上限により、セッションを作り直しても無制限には生成できません。
 - 生成後のFirestore保存失敗時はブラウザ保存へ切り替えて明示します。成功したと偽って表示しません。
 - プロンプトと回路情報はGemini/GMIに送信されます。APIキーはサーバーからのみ使用します。
+- Model Armorを有効にすると、プロンプトと生成結果の文章（題名・説明・注意事項・コード）をModel Armorへ送信します。
+- Cloud Traceを有効にすると、プロンプト、会話、回路、Geminiの応答、検査結果を同じGoogle CloudプロジェクトのCloud Traceに保存します（各2万文字まで）。APIキーとセッションIDは保存しません。
 
 ## テスト
 
@@ -424,6 +464,8 @@ GitHub Actionsでも実行します。APIキー・Google Cloudプロジェクト
 - `src/lib/circuit.ts`：共通スキーマ、ピン表、配置、部品表、接続検査
 - `src/lib/ai.ts`：Gemini生成とGMI補助レビュー
 - `src/lib/server.ts`：セッション、Firestore、利用回数制限
+- `src/lib/model-armor.ts`：Model Armorによる入力・生成結果の検査
+- `src/lib/tracing.ts`：Cloud Traceへのトレース（OpenTelemetry）と構造化ログ
 - `src/app/api/`：生成・保存データ取得・接続状態・ヘルスチェック
 - `Dockerfile` / `scripts/deploy.sh`：Docker・Cloud Run起動
 
@@ -575,6 +617,8 @@ breadberry本体は [ISC License](LICENSE) で公開しています。
 | [Zod](https://github.com/colinhacks/zod) | スキーマ検査 | MIT |
 | [Lucide](https://github.com/lucide-icons/lucide)（lucide-react） | アイコン | ISC |
 | [@google-cloud/firestore](https://github.com/googleapis/nodejs-firestore) | Firestoreクライアント | Apache-2.0 |
+| [google-auth-library](https://github.com/googleapis/google-auth-library-nodejs) | Model ArmorとCloud Traceの認証 | Apache-2.0 |
+| [OpenTelemetry JS](https://github.com/open-telemetry/opentelemetry-js)（@opentelemetry/api・core・resources・sdk-trace-base・exporter-trace-otlp-proto） | 生成工程のトレース | Apache-2.0 |
 | [Fontsource](https://github.com/fontsource/font-files) で配布される Inter / Noto Sans JP / Oswald / Playfair Display | フォント | SIL Open Font License 1.1 |
 
 ### 開発・ビルド・テストに使用するもの

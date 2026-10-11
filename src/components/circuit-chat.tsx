@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { boards, type Board } from "@/lib/circuit";
 import { MAX_MESSAGES, type ChatMessage } from "@/lib/conversation";
+import type { AgentEvent } from "@/lib/agent";
 
 type Props = {
   messages: ChatMessage[];
@@ -24,6 +25,7 @@ type Props = {
   newDesign: boolean;
   setNewDesign: (value: boolean) => void;
   onSubmit: () => void;
+  agentEvents: AgentEvent[];
 };
 export default function CircuitChat({
   messages,
@@ -37,6 +39,7 @@ export default function CircuitChat({
   newDesign,
   setNewDesign,
   onSubmit,
+  agentEvents,
 }: Props) {
   const { t } = usePreferences();
   const transcript = useRef<HTMLDivElement>(null);
@@ -54,6 +57,20 @@ export default function CircuitChat({
           {messages.length / 2} {t("往復")}
         </span>
       </div>
+      {(busy || agentEvents.length > 0) && (
+        <section className="agent-trace" aria-label={t("回路設計の実行履歴")} style={{ padding: 12, maxHeight: 240, overflowY: "auto" }}>
+          <strong>{t("回路設計の実行履歴")}</strong>
+          <ol role="log" aria-live="polite" style={{ paddingLeft: 18 }}>
+            {agentEvents.map((event, index) => (
+              <li key={index} style={{ marginTop: 7 }}>
+                <strong>{t(({ generation: "回路生成", selection: "部品選定", validation: event.outcome === "failed" ? "接続検査：問題を検出" : "接続検査：問題なし", repair: "回路を自動修正", review: "補助レビュー", complete: "検証完了" } as Record<string, string>)[event.step] ?? event.step)}</strong>
+                <p style={{ margin: "3px 0", overflowWrap: "anywhere" }}>{event.detail}</p>
+              </li>
+            ))}
+            {busy && <li>{t("処理中…")}</li>}
+          </ol>
+        </section>
+      )}
       <div className="chat-mode" role="group" aria-label={t("設計モード")}>
         <button
           type="button"

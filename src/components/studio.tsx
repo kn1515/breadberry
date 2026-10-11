@@ -64,6 +64,7 @@ import PurchaseModal from "./purchase-modal";
 import Tutorial from "./tutorial";
 const PartsCatalog = dynamic(() => import("./parts-catalog"), { ssr: false });
 import { MAX_MESSAGES } from "@/lib/conversation";
+import type { AgentEvent } from "@/lib/agent";
 const BoardScene = dynamic(() => import("./board-scene"), {
   ssr: false,
   loading: () => (
@@ -108,6 +109,7 @@ export default function Studio() {
   const [selectedBoard, setSelectedBoard] = useState<Board>("esp32");
   const [prompt, setPrompt] = useState("");
   const [busy, setBusy] = useState(false);
+  const [liveAgentEvents, setLiveAgentEvents] = useState<AgentEvent[]>([]);
   const [saving, setSaving] = useState(false);
   const [mode, setMode] = useState<"viewer" | "editor">("viewer");
   const [editorSession, setEditorSession] = useState(0);
@@ -265,6 +267,7 @@ export default function Studio() {
     setMode("viewer");
     setEditorSession((s) => s + 1);
     setProject(p);
+    setLiveAgentEvents([]);
     setNewDesign(false);
     setPrompt("");
     setError("");
@@ -320,13 +323,14 @@ export default function Studio() {
     if (!newDesign && (project.messages?.length ?? 0) >= MAX_MESSAGES) return;
     generating.current = true;
     setBusy(true);
+    setLiveAgentEvents([]);
     setError("");
     setNotice("");
     try {
       await prepareSession();
       const res = await fetch("/api/generate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Accept: "application/x-ndjson" },
         body: JSON.stringify({
           prompt: requestPrompt,
           board: selectedBoard,
@@ -341,8 +345,50 @@ export default function Studio() {
               }),
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) {
+        const failure = await res.json();
+        throw new Error(failure.error);
+      }
+      if (res.headers.get("content-type")?.includes("application/json")) {
+        const data = await res.json();
+        applyProject(data);
+        if (data.storage === "browser") saveLocal(data);
+        setNotice(data.storage === "browser" ? data.warning || "ブラウザに保存しました。" : "回路を生成し、保存しました。");
+        return;
+      }
+      let data: Project & { warning?: string };
+      if (res.headers.get("content-type")?.includes("application/x-ndjson")) {
+        if (!res.body) throw new Error("実行履歴を受信できませんでした。");
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let result: (Project & { warning?: string }) | undefined;
+        const handleLine = (line: string) => {
+          if (!line.trim()) return;
+          const message = JSON.parse(line) as { type: string; data: unknown };
+          if (message.type === "event") setLiveAgentEvents((events) => [...events, message.data as AgentEvent]);
+          if (message.type === "result") result = message.data as Project & { warning?: string };
+          if (message.type === "error") throw new Error((message.data as { message: string }).message);
+        };
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          let boundary: number;
+          while ((boundary = buffer.indexOf("\n")) >= 0) {
+            handleLine(buffer.slice(0, boundary));
+            buffer = buffer.slice(boundary + 1);
+          }
+        }
+        buffer += decoder.decode();
+        if (buffer.trim()) handleLine(buffer);
+        if (!result) throw new Error("回路生成結果がありません。");
+        data = result;
+  
+      } else {
+        // Legacy JSON responses and Playwright API mocks remain supported.
+        data = await res.json();
+      }
       applyProject(data);
       if (data.storage === "browser") {
         try {
@@ -1138,6 +1184,7 @@ export default function Studio() {
             newDesign={newDesign}
             setNewDesign={setNewDesign}
             onSubmit={() => void generate()}
+            agentEvents={busy ? liveAgentEvents : project.agentEvents ?? []}
           />
         </div>
         <div className="workspace-status">

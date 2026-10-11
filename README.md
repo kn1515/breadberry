@@ -21,6 +21,13 @@ Next.js / TypeScript / Tailwind CSS / Three.js（React Three Fiber）/ Gemini AP
 
 3Dの形状をAIに自由に出力させるのではなく、**Geminiの回路ネットリストからあらかじめ定義した部品形状を決定的に配置**します。部品表・穴番号・3D・接続図・工程は同じデータを参照します。
 
+## ハッカソン向けエージェント機能
+
+- 生成した回路が接続検査に失敗すると、検査エラーをGeminiへ返して自動再生成します。補助レビューが `FIX:` で具体的な不備を報告した場合も再生成します。最大試行回数は `AGENT_MAX_ATTEMPTS`（既定3、最大3）です。修復不可能な設計は保存しません。
+- 各試行の生成・検査・レビュー・再試行・完了を、Cloud Loggingで収集できる構造化JSONとして標準出力へ記録します。レスポンスにも `agentEvents` と `traceId` を含め、画面の「エージェントが行ったこと」から確認できます。秘密鍵・生のプロンプトはログに記録しません。
+- 生成APIの利用回数は既存のFirestoreトランザクションによりアプリ全体・署名済みセッション別に日次制限します。再試行は各生成要求内で最大3回に制限されます。匿名セッションは本人認証と同等ではありません。
+- 購入候補の外部URLは既存の `storeProductUrl` でHTTPS・販売店ドメイン・商品詳細パスを制限します。GMIレビュアーの接続先は `AI_PROVIDER_ALLOWED_HOSTS`（既定 `api.gmi-serving.com`）に列挙したホストのみ許可します。外部のURL Context機能に渡すURLは、販売店URL検証を通過したものだけです。
+
 ## LEDの色別3Dモデル
 
 緑・赤・青・黄・白・オレンジ・紫・ピンクの8種類のglTFモデルを用意しています。Editorの「LEDの色別3Dモデル」でプレビューを選び、「パーツを追加」で配置できます。配置後は「LEDの色」で変更でき、部品一覧・接続図にも同じ色が反映されます。
@@ -115,6 +122,8 @@ openssl rand -hex 32
 | `MODEL_ARMOR_LOCATION` | 任意。テンプレートのリージョン。既定 `asia-northeast1` |
 | `MODEL_ARMOR_MODE` | 任意。`block`（既定）は検出時に拒否、`inspect` は記録のみ |
 | `CLOUD_TRACE` | 任意。`true` で生成の各工程をCloud Traceへ送信する。Cloud Runへのデプロイでは既定で `true` |
+| `AGENT_MAX_ATTEMPTS` | 自己修復の最大試行回数。既定3、最大3 |
+| `AI_PROVIDER_ALLOWED_HOSTS` | 補助レビュアーの許可ホスト（カンマ区切り）。既定 api.gmi-serving.com |
 
 ### ローカルでGeminiを使う
 

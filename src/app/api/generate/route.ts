@@ -39,6 +39,38 @@ export async function POST(req: NextRequest) {
     if (!process.env.GEMINI_API_KEY)
       throw new ServiceError("回路生成は現在利用できません。");
     await takeQuota(user);
+    if (req.headers.get("accept")?.includes("application/x-ndjson")) {
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream<Uint8Array>({
+        start(controller) {
+          const send = (type: string, data: unknown) => {
+            try { controller.enqueue(encoder.encode(JSON.stringify({ type, data }) + "\n")); } catch { /* connection closed */ }
+          };
+          void (async () => {
+            try {
+              const { circuit, review, agentEvents, traceId } = await runCircuitAgent(
+                input.data.prompt, input.data.board, input.data.context, input.data.locale, user,
+                (event) => send("event", event),
+              );
+              const project: Project = {
+                id: randomUUID(), circuit, createdAt: new Date().toISOString(),
+                source: "gemini", messages: appendExchange(input.data.context?.messages ?? [], input.data.prompt, circuit),
+                review, agentEvents, traceId, storage: "firestore",
+              };
+              try { await saveProject(user, project); send("result", project); }
+              catch {
+                send("result", { ...project, storage: "browser", warning: "保存に失敗しました。回路をJSONでダウンロードして保管してください。" });
+              }
+            } catch (error) {
+              send("error", { message: error instanceof ServiceError ? error.message : "回路生成に失敗しました。" });
+            } finally { controller.close(); }
+          })();
+        },
+      });
+      return new Response(stream, {
+        headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no" },
+      });
+    }
     const { circuit, review, agentEvents, traceId } = await runCircuitAgent(input.data.prompt, input.data.board, input.data.context, input.data.locale, user);
     const project: Project = {
       id: randomUUID(),

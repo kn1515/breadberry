@@ -634,6 +634,9 @@ export default function Studio() {
                   <button onClick={() => sample("temperature")}>
                     <Thermometer size={15} /> {t("DS18B20 温度計")}
                   </button>
+                  <button onClick={() => sample("cpu")}>
+                    <Cpu size={15} /> {t("1bit CPU")}
+                  </button>
                   <button onClick={() => sample("display")}>
                     <Zap size={15} /> {t("OLEDディスプレイ")}
                   </button>

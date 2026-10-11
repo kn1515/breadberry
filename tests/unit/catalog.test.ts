@@ -1,3 +1,4 @@
+import { isDip } from "../../src/lib/logic";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { demoCircuit } from "../../src/lib/demo";
@@ -126,10 +127,15 @@ test("catalog and generation schema expose the same part kinds", () => {
     new Set(circuitSchema.shape.parts.element.shape.kind.options),
     new Set(Object.keys(catalog)),
   );
-  for (const def of Object.values(catalog)) {
+  for (const [kind, def] of Object.entries(catalog)) {
     assert.equal(def.pins.length, def.offsets.length);
-    assert.equal(new Set(def.offsets).size, def.offsets.length);
-    assert.ok(def.offsets.every((n) => n >= 0 && n < 5));
+    if (isDip(kind)) {
+      assert.equal(new Set(def.offsets).size, def.pins.length / 2);
+      assert.ok(def.offsets.every((n) => n >= 0 && n < def.pins.length / 2));
+    } else {
+      assert.equal(new Set(def.offsets).size, def.offsets.length);
+      assert.ok(def.offsets.every((n) => n >= 0 && n < 5));
+    }
   }
 });
 

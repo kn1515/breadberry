@@ -1,5 +1,12 @@
+import { isDip } from "./logic";
 import {
   catalog,
+  getBreadboards,
+  breadboardPosition,
+  splitHole,
+  qualifyHole,
+  MAX_PARTS,
+  MAX_BREADBOARDS,
   compileCircuit,
   layoutHolePosition,
   holePosition,
@@ -20,7 +27,9 @@ export type LayoutIssue = {
 export function partBounds(circuit: Circuit, index: number) {
   const part = circuit.parts[index];
   const placement = placementFor(part, index);
-  const start = layoutHolePosition(placement.hole);
+  const start = layoutHolePosition(
+    qualifyHole(placement.hole, placement.breadboard),
+  );
   const span = Math.max(...catalog[part.kind].offsets) * 0.24;
   const module = ["bh1750", "bme280", "bmp280", "sht31", "ssd1306"].includes(
     part.kind,
@@ -37,13 +46,20 @@ export function partBounds(circuit: Circuit, index: number) {
     ds18b20: [0.48, 0.48],
     tilt: [0.48, 0.48],
   };
-  const [bodyWidth, depth] = module
-    ? [1.02, 0.72]
-    : (dimensions[part.kind] ?? [0.48, 0.48]);
+  const [bodyWidth, depth] = isDip(part.kind)
+    ? [span + 0.3, 0.75]
+    : part.kind === "capacitor"
+      ? [0.45, 0.25]
+      : module
+        ? [1.02, 0.72]
+        : (dimensions[part.kind] ?? [0.48, 0.48]);
   const width = Math.max(span, bodyWidth);
   return {
     x: start[0] + ((placement.reversed ? -1 : 1) * span) / 2,
-    z: start[2],
+    z: isDip(part.kind)
+      ? breadboardPosition(placement.breadboard ?? "BB1")[2]
+      : start[2],
+    breadboard: placement.breadboard ?? "BB1",
     width,
     depth,
   };
@@ -65,7 +81,8 @@ export function checkLayout(circuit: Circuit): LayoutIssue[] {
       b = root(wire.to);
     if (a !== b) parent.set(a, b);
   }
-  for (const [pin, hole] of Object.entries(holes)) {
+  for (const [pin, qualified] of Object.entries(holes)) {
+    const { breadboard, hole } = splitHole(qualified);
     const id = pin.split(".")[0];
     const row = Number(hole.slice(1));
     if (row < 1 || row > 30) {
@@ -76,8 +93,8 @@ export function checkLayout(circuit: Circuit): LayoutIssue[] {
       });
       continue;
     }
-    byHole.set(hole, [...(byHole.get(hole) ?? []), pin]);
-    const strip = `${hole[0] <= "e" ? "a–e" : "f–j"}${row}`;
+    byHole.set(qualified, [...(byHole.get(qualified) ?? []), pin]);
+    const strip = `${breadboard}:${hole[0] <= "e" ? "a–e" : "f–j"}${row}`;
     byStrip.set(strip, [...(byStrip.get(strip) ?? []), pin]);
   }
   for (const [hole, pins] of byHole) {
@@ -99,8 +116,9 @@ export function checkLayout(circuit: Circuit): LayoutIssue[] {
   const bounds = circuit.parts.map((_, index) => partBounds(circuit, index));
   bounds.forEach((a, index) => {
     if (
-      Math.abs(a.x) + a.width / 2 > 4.075 ||
-      Math.abs(a.z) + a.depth / 2 > 2.35
+      Math.abs(a.x - breadboardPosition(a.breadboard)[0]) + a.width / 2 >
+        4.075 ||
+      Math.abs(a.z - breadboardPosition(a.breadboard)[2]) + a.depth / 2 > 2.35
     )
       issues.push({
         code: "bounds",
@@ -109,6 +127,7 @@ export function checkLayout(circuit: Circuit): LayoutIssue[] {
       });
     bounds.slice(index + 1).forEach((b, offset) => {
       if (
+        a.breadboard === b.breadboard &&
         Math.abs(a.x - b.x) < (a.width + b.width) / 2 - 0.01 &&
         Math.abs(a.z - b.z) < (a.depth + b.depth) / 2 - 0.01
       ) {
@@ -137,35 +156,71 @@ export function checkLayout(circuit: Circuit): LayoutIssue[] {
       message:
         e instanceof Error && e.name !== "ZodError"
           ? e.message
-          : "回路は未完成か、自動回路検査の上限（部品6個・配線24本）を超えています。",
+          : "回路は未完成か、自動回路検査の上限（部品48個・配線240本）を超えています。",
     });
   }
   return issues;
 }
 
+export function addBreadboard(circuit: Circuit): Circuit {
+  const boards = getBreadboards(circuit);
+  if (boards.length >= MAX_BREADBOARDS) return circuit;
+  const id = Array.from(
+    { length: MAX_BREADBOARDS },
+    (_, i) => `BB${i + 1}`,
+  ).find((id) => !boards.some((b) => b.id === id))!;
+  return { ...circuit, breadboards: [...boards, { id }] };
+}
+export function canRemoveBreadboard(circuit: Circuit, id: string) {
+  return (
+    id !== "BB1" &&
+    !circuit.parts.some(
+      (p, i) => (placementFor(p, i).breadboard ?? "BB1") === id,
+    ) &&
+    !circuit.wires.some(
+      (w) => w.from.startsWith(`${id}.`) || w.to.startsWith(`${id}.`),
+    )
+  );
+}
+export function removeBreadboard(circuit: Circuit, id: string): Circuit {
+  return canRemoveBreadboard(circuit, id)
+    ? {
+        ...circuit,
+        breadboards: getBreadboards(circuit).filter((b) => b.id !== id),
+      }
+    : circuit;
+}
 export function addPart(circuit: Circuit, kind: Kind): Circuit {
-  if (circuit.parts.length >= 30) return circuit;
+  if (circuit.parts.length >= MAX_PARTS) return circuit;
   let n = 1;
   while (circuit.parts.some((p) => p.id === `P${n}`)) n++;
   const occupied = new Set(
-    Object.values(partPinHoles(circuit)).map(
-      (h) => `${h[0] <= "e" ? "left" : "right"}${h.slice(1)}`,
-    ),
+    Object.values(partPinHoles(circuit)).map((h) => {
+      const { breadboard, hole } = splitHole(h);
+      return `${breadboard}:${hole[0] <= "e" ? "left" : "right"}${hole.slice(1)}`;
+    }),
   );
-  let hole = "g1";
-  outer: for (const col of ["b", "g"]) {
-    for (let row = 1; row <= 30 - Math.max(...catalog[kind].offsets); row++) {
-      if (
-        catalog[kind].offsets.every(
-          (offset) =>
-            !occupied.has(`${col === "b" ? "left" : "right"}${row + offset}`),
-        )
-      ) {
-        hole = `${col}${row}`;
-        break outer;
+  let placement = {
+    hole: isDip(kind) ? "e1" : "g1",
+    reversed: false,
+    breadboard: "BB1",
+  };
+  outer: for (const { id } of getBreadboards(circuit))
+    for (const col of isDip(kind) ? ["e"] : ["b", "g"]) {
+      for (let row = 1; row <= 30 - Math.max(...catalog[kind].offsets); row++) {
+        if (
+          catalog[kind].offsets.every((offset) =>
+            [
+              col === "g" ? "right" : "left",
+              ...(isDip(kind) ? ["right"] : []),
+            ].every((side) => !occupied.has(`${id}:${side}${row + offset}`)),
+          )
+        ) {
+          placement = { hole: `${col}${row}`, reversed: false, breadboard: id };
+          break outer;
+        }
       }
     }
-  }
   return {
     ...circuit,
     parts: [
@@ -176,11 +231,13 @@ export function addPart(circuit: Circuit, kind: Kind): Circuit {
         value:
           kind === "resistor"
             ? "330Ω"
-            : ["ntc", "potentiometer"].includes(kind)
-              ? "10kΩ"
-              : "",
+            : kind === "capacitor"
+              ? "100nF"
+              : ["ntc", "potentiometer"].includes(kind)
+                ? "10kΩ"
+                : "",
         purpose: "ユーザーが追加した部品",
-        placement: { hole, reversed: false },
+        placement,
       },
     ],
   };
@@ -200,7 +257,19 @@ export function removePart(circuit: Circuit, id: string): Circuit {
 }
 
 /** Snap local X/Z coordinates to a signal hole; rails and off-board drops are excluded. */
-export function nearestLayoutHole(x: number, z: number): string | null {
+export function nearestLayoutHole(
+  x: number,
+  z: number,
+  circuit?: Circuit,
+): string | null {
+  if (circuit) {
+    for (const { id } of getBreadboards(circuit)) {
+      const origin = breadboardPosition(id);
+      const hole = nearestLayoutHole(x - origin[0], z - origin[2]);
+      if (hole) return qualifyHole(hole, id);
+    }
+    return null;
+  }
   if (
     !Number.isFinite(x) ||
     !Number.isFinite(z) ||
@@ -222,7 +291,21 @@ export function movePart(circuit: Circuit, id: string, hole: string): Circuit {
   return {
     ...circuit,
     parts: circuit.parts.map((p, i) =>
-      p.id === id ? { ...p, placement: { ...placementFor(p, i), hole } } : p,
+      p.id === id
+        ? {
+            ...p,
+            placement: {
+              ...placementFor(p, i),
+              hole: isDip(p.kind)
+                ? `e${splitHole(hole).hole.slice(1)}`
+                : splitHole(hole).hole,
+              ...(splitHole(hole).breadboard !== "BB1" ||
+              p.placement?.breadboard
+                ? { breadboard: splitHole(hole).breadboard }
+                : {}),
+            },
+          }
+        : p,
     ),
   };
 }

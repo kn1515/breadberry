@@ -1,3 +1,4 @@
+import { partKinds } from "../src/lib/circuit";
 import { test, expect } from "@playwright/test";
 test("workspace renders, steps play, views switch, and exports download", async ({
   page,
@@ -131,7 +132,9 @@ test("expanded catalog respects board capabilities", async ({ page }) => {
   await page.goto("/");
   await page.locator(".parts-catalog").click();
   const dialog = page.getByRole("dialog", { name: "対応するセンサー・部品" });
-  await expect(dialog.locator(".catalog-list li")).toHaveCount(15);
+  await expect(dialog.locator(".catalog-list li")).toHaveCount(
+    partKinds.length,
+  );
   await expect(dialog.locator("canvas").first()).toBeVisible();
   await dialog.getByLabel("対応部品を検索").fill("BME280");
   await expect(dialog.locator(".catalog-list li")).toHaveCount(1);

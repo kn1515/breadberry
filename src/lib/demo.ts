@@ -1,14 +1,16 @@
+import { cpuDemo } from "./cpu-demo";
 import {
   type Board,
   type Circuit,
   type Project,
   validateCircuit,
 } from "./circuit";
-export type Example = "climate" | "led" | "temperature" | "display";
+export type Example = "climate" | "led" | "temperature" | "display" | "cpu";
 export function demoCircuit(
   board: Board = "esp32",
   example: Example = "climate",
 ): Circuit {
+  if (example === "cpu") return cpuDemo(board);
   if (example === "temperature" || example === "display")
     return extendedDemo(board, example);
   const gpio = board === "pico" ? ["GP15", "GP14"] : ["GPIO4", "GPIO18"];

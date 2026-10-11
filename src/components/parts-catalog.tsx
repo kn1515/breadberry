@@ -15,6 +15,7 @@ import {
   catalog,
   partKinds,
   isAnalog,
+  partPinHoles,
   type Board,
   type Circuit,
 } from "@/lib/circuit";
@@ -48,9 +49,9 @@ function Preview({ kind }: { kind: Kind }) {
     return () => observer.disconnect();
   }, []);
   const def = catalog[kind];
-  const holes = Object.fromEntries(
-    def.pins.map((pin, i) => [`preview.${pin}`, `b${12 + def.offsets[i]}`]),
-  );
+  const holes = partPinHoles({
+    parts: [{ id: "preview", kind, value: "", purpose: "" }],
+  } as Circuit);
   const fallback = <span>{t("3Dプレビューを表示できません。")}</span>;
   return (
     <div

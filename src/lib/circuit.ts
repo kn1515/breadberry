@@ -283,6 +283,8 @@ export type Project = {
   messages?: ChatMessage[];
   edited?: boolean;
   review: { status: "reviewed" | "unavailable" | "demo"; text: string };
+  agentEvents?: import("./agent").AgentEvent[];
+  traceId?: string;
   storage: "firestore" | "browser";
 };
 export type Point = [number, number, number];

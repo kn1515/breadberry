@@ -10,7 +10,8 @@
     "start": "node scripts/start.mjs",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test tests/unit/*.test.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "diagrams": "node scripts/generate-diagrams.mjs"
   },
   "repository": {
     "type": "git",

@@ -42,9 +42,25 @@ Next.js / TypeScript / Tailwind CSS / Three.js（React Three Fiber）/ Gemini AP
 
 ## システム構成
 
-![breadberry システムアーキテクチャ](docs/architecture.png)
+### システム構成図
 
-ブラウザからの要求はCloud Run上のNext.jsが受け、Gemini APIで回路を生成し、接続検査とGMI Cloudの補助レビューを経てCloud Firestoreへ保存します。部品の購入提案ではDigiKey APIとGeminiのGoogle検索・URLコンテキストを使います。APIキーと署名キーはSecret Managerから渡します。図の元データは `docs/architecture.svg` です。詳細は [Architecture](wiki/Architecture.md) を参照してください。
+![breadberry システム構成図](docs/architecture.png)
+
+ブラウザからの要求はCloud Run上のNext.jsが受け、Gemini APIで回路を生成し、接続検査とGMI Cloudの補助レビューを経てCloud Firestoreへ保存します。部品の購入提案ではDigiKey APIとGeminiのGoogle検索・URLコンテキストを使います。APIキーと署名キーはSecret Managerから渡します。
+
+### コンポーネント図
+
+![breadberry コンポーネント図](docs/components.png)
+
+ブラウザのReactコンポーネント、Cloud Run上のAPIルートとサーバーライブラリ、両者が共有する回路ドメインのロジックに分かれます。部品表・3D・接続図・工程は、共有ドメインの同じ回路ネットリストから導出します。
+
+### 処理シーケンス図
+
+![breadberry 処理シーケンス図](docs/sequence.png)
+
+回路の生成・修正と、部品の購入提案の流れです。補助レビューが失敗した場合は「未実施」として設計を保持し、処理を続けます。
+
+図は `scripts/generate-diagrams.mjs` で生成しています。内容を変更したらスクリプトを編集し、`npm run diagrams` で `docs/` のSVGとPNGを再生成します（PNGの描画にPlaywrightのChromiumを使うため、初回は `npx playwright install chromium` が必要です）。アイコンは `docs/icons/` にあります。詳細は [Architecture](wiki/Architecture.md) を参照してください。
 
 ## セットアップ
 
@@ -563,3 +579,5 @@ breadberry本体は [ISC License](LICENSE) で公開しています。
 `public/models/led/` の3Dモデルは `scripts/generate-led-models.ts` で生成した本プロジェクトのオリジナルです。Fritzingは画面構成の参考にしたもので、Fritzingのコード・部品データ・画像は含みません。
 
 Gemini API、GMI Cloud、DigiKey API、Google Cloudの各サービスは、それぞれの利用規約に従って利用しています。
+
+`docs/` の構成図には、Google Cloudが配布する[公式アイコン](https://cloud.google.com/icons)（Cloud Run、Cloud Firestore、Secret Manager、Cloud Build、Artifact Registry）と、[Simple Icons](https://github.com/simple-icons/simple-icons)（CC0-1.0）のアイコンを使用しています。各サービス・製品の名称とロゴは、それぞれの権利者の商標です。

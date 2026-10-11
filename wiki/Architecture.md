@@ -4,7 +4,7 @@ breadberry のシステム構成、API、データ構造の概要です。
 
 ## 全体構成
 
-![breadberry システムアーキテクチャ](../docs/architecture.png)
+![breadberry システム構成図](../docs/architecture.png)
 
 ```
 ブラウザ (React / Three.js)
@@ -27,6 +27,14 @@ Next.js App Router (src/app)
     ├── DigiKey API ... 部品の検索・在庫・価格
     └── Cloud Firestore ... プロジェクト保存・利用回数管理
 ```
+
+## コンポーネント構成
+
+![breadberry コンポーネント図](../docs/components.png)
+
+## 処理シーケンス
+
+![breadberry 処理シーケンス図](../docs/sequence.png)
 
 ## 設計の中核：単一の回路データ
 

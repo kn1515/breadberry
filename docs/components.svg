@@ -1,0 +1,160 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 940" width="1600" height="940" font-family="'Noto Sans JP', sans-serif">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#3c4043" /></marker><marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#80868b" /></marker></defs>
+<rect width="1600" height="940" fill="#ffffff" />
+<text x="40" y="52" font-size="28" fill="#202124" font-weight="700">breadberry コンポーネント図</text>
+<rect x="40" y="80" width="1160" height="250" rx="16" fill="#fafafa" stroke="#5f6368" stroke-width="2" />
+<image x="60" y="92" width="26" height="26" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHJlY3QgeD0iMiIgeT0iNCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjE2IiByeD0iMi41IiBmaWxsPSIjZmZmIiBzdHJva2U9IiM1ZjYzNjgiIHN0cm9rZS13aWR0aD0iMS44Ii8+PHBhdGggZD0iTTIgOWgyMCIgc3Ryb2tlPSIjNWY2MzY4IiBzdHJva2Utd2lkdGg9IjEuOCIvPjxjaXJjbGUgY3g9IjUuMiIgY3k9IjYuNiIgcj0iLjkiIGZpbGw9IiM1ZjYzNjgiLz48Y2lyY2xlIGN4PSI4IiBjeT0iNi42IiByPSIuOSIgZmlsbD0iIzVmNjM2OCIvPjwvc3ZnPg==" />
+<text x="96" y="111" font-size="16" fill="#202124" font-weight="700">ブラウザ（Reactクライアントコンポーネント / src/components）</text>
+<image x="1118" y="92" width="24" height="24" href="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjMTQ5ZWNhIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTQuMjMgMTIuMDA0YTIuMjM2IDIuMjM2IDAgMCAxLTIuMjM1IDIuMjM2IDIuMjM2IDIuMjM2IDAgMCAxLTIuMjM2LTIuMjM2IDIuMjM2IDIuMjM2IDAgMCAxIDIuMjM1LTIuMjM2IDIuMjM2IDIuMjM2IDAgMCAxIDIuMjM2IDIuMjM2em0yLjY0OC0xMC42OWMtMS4zNDYgMC0zLjEwNy45Ni00Ljg4OCAyLjYyMi0xLjc4LTEuNjUzLTMuNTQyLTIuNjAyLTQuODg3LTIuNjAyLS40MSAwLS43ODMuMDkzLTEuMTA2LjI3OC0xLjM3NS43OTMtMS42ODMgMy4yNjQtLjk3MyA2LjM2NUMxLjk4IDguOTE3IDAgMTAuNDIgMCAxMi4wMDRjMCAxLjU5IDEuOTkgMy4wOTcgNS4wNDMgNC4wMy0uNzA0IDMuMTEzLS4zOSA1LjU4OC45ODggNi4zOC4zMi4xODcuNjkuMjc1IDEuMTAyLjI3NSAxLjM0NSAwIDMuMTA3LS45NiA0Ljg4OC0yLjYyNCAxLjc4IDEuNjU0IDMuNTQyIDIuNjAzIDQuODg3IDIuNjAzLjQxIDAgLjc4My0uMDkgMS4xMDYtLjI3NSAxLjM3NC0uNzkyIDEuNjgzLTMuMjYzLjk3My02LjM2NUMyMi4wMiAxNS4wOTYgMjQgMTMuNTkgMjQgMTIuMDA0YzAtMS41OS0xLjk5LTMuMDk3LTUuMDQzLTQuMDMyLjcwNC0zLjExLjM5LTUuNTg3LS45ODgtNi4zOC0uMzE4LS4xODQtLjY4OC0uMjc3LTEuMDkyLS4yNzh6bS0uMDA1IDEuMDl2LjAwNmMuMjI1IDAgLjQwNi4wNDQuNTU4LjEyNy42NjYuMzgyLjk1NSAxLjgzNS43MyAzLjcwNC0uMDU0LjQ2LS4xNDIuOTQ1LS4yNSAxLjQ0LS45Ni0uMjM2LTIuMDA2LS40MTctMy4xMDctLjUzNC0uNjYtLjkwNS0xLjM0NS0xLjcyNy0yLjAzNS0yLjQ0NyAxLjU5Mi0xLjQ4IDMuMDg3LTIuMjkyIDQuMTA1LTIuMjk1em0tOS43Ny4wMmMxLjAxMiAwIDIuNTE0LjgwOCA0LjExIDIuMjgtLjY4Ni43Mi0xLjM3IDEuNTM3LTIuMDIgMi40NDItMS4xMDcuMTE3LTIuMTU0LjI5OC0zLjExMy41MzgtLjExMi0uNDktLjE5NS0uOTY0LS4yNTQtMS40Mi0uMjMtMS44NjguMDU0LTMuMzIuNzE0LTMuNzA3LjE5LS4wOS40LS4xMjcuNTYzLS4xMzJ6bTQuODgyIDMuMDVjLjQ1NS40NjguOTEuOTkyIDEuMzYgMS41NjQtLjQ0LS4wMi0uODktLjAzNC0xLjM0NS0uMDM0LS40NiAwLS45MTUuMDEtMS4zNi4wMzQuNDQtLjU3Mi44OTUtMS4wOTYgMS4zNDUtMS41NjV6TTEyIDguMWMuNzQgMCAxLjQ3Ny4wMzQgMi4yMDIuMDkzLjQwNi41ODIuODAyIDEuMjAzIDEuMTgzIDEuODYuMzcyLjY0LjcxIDEuMjkgMS4wMTggMS45NDYtLjMwOC42NTUtLjY0NiAxLjMxLTEuMDEzIDEuOTUtLjM4LjY2LS43NzMgMS4yODgtMS4xOCAxLjg3LS43MjguMDYzLTEuNDY2LjA5OC0yLjIxLjA5OC0uNzQgMC0xLjQ3Ny0uMDM1LTIuMjAyLS4wOTMtLjQwNi0uNTgyLS44MDItMS4yMDQtMS4xODMtMS44Ni0uMzcyLS42NC0uNzEtMS4yOS0xLjAxOC0xLjk0Ni4zMDMtLjY1Ny42NDYtMS4zMTMgMS4wMTMtMS45NTQuMzgtLjY2Ljc3My0xLjI4NiAxLjE4LTEuODY4LjcyOC0uMDY0IDEuNDY2LS4wOTggMi4yMS0uMDk4em0tMy42MzUuMjU0Yy0uMjQuMzc3LS40OC43NjMtLjcwNCAxLjE2LS4yMjUuMzktLjQzNS43ODItLjYzNSAxLjE3NC0uMjY1LS42NTYtLjQ5LTEuMzEtLjY3Ni0xLjk0Ny42NC0uMTUgMS4zMTUtLjI4MyAyLjAxNS0uMzg2em03LjI2IDBjLjY5NS4xMDMgMS4zNjUuMjMgMi4wMDYuMzg3LS4xOC42MzItLjQwNSAxLjI4Mi0uNjYgMS45MzMtLjItLjM5LS40MS0uNzgzLS42NC0xLjE3NC0uMjI1LS4zOTItLjQ2NS0uNzc0LS43MDUtMS4xNDZ6bTMuMDYzLjY3NWMuNDg0LjE1Ljk0NC4zMTcgMS4zNzUuNDk4IDEuNzMyLjc0IDIuODUyIDEuNzA4IDIuODUyIDIuNDc2LS4wMDUuNzY4LTEuMTI1IDEuNzQtMi44NTcgMi40NzUtLjQyLjE4LS44OC4zNDItMS4zNTUuNDkzLS4yOC0uOTU4LS42NDYtMS45NTYtMS4xLTIuOTguNDUtMS4wMTcuODEtMi4wMSAxLjA4NS0yLjk2NHptLTEzLjM5NS4wMDRjLjI3OC45Ni42NDUgMS45NTcgMS4xIDIuOTgtLjQ1IDEuMDE3LS44MTIgMi4wMS0xLjA4NiAyLjk2NC0uNDg0LS4xNS0uOTQ0LS4zMTgtMS4zNy0uNS0xLjczMi0uNzM3LTIuODUyLTEuNzA2LTIuODUyLTIuNDc0IDAtLjc2OCAxLjEyLTEuNzQyIDIuODUyLTIuNDc2LjQyLS4xOC44OC0uMzQyIDEuMzU2LS40OTR6bTExLjY3OCA0LjI4Yy4yNjUuNjU3LjQ5IDEuMzEyLjY3NiAxLjk0OC0uNjQuMTU3LTEuMzE2LjI5LTIuMDE2LjM5LjI0LS4zNzUuNDgtLjc2Mi43MDUtMS4xNTguMjI1LS4zOS40MzUtLjc4OC42MzYtMS4xOHptLTkuOTQ1LjAyYy4yLjM5Mi40MS43ODMuNjQgMS4xNzUuMjMuMzkuNDY1Ljc3Mi43MDUgMS4xNDMtLjY5NS0uMTAyLTEuMzY1LS4yMy0yLjAwNi0uMzg2LjE4LS42My40MDYtMS4yODIuNjYtMS45MzN6TTE3LjkyIDE2LjMyYy4xMTIuNDkzLjIuOTY4LjI1NCAxLjQyMy4yMyAxLjg2OC0uMDU0IDMuMzItLjcxNCAzLjcwOC0uMTQ3LjA5LS4zMzguMTI4LS41NjMuMTI4LTEuMDEyIDAtMi41MTQtLjgwNy00LjExLTIuMjguNjg2LS43MiAxLjM3LTEuNTM2IDIuMDItMi40NCAxLjEwNy0uMTE4IDIuMTU0LS4zIDMuMTEzLS41NHptLTExLjgzLjAxYy45Ni4yMzQgMi4wMDYuNDE1IDMuMTA3LjUzMi42Ni45MDUgMS4zNDUgMS43MjcgMi4wMzUgMi40NDYtMS41OTUgMS40ODMtMy4wOTIgMi4yOTUtNC4xMSAyLjI5NS0uMjItLjAwNS0uNDA2LS4wNS0uNTUzLS4xMzItLjY2Ni0uMzgtLjk1NS0xLjgzNC0uNzMtMy43MDMuMDU0LS40Ni4xNDItLjk0NC4yNS0xLjQzOHptNC41Ni42NGMuNDQuMDIuODkuMDM0IDEuMzQ1LjAzNC40NiAwIC45MTUtLjAxIDEuMzYtLjAzNC0uNDQuNTcyLS44OTUgMS4wOTUtMS4zNDUgMS41NjUtLjQ1NS0uNDctLjkxLS45OTMtMS4zNi0xLjU2NXoiLz48L3N2Zz4=" />
+<image x="1152" y="92" width="24" height="24" href="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjMDAwMDAwIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNLjM4IDBhLjI2OC4yNjggMCAwIDAtLjI1Ni4zMzJsMi44OTQgMTEuNzE2YS4yNjguMjY4IDAgMCAwIC4wMS4wNGwyLjg5IDExLjcwOGEuMjY4LjI2OCAwIDAgMCAuNDQ3LjEyOEwyMy44MDIgNy4xNWEuMjY4LjI2OCAwIDAgMC0uMTEyLS40NWwtNS43ODQtMS42NjdhLjI2OC4yNjggMCAwIDAtLjEyMy0uMDM1TDYuMzggMS43MTVhLjI2OC4yNjggMCAwIDAtLjE0NC0uMDRMLjQ1Ni4wMUEuMjY4LjI2OCAwIDAgMCAuMzggMHptLjM3NC42NTRMNS43MSAyLjA4IDEuOTkgNS42NjR6TTYuNjEgMi4zNGw0Ljg2NCAxLjQtMy42NSAzLjUxNXptLS41MjIuMTJsMS4yMTcgNC45MjYtNC44NzctMS40em02LjI4IDEuNTM4bDQuODc4IDEuNDA0LTMuNjYyIDMuNTN6bS0uNTIuMTNsMS4yMDggNC45LTQuODUzLTEuMzkyem02LjMgMS41MzRsNC45NDcgMS40MjQtMy43MTUgMy41NzR6bS0uNTI0LjEybDEuMjE1IDQuOTI2LTQuODc2LTEuMzk4em0tMTUuNDMyLjY5Nmw0Ljk2NCAxLjQyNC0zLjcyNiAzLjU4NnpNOC4wNDcgOC4xNWw0Ljg3NyAxLjQtMy42NiAzLjUyN3ptLS41MTguMTM3bDEuMjM2IDUuMDE3LTQuOTYzLTEuNDMyem02LjI3NCAxLjUzNWw0Ljk2NSAxLjQyNS0zLjczIDMuNTg2em0tLjUyLjEyN2wxLjIzNSA1LjAxMi00Ljk1OC0xLjQzem0tOS42MyAyLjQzOGw0Ljg3MyAxLjQwNi0zLjY1NiAzLjUyM3ptNS44NTQgMS42ODdsNC44NjMgMS40MDMtMy42NDggMy41MXptLS41NC4wNGwxLjIxNCA0LjkyNy00Ljg3NS0xLjR6bS0zLjg5NiA0LjAybDUuMDM3IDEuNDQyLTMuNzgyIDMuNjM4eiIvPjwvc3ZnPg==" />
+<rect x="60" y="125" width="1120" height="190" rx="12" fill="#ffffff" stroke="#5f6368" stroke-width="2" />
+<text x="80" y="152" font-size="16" fill="#202124" font-weight="700">Studio</text>
+<text x="146" y="152" font-size="13" fill="#5f6368">studio.tsx — ワークスペース全体の状態と操作 / Preferences（言語・表示設定）</text>
+<rect x="80" y="172" width="144" height="126" rx="8" fill="#ffffff" stroke="#9aa0a6" stroke-width="1.5" />
+<text x="92" y="198" font-size="14" fill="#202124" font-weight="700">CircuitChat</text>
+<text x="92" y="217" font-size="11" fill="#5f6368">circuit-chat.tsx</text>
+<text x="92" y="248" font-size="12" fill="#202124">回路設計チャット</text>
+<rect x="236" y="172" width="144" height="126" rx="8" fill="#ffffff" stroke="#9aa0a6" stroke-width="1.5" />
+<text x="248" y="198" font-size="14" fill="#202124" font-weight="700">BoardScene</text>
+<text x="248" y="217" font-size="11" fill="#5f6368">board-scene.tsx</text>
+<text x="248" y="248" font-size="12" fill="#202124">3D描画と</text>
+<text x="248" y="267" font-size="12" fill="#202124">組み立てアニメ</text>
+<rect x="392" y="172" width="144" height="126" rx="8" fill="#ffffff" stroke="#9aa0a6" stroke-width="1.5" />
+<text x="404" y="198" font-size="14" fill="#202124" font-weight="700">Schematic</text>
+<text x="404" y="217" font-size="11" fill="#5f6368">schematic.tsx</text>
+<text x="404" y="248" font-size="12" fill="#202124">ネットリストの</text>
+<text x="404" y="267" font-size="12" fill="#202124">接続図</text>
+<rect x="548" y="172" width="144" height="126" rx="8" fill="#ffffff" stroke="#9aa0a6" stroke-width="1.5" />
+<text x="560" y="198" font-size="14" fill="#202124" font-weight="700">LayoutEditor</text>
+<text x="560" y="217" font-size="11" fill="#5f6368">layout-editor.tsx</text>
+<text x="560" y="248" font-size="12" fill="#202124">配置の編集と</text>
+<text x="560" y="267" font-size="12" fill="#202124">干渉チェック</text>
+<rect x="704" y="172" width="144" height="126" rx="8" fill="#ffffff" stroke="#9aa0a6" stroke-width="1.5" />
+<text x="716" y="198" font-size="14" fill="#202124" font-weight="700">PartsCatalog</text>
+<text x="716" y="217" font-size="11" fill="#5f6368">parts-catalog.tsx</text>
+<text x="716" y="248" font-size="12" fill="#202124">部品カタログ</text>
+<rect x="860" y="172" width="144" height="126" rx="8" fill="#ffffff" stroke="#9aa0a6" stroke-width="1.5" />
+<text x="872" y="198" font-size="14" fill="#202124" font-weight="700">PurchaseModal</text>
+<text x="872" y="217" font-size="11" fill="#5f6368">purchase-modal.tsx</text>
+<text x="872" y="248" font-size="12" fill="#202124">部品の購入提案</text>
+<rect x="1016" y="172" width="144" height="126" rx="8" fill="#ffffff" stroke="#9aa0a6" stroke-width="1.5" />
+<text x="1028" y="198" font-size="14" fill="#202124" font-weight="700">Tutorial</text>
+<text x="1028" y="217" font-size="11" fill="#5f6368">tutorial.tsx</text>
+<text x="1028" y="248" font-size="12" fill="#202124">操作ガイド</text>
+<path d="M620 330 V368" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
+<text x="634" y="355" font-size="13" fill="#3c4043">fetch（JSON / NDJSONストリーム）</text>
+<rect x="40" y="370" width="1160" height="120" rx="16" fill="#f1f6fe" stroke="#4285f4" stroke-width="2" />
+<image x="60" y="380" width="24" height="24" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNHB4IiBoZWlnaHQ9IjI0cHgiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiNhZWNiZmE7fS5jbHMtMSwuY2xzLTJ7ZmlsbC1ydWxlOmV2ZW5vZGQ7fS5jbHMtMntmaWxsOiM0Mjg1ZjQ7fTwvc3R5bGU+PC9kZWZzPjx0aXRsZT5JY29uXzI0cHhfQ2xvdWRSdW5fQ29sb3I8L3RpdGxlPjxnIGRhdGEtbmFtZT0iUHJvZHVjdCBJY29ucyI+PGcgPjxwb2x5Z29uIGNsYXNzPSJjbHMtMSIgcG9pbnRzPSI4LjkgMi42MyAxMi4wMiAxMiAyMS4zOCAxMiA4LjkgMi42MyIvPjxwb2x5Z29uIGNsYXNzPSJjbHMtMiIgcG9pbnRzPSIyMS4zOCAxMiAxMi4wMiAxMiA4LjkgMjEuMzggMjEuMzggMTIiLz48cG9seWdvbiBjbGFzcz0iY2xzLTIiIHBvaW50cz0iMy40NCAyMS4zOCA2LjU3IDE5LjgxIDguOSAxMiA1Ljc4IDEyIDMuNDQgMjEuMzgiLz48cG9seWdvbiBjbGFzcz0iY2xzLTEiIHBvaW50cz0iMy40NCAyLjYzIDUuNzggMTIgOC45IDEyIDYuNTcgNC4xOSAzLjQ0IDIuNjMiLz48L2c+PC9nPjwvc3ZnPg==" />
+<text x="94" y="399" font-size="16" fill="#1a56c4" font-weight="700">APIルート（src/app/api）— Cloud Run 上の Next.js</text>
+<rect x="60" y="410" width="200" height="65" rx="8" fill="#ffffff" stroke="#4285f4" stroke-width="1.5" />
+<text x="72" y="436" font-size="13" fill="#202124" font-weight="700">POST /api/generate</text>
+<text x="72" y="458" font-size="12" fill="#5f6368">回路の生成・修正</text>
+<rect x="290" y="410" width="200" height="65" rx="8" fill="#ffffff" stroke="#4285f4" stroke-width="1.5" />
+<text x="302" y="436" font-size="13" fill="#202124" font-weight="700">GET /api/health</text>
+<text x="302" y="458" font-size="12" fill="#5f6368">ヘルスチェック</text>
+<rect x="520" y="410" width="200" height="65" rx="8" fill="#ffffff" stroke="#4285f4" stroke-width="1.5" />
+<text x="532" y="436" font-size="13" fill="#202124" font-weight="700">POST /api/purchase/search</text>
+<text x="532" y="458" font-size="12" fill="#5f6368">部品の購入先検索</text>
+<rect x="750" y="410" width="200" height="65" rx="8" fill="#ffffff" stroke="#4285f4" stroke-width="1.5" />
+<text x="762" y="436" font-size="13" fill="#202124" font-weight="700">/api/projects（/[id]）</text>
+<text x="762" y="458" font-size="12" fill="#5f6368">回路の保存・一覧・取得</text>
+<rect x="980" y="410" width="200" height="65" rx="8" fill="#ffffff" stroke="#4285f4" stroke-width="1.5" />
+<text x="992" y="436" font-size="13" fill="#202124" font-weight="700">/api/session</text>
+<text x="992" y="458" font-size="12" fill="#5f6368">セッション開始・接続状態</text>
+<rect x="40" y="530" width="1160" height="220" rx="16" fill="#f1f6fe" stroke="#4285f4" stroke-width="2" />
+<text x="290" y="559" font-size="16" fill="#1a56c4" font-weight="700">サーバーライブラリ（src/lib）</text>
+<rect x="60" y="580" width="200" height="150" rx="8" fill="#ffffff" stroke="#4285f4" stroke-width="1.5" />
+<text x="72" y="606" font-size="14" fill="#202124" font-weight="700">ai.ts</text>
+<text x="72" y="630" font-size="12" fill="#1a56c4">generateCircuit</text>
+<text x="72" y="648" font-size="12" fill="#1a56c4">reviewCircuit</text>
+<text x="72" y="690" font-size="12" fill="#5f6368">Gemini生成と検査</text>
+<text x="72" y="708" font-size="12" fill="#5f6368">GMI補助レビュー</text>
+<rect x="290" y="580" width="200" height="150" rx="8" fill="#ffffff" stroke="#4285f4" stroke-width="1.5" />
+<text x="302" y="606" font-size="14" fill="#202124" font-weight="700">purchase-ai.ts</text>
+<text x="302" y="630" font-size="12" fill="#1a56c4">recommendPurchase</text>
+<text x="302" y="690" font-size="12" fill="#5f6368">販売店の探索と</text>
+<text x="302" y="708" font-size="12" fill="#5f6368">商品ページの照合</text>
+<rect x="520" y="580" width="200" height="150" rx="8" fill="#ffffff" stroke="#4285f4" stroke-width="1.5" />
+<text x="532" y="606" font-size="14" fill="#202124" font-weight="700">purchase-search.ts</text>
+<text x="532" y="630" font-size="12" fill="#1a56c4">runPurchaseSearch</text>
+<text x="532" y="690" font-size="12" fill="#5f6368">購入検索の進行管理</text>
+<text x="532" y="708" font-size="12" fill="#5f6368">期限・中断・逐次通知</text>
+<rect x="750" y="580" width="200" height="150" rx="8" fill="#ffffff" stroke="#4285f4" stroke-width="1.5" />
+<text x="762" y="606" font-size="14" fill="#202124" font-weight="700">digikey.ts</text>
+<text x="762" y="630" font-size="12" fill="#1a56c4">searchDigiKey</text>
+<text x="762" y="690" font-size="12" fill="#5f6368">OAuth・商品検索</text>
+<text x="762" y="708" font-size="12" fill="#5f6368">結果の正規化</text>
+<rect x="980" y="580" width="200" height="150" rx="8" fill="#ffffff" stroke="#4285f4" stroke-width="1.5" />
+<text x="992" y="606" font-size="14" fill="#202124" font-weight="700">server.ts</text>
+<text x="992" y="630" font-size="12" fill="#1a56c4">owner / checkOrigin</text>
+<text x="992" y="648" font-size="12" fill="#1a56c4">takeQuota / saveProject</text>
+<text x="992" y="690" font-size="12" fill="#5f6368">全ルート共通の基盤</text>
+<text x="992" y="708" font-size="12" fill="#5f6368">セッション・利用回数・保存</text>
+<path d="M160 475 V578" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
+<path d="M620 475 V578" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
+<path d="M900 475 L1040 578" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
+<path d="M1100 475 V578" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
+<path d="M520 655 H492" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
+<path d="M720 655 H748" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
+<rect x="60" y="800" width="200" height="104" rx="12" fill="#ffffff" stroke="#5f6368" stroke-width="2" />
+<image x="74" y="812" width="32" height="32" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTcgMTlhNSA1IDAgMCAxLS42LTkuOTZBNiA2IDAgMCAxIDE4IDkuNWE0Ljc1IDQuNzUgMCAwIDEtLjUgOS41eiIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjNWY2MzY4IiBzdHJva2Utd2lkdGg9IjEuOCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==" />
+<text x="114" y="835" font-size="16" fill="#202124" font-weight="700">GMI Cloud</text>
+<text x="74" y="868" font-size="12" fill="#202124">補助レビュー</text>
+<text x="74" y="887" font-size="12" fill="#202124">（OpenAI互換API）</text>
+<rect x="290" y="800" width="200" height="104" rx="12" fill="#ffffff" stroke="#4285f4" stroke-width="2" />
+<image x="304" y="812" width="32" height="32" href="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjNDI4NWY0IiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTEuMDQgMTkuMzJRMTIgMjEuNTEgMTIgMjRxMC0yLjQ5LjkzLTQuNjguOTYtMi4xOSAyLjU4LTMuODF0My44MS0yLjU1UTIxLjUxIDEyIDI0IDEycS0yLjQ5IDAtNC42OC0uOTNhMTIuMyAxMi4zIDAgMCAxLTMuODEtMi41OCAxMi4zIDEyLjMgMCAwIDEtMi41OC0zLjgxUTEyIDIuNDkgMTIgMHEwIDIuNDktLjk2IDQuNjgtLjkzIDIuMTktMi41NSAzLjgxYTEyLjMgMTIuMyAwIDAgMS0zLjgxIDIuNThRMi40OSAxMiAwIDEycTIuNDkgMCA0LjY4Ljk2IDIuMTkuOTMgMy44MSAyLjU1dDIuNTUgMy44MSIvPjwvc3ZnPg==" />
+<text x="344" y="835" font-size="16" fill="#1a56c4" font-weight="700">Gemini API</text>
+<text x="304" y="868" font-size="12" fill="#202124">構造化JSON出力</text>
+<text x="304" y="887" font-size="12" fill="#202124">Google検索 / URLコンテキスト</text>
+<rect x="750" y="800" width="200" height="104" rx="12" fill="#ffffff" stroke="#5f6368" stroke-width="2" />
+<image x="764" y="812" width="32" height="32" href="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjY2MwMDAwIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTIuMjQ2LjIyMUExMS43ODYgMTEuNzg2IDAgMCAxIDIzLjg5IDEwLjQxOGMuOTEyIDYuNTkzLTMuOTQ0IDEyLjcxMS0xMC41NTggMTMuMjk3LS40NTQuMDQtLjkxMi4wNjMtMS4zNjkuMDY0bC0xMC43MDUuMDAzdi0zLjc0OUgwVjMuOTg3aDEuMjIyVi4yMThsMTEuMDI0LjAwM3pNMTcuOSAxOS40MjNsLTguMjYtNy40MjIgOC4yNS03LjQyMmgtNi45MzhMNS42MTUgOS4zNjFWNC41OThILjU2djE0LjgwM2g1LjEwNXYtNC43MjRsNS4yODkgNC43NDZIMTcuOXoiLz48L3N2Zz4=" />
+<text x="804" y="835" font-size="16" fill="#202124" font-weight="700">DigiKey API</text>
+<text x="764" y="868" font-size="12" fill="#202124">商品検索・在庫・価格</text>
+<rect x="980" y="800" width="200" height="104" rx="12" fill="#ffffff" stroke="#4285f4" stroke-width="2" />
+<image x="994" y="812" width="32" height="32" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNHB4IiBoZWlnaHQ9IjI0cHgiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiM2NjlkZjY7fS5jbHMtMntmaWxsOiNhZWNiZmE7fS5jbHMtM3tmaWxsOiM0Mjg1ZjQ7fTwvc3R5bGU+PC9kZWZzPjx0aXRsZT5JY29uXzI0cHhfRmlyZXN0b3JlX0NvbG9yPC90aXRsZT48ZyBkYXRhLW5hbWU9IlByb2R1Y3QgSWNvbnMiPjxnIGRhdGEtbmFtZT0iY29sb3JlZC0zMi9maXJlc3RvcmUiPjxnID48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0yMSwxMywxMiw5djRsOSw0Wm0wLTdMMTIsMlY2bDksNFoiLz48cG9seWdvbiBpZD0iUmVjdGFuZ2xlLTciIGNsYXNzPSJjbHMtMiIgcG9pbnRzPSIzIDYgMTIgMiAxMiA2IDMgMTAgMyA2Ii8+PHBvbHlnb24gaWQ9IlJlY3RhbmdsZS03LTIiIGRhdGEtbmFtZT0iUmVjdGFuZ2xlLTciIGNsYXNzPSJjbHMtMiIgcG9pbnRzPSIzIDEzIDEyIDkgMTIgMTMgMyAxNyAzIDEzIi8+PHBvbHlnb24gaWQ9IlJlY3RhbmdsZS03LTMiIGRhdGEtbmFtZT0iUmVjdGFuZ2xlLTciIGNsYXNzPSJjbHMtMyIgcG9pbnRzPSIxMiAxOCAxNS4zNyAxNi41IDE5Ljg4IDE4LjUgMTIgMjIgMTIgMTgiLz48L2c+PC9nPjwvZz48L3N2Zz4=" />
+<text x="1034" y="835" font-size="16" fill="#1a56c4" font-weight="700">Cloud Firestore</text>
+<text x="994" y="868" font-size="12" fill="#202124">プロジェクト</text>
+<text x="994" y="887" font-size="12" fill="#202124">利用回数カウンター</text>
+<path d="M130 730 V798" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
+<path d="M225 730 L330 798" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
+<path d="M410 730 V798" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
+<path d="M850 730 V798" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
+<path d="M1080 730 V798" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
+<rect x="1230" y="80" width="330" height="670" rx="16" fill="#fafafa" stroke="#5f6368" stroke-width="2" />
+<text x="1250" y="111" font-size="16" fill="#202124" font-weight="700">共有ドメイン（src/lib）</text>
+<text x="1250" y="132" font-size="12" fill="#5f6368">クライアントとサーバーで共通のロジック</text>
+<rect x="1250" y="148" width="290" height="60" rx="8" fill="#ffffff" stroke="#9aa0a6" stroke-width="1.5" />
+<text x="1262" y="172" font-size="13" fill="#202124" font-weight="700">circuit.ts</text>
+<text x="1262" y="193" font-size="12" fill="#5f6368">スキーマ・部品カタログ・接続検査・部品表</text>
+<rect x="1250" y="222" width="290" height="60" rx="8" fill="#ffffff" stroke="#9aa0a6" stroke-width="1.5" />
+<text x="1262" y="246" font-size="13" fill="#202124" font-weight="700">layout.ts</text>
+<text x="1262" y="267" font-size="12" fill="#5f6368">部品配置・ブレッドボード・干渉チェック</text>
+<rect x="1250" y="296" width="290" height="60" rx="8" fill="#ffffff" stroke="#9aa0a6" stroke-width="1.5" />
+<text x="1262" y="320" font-size="13" fill="#202124" font-weight="700">logic.ts</text>
+<text x="1262" y="341" font-size="12" fill="#5f6368">74HCロジックICのピンと論理</text>
+<rect x="1250" y="370" width="290" height="60" rx="8" fill="#ffffff" stroke="#9aa0a6" stroke-width="1.5" />
+<text x="1262" y="394" font-size="13" fill="#202124" font-weight="700">led.ts</text>
+<text x="1262" y="415" font-size="12" fill="#5f6368">LEDの色と3Dモデルの対応</text>
+<rect x="1250" y="444" width="290" height="60" rx="8" fill="#ffffff" stroke="#9aa0a6" stroke-width="1.5" />
+<text x="1262" y="468" font-size="13" fill="#202124" font-weight="700">conversation.ts</text>
+<text x="1262" y="489" font-size="12" fill="#5f6368">会話履歴の型と上限</text>
+<rect x="1250" y="518" width="290" height="60" rx="8" fill="#ffffff" stroke="#9aa0a6" stroke-width="1.5" />
+<text x="1262" y="542" font-size="13" fill="#202124" font-weight="700">purchase.ts / purchase-catalog.ts</text>
+<text x="1262" y="563" font-size="12" fill="#5f6368">購入データの型・登録商品</text>
+<rect x="1250" y="592" width="290" height="60" rx="8" fill="#ffffff" stroke="#9aa0a6" stroke-width="1.5" />
+<text x="1262" y="616" font-size="13" fill="#202124" font-weight="700">demo.ts / cpu-demo.ts</text>
+<text x="1262" y="637" font-size="12" fill="#5f6368">APIキー不要のサンプル回路</text>
+<rect x="1250" y="666" width="290" height="60" rx="8" fill="#ffffff" stroke="#9aa0a6" stroke-width="1.5" />
+<text x="1262" y="690" font-size="13" fill="#202124" font-weight="700">i18n.ts / messages.ts</text>
+<text x="1262" y="711" font-size="12" fill="#5f6368">日本語・英語の表示切り替え</text>
+<path d="M1200 205 H1228" fill="none" stroke="#80868b" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#b)" />
+<path d="M1200 430 H1228" fill="none" stroke="#80868b" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#b)" />
+<path d="M1200 640 H1228" fill="none" stroke="#80868b" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#b)" />
+<path d="M1250 820 H1300" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
+<text x="1312" y="825" font-size="13" fill="#5f6368">呼び出し（HTTP / 関数）</text>
+<path d="M1250 850 H1300" fill="none" stroke="#80868b" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#b)" />
+<text x="1312" y="855" font-size="13" fill="#5f6368">import（共有ロジックの利用）</text>
+<rect x="1250" y="872" width="50" height="18" rx="4" fill="#ffffff" stroke="#4285f4" stroke-width="2" />
+<text x="1312" y="886" font-size="13" fill="#5f6368">Google Cloud 上で動く部分</text>
+<text x="1250" y="918" font-size="12" fill="#5f6368">※ すべてのAPIルートが server.ts を利用（矢印は一部省略）</text>
+</svg>

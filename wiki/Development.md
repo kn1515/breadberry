@@ -30,6 +30,7 @@ breadberry/
 ├── tests/unit/               # ユニットテスト（node:test + tsx）
 ├── scripts/
 │   ├── deploy.sh             # Cloud Build + Cloud Run デプロイ
+│   ├── generate-diagrams.mjs # docs/ の構成図を生成（npm run diagrams）
 │   ├── prepare-standalone.mjs
 │   └── start.mjs
 ├── Dockerfile

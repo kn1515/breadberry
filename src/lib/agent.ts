@@ -5,13 +5,14 @@ import type { CircuitContext } from "./conversation";
 import type { Locale } from "./i18n";
 
 export type AgentEvent = { at: string; step: string; attempt: number; outcome: "started" | "passed" | "failed" | "retry"; detail: string };
-export async function runCircuitAgent(prompt: string, board: Board, context: CircuitContext | undefined, locale: Locale, sessionId: string) {
+export async function runCircuitAgent(prompt: string, board: Board, context: CircuitContext | undefined, locale: Locale, sessionId: string, onEvent?: (event: AgentEvent) => void) {
   const traceId = randomUUID();
   const events: AgentEvent[] = [];
   const maxAttempts = Math.min(3, Math.max(1, Number(process.env.AGENT_MAX_ATTEMPTS || 3) || 3));
   const record = (step: string, attempt: number, outcome: AgentEvent["outcome"], detail: string) => {
     const event = { at: new Date().toISOString(), step, attempt, outcome, detail: detail.slice(0, 500) };
     events.push(event);
+    onEvent?.(event);
     console.log(JSON.stringify({ severity: outcome === "failed" ? "WARNING" : "INFO", message: "breadberry.agent", traceId, session: sessionId.slice(0, 8), ...event }));
   };
   let feedback: string | undefined;
@@ -21,7 +22,8 @@ export async function runCircuitAgent(prompt: string, board: Board, context: Cir
     record("generation", attempt, "started", feedback ? "指摘を反映して回路を修正" : "回路を生成");
     try {
       circuit = await generateCircuit(prompt, board, context, locale, feedback);
-      record("validation", attempt, "passed", "接続検査を通過");
+      record("selection", attempt, "passed", `部品選定: ${circuit.parts.map((part) => `${part.kind} (${part.value})`).slice(0, 12).join("、")}`);
+      record("validation", attempt, "passed", "接続チェックを通過");
     } catch (error) {
       if (!(error instanceof ServiceError) || error.status !== 422) throw error;
       feedback = error.message;

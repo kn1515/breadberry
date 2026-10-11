@@ -323,8 +323,6 @@ export const messages: Record<string, string> = {
   パーツライブラリ: "Parts library",
   "対応するセンサー・部品（": "Supported sensors and parts (",
   "種類）": " types)",
-  "部品を選ぶと入力欄にセットします。3.3V回路・最大6部品。モジュールは端子名と実物の仕様を確認してください。":
-    "Select a part to fill in the prompt. 3.3V circuits, up to 6 parts. Check the pin labels and specifications of your physical modules.",
   "Raspberry Pi 4/5はADC非搭載です": "Raspberry Pi 4/5 has no built-in ADC",
   "（ADCが必要）": " (ADC required)",
   パーツを検索: "Search parts",

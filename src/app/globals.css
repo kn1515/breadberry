@@ -931,11 +931,6 @@ main > *:not(.aurora, .grain) {
   border-radius: 4px;
   letter-spacing: 0.5px;
 }
-.guide-intro {
-  font-size: 9px;
-  color: #8093ae;
-  margin-top: 10px;
-}
 .guide-progress {
   display: flex;
   justify-content: space-between;
@@ -1892,9 +1887,6 @@ footer > span:last-child {
   }
   .live-pill {
     font-size: 6px !important;
-  }
-  .guide-intro {
-    font-size: 9px;
   }
   .guide-progress {
     margin: 14px 0;
@@ -3499,7 +3491,6 @@ main > .ambient {
 :root[data-theme="light"] .icon-button,
 :root[data-theme="light"] .playback select,
 :root[data-theme="light"] .guide-panel .panel-title svg,
-:root[data-theme="light"] .guide-intro,
 :root[data-theme="light"] .guide-progress small,
 :root[data-theme="light"] .guide-progress > span:last-child,
 :root[data-theme="light"] .step-number,

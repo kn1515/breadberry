@@ -1266,7 +1266,6 @@ export default function Studio() {
         </a>
         <span>created by ponn</span>
         <span>
-          {t(" ")}
           <span className="footer-spark">✧</span>
         </span>
       </footer>

@@ -21,6 +21,8 @@ ADC は読み取り専用マウントです。認証情報をイメージに含�
 
 ## Cloud Run へのデプロイ
 
+Cloud Armorは常に有効です。[Cloud Armor導入手順](../docs/cloud-armor.md)に従い、Compute API・追加IAM・DNSホスト名を準備してください。`CLOUD_ARMOR_DOMAIN` は必須です。Cloud Runのrun.app URLは無効化され、公開URLは `https://${CLOUD_ARMOR_DOMAIN}` に変わります。`APP_ORIGIN` は自動設定されます。初回はDNS・証明書の準備完了まで停止時間が発生します。
+
 課金が有効な Google Cloud プロジェクト、gcloud CLI、デプロイ権限が必要です。以下は自分のプロジェクトで実行してください。
 
 ### 1. API・データベース・イメージ保管先
@@ -89,6 +91,7 @@ Model Armor は任意です。テンプレートの作成と `roles/modelarmor.u
 ### 4. ビルド・デプロイ
 
 ```bash
+export CLOUD_ARMOR_DOMAIN=breadberry.example.com
 make deploy
 ```
 
@@ -98,13 +101,12 @@ make deploy
 - 1GiB メモリ、最大3インスタンス、180秒タイムアウト
 - **認証なしでアクセスできる公開サービス**
 
-環境変数 `REGION` / `SERVICE` / `SERVICE_ACCOUNT` で変更できます。IAM で保護された非公開サービスにする場合は `ALLOW_UNAUTHENTICATED=false make deploy` を実行します。
+環境変数 `REGION` / `SERVICE` / `SERVICE_ACCOUNT` で変更できます。公開LBには `ALLOW_UNAUTHENTICATED=true` が必要です。ingressとCloud Armorで入口を制限します。
 
 #### APP_ORIGIN の扱い
 
-- `APP_ORIGIN` を指定して実行すると、その URL を操作の送信元として許可します（末尾 `/` なし）
-- 未指定の場合は Cloud Run に設定済みの値を保持します。他の追加済み環境変数も再デプロイ時に保持します
-- 一度 Cloud Run の URL を `APP_ORIGIN` に設定済みなら、以降は `make deploy` だけで再デプロイできます
+- `APP_ORIGIN` は `https://${CLOUD_ARMOR_DOMAIN}` に自動設定します。異なる値は拒否します
+- 他の追加済み環境変数は再デプロイ時にも保持します
 - `make deploy` は `.env.local` を読み込みません。モデルを変更する場合は `GEMINI_MODEL=gemini-3.8-flash make deploy` のように環境変数で指定してください
 
 ## GitHub Actions で PR マージ時にデプロイ
@@ -167,6 +169,8 @@ GitHub リポジトリの **Settings > Secrets and variables > Actions > Variabl
 | `GCP_WORKLOAD_IDENTITY_PROVIDER` | `projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/github/providers/github` |
 | `GCP_DEPLOY_SERVICE_ACCOUNT` | `breadberry-github-deploy@YOUR_PROJECT_ID.iam.gserviceaccount.com` |
 | `CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT` | `breadberry-runtime@YOUR_PROJECT_ID.iam.gserviceaccount.com` |
+| `CLOUD_ARMOR_DOMAIN` | 必須。公開HTTPSホスト名 |
+| `EDGE_NAME` | 任意。専用LB・Cloud Armorリソース名 |
 | `GCP_REGION` | 任意。未指定時は `asia-northeast1` |
 | `CLOUD_RUN_SERVICE` | 任意。未指定時は `breadberry` |
 | `ARTIFACT_REPOSITORY` | 任意。未指定時は `breadberry` |
@@ -178,36 +182,14 @@ GitHub リポジトリの **Settings > Secrets and variables > Actions > Variabl
 
 ## デプロイ後の動作確認
 
-公開デモは [https://breadberry-924602448759.asia-northeast1.run.app/](https://breadberry-924602448759.asia-northeast1.run.app/) で動作しています。
-
-デプロイ後は、許可する送信元を Cloud Run の URL に設定します：
-
-```bash
-export APP_ORIGIN="https://YOUR_SERVICE_URL"
-gcloud run services update breadberry --region "$REGION" \
-  --project "$GOOGLE_CLOUD_PROJECT" \
-  --update-env-vars "APP_ORIGIN=${APP_ORIGIN}"
-```
-
-`ALLOW_UNAUTHENTICATED=false` で非公開にした場合は、localhost を許可してプロキシ経由で確認します：
-
-```bash
-gcloud run services update breadberry --region "$REGION" \
-  --project "$GOOGLE_CLOUD_PROJECT" \
-  --update-env-vars 'APP_ORIGIN=http://localhost:8080'
-
-gcloud run services proxy breadberry --region "$REGION" \
-  --project "$GOOGLE_CLOUD_PROJECT" --port 8080
-```
-
-[http://localhost:8080](http://localhost:8080) を開きます。`127.0.0.1` や別のポートは異なる送信元として扱われるため、設定と同じ URL を使ってください。
+公開URLは `https://${CLOUD_ARMOR_DOMAIN}` です。旧run.app URLは無効です。[Cloud Armor導入後の確認](../docs/cloud-armor.md#導入後の確認)でDNS・証明書・WAF・レート制限・逐次表示を確認してください。
 
 現在の実装で許可する送信元は1つです。localhost と公開 URL の両方を同時には指定できません。
 
 ### トラブルシューティング
 
 - **「この送信元からは操作できません。」という 403**：セッション開始などの操作時にブラウザの送信元と `APP_ORIGIN` が一致していません。Cloud Run の IAM 認証による `Error: Forbidden` とは別の設定です
-- **`Error: Forbidden`（IAM）**：`ALLOW_UNAUTHENTICATED=false` でデプロイした非公開サービスに認証なしでアクセスしています。`gcloud run services proxy` を使うか、公開設定で再デプロイしてください
+- **403**：LBログの `enforcedSecurityPolicy` とアプリログを確認し、WAF拒否と送信元検査を区別します。run.appへの直接アクセスは無効です
 
 ## 一般公開
 

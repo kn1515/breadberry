@@ -217,8 +217,18 @@ function architecture() {
     ),
   );
 
-  b.push(path("M300 335 H398", LINE, false, true));
-  b.push(text(335, 325, "HTTPS", 13, LINE, false, "middle"));
+  b.push(
+    ...service(40, 610, 260, 170, "armor", "Cloud Armor", [
+      ["Google Cloud / グローバルHTTPS LB", INK],
+      ["SQLi / XSSを403で拒否", INK],
+      ["API: IP単位120件/分・超過429", INK],
+      ["serverless NEG → Cloud Run", GREY],
+    ]),
+  );
+  b.push(path("M170 550 V608", LINE, false, true));
+  b.push(text(186, 586, "HTTPS（独自ドメイン）", 13, LINE));
+  b.push(path("M300 695 H350 V335 H398", LINE, false, true));
+  b.push(text(420, 777, "Ingress制限 + run.app URL無効", 12, BLUE));
   b.push(path("M780 204 H898"));
   b.push(path("M780 344 H898", LINE, false, true));
   b.push(path("M900 475 H782"));
@@ -317,7 +327,9 @@ function components() {
   });
 
   b.push(path("M620 330 V368"));
-  b.push(text(634, 355, "fetch（JSON / NDJSONストリーム）", 13, LINE));
+  b.push(
+    text(634, 355, "HTTPS LB + Cloud Armor + NEG（JSON / NDJSON）", 13, LINE),
+  );
 
   b.push(rect(40, 370, 1160, 120, GC, "#f1f6fe", 2, 16));
   b.push(img("run", 60, 380, 24));
@@ -566,6 +578,15 @@ function sequence() {
   msg(y(7), "gem", "run", "推奨候補と理由", true);
   msg(y(8), "run", "web", "推奨結果", true);
   msg(y(9), "web", "user", "購入候補を表示", true);
+  b.push(
+    text(
+      40,
+      1794,
+      "ブラウザ⇔Cloud RunはHTTPS LB・Cloud Armor・serverless NEG経由。WAF拒否(403)・APIレート超過(429)はCloud Runへ届かない。",
+      13,
+      GREY,
+    ),
+  );
   return doc(W, H, "breadberry 処理シーケンス図", b);
 }
 
@@ -579,10 +600,13 @@ const font = (weight) =>
   ).toString("base64")}) format("woff2");}`;
 const style = `<style>${font(400)}${font(700)}body{margin:0}</style>`;
 
-const browser = await chromium.launch();
+// SVG-only output can be used by offline renderers when Chromium is unavailable.
+const svgOnly = process.argv.includes("--svg-only");
+const browser = svgOnly ? undefined : await chromium.launch();
 for (const [name, build] of Object.entries(diagrams)) {
   const svg = build();
   writeFileSync(join(docs, `${name}.svg`), svg);
+  if (svgOnly) continue;
   const [, width, height] = svg.match(/width="(\d+)" height="(\d+)"/);
   const page = await browser.newPage({
     viewport: { width: +width, height: +height },
@@ -594,4 +618,4 @@ for (const [name, build] of Object.entries(diagrams)) {
   await page.close();
   console.log(`docs/${name}.svg, docs/${name}.png`);
 }
-await browser.close();
+await browser?.close();

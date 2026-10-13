@@ -43,7 +43,7 @@
 <text x="1028" y="217" font-size="11" fill="#5f6368">tutorial.tsx</text>
 <text x="1028" y="248" font-size="12" fill="#202124">操作ガイド</text>
 <path d="M620 330 V368" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
-<text x="634" y="355" font-size="13" fill="#3c4043">fetch（JSON / NDJSONストリーム）</text>
+<text x="634" y="355" font-size="13" fill="#3c4043">HTTPS LB + Cloud Armor + NEG（JSON / NDJSON）</text>
 <rect x="40" y="370" width="1160" height="120" rx="16" fill="#f1f6fe" stroke="#4285f4" stroke-width="2" />
 <image x="60" y="380" width="24" height="24" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNHB4IiBoZWlnaHQ9IjI0cHgiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiNhZWNiZmE7fS5jbHMtMSwuY2xzLTJ7ZmlsbC1ydWxlOmV2ZW5vZGQ7fS5jbHMtMntmaWxsOiM0Mjg1ZjQ7fTwvc3R5bGU+PC9kZWZzPjx0aXRsZT5JY29uXzI0cHhfQ2xvdWRSdW5fQ29sb3I8L3RpdGxlPjxnIGRhdGEtbmFtZT0iUHJvZHVjdCBJY29ucyI+PGcgPjxwb2x5Z29uIGNsYXNzPSJjbHMtMSIgcG9pbnRzPSI4LjkgMi42MyAxMi4wMiAxMiAyMS4zOCAxMiA4LjkgMi42MyIvPjxwb2x5Z29uIGNsYXNzPSJjbHMtMiIgcG9pbnRzPSIyMS4zOCAxMiAxMi4wMiAxMiA4LjkgMjEuMzggMjEuMzggMTIiLz48cG9seWdvbiBjbGFzcz0iY2xzLTIiIHBvaW50cz0iMy40NCAyMS4zOCA2LjU3IDE5LjgxIDguOSAxMiA1Ljc4IDEyIDMuNDQgMjEuMzgiLz48cG9seWdvbiBjbGFzcz0iY2xzLTEiIHBvaW50cz0iMy40NCAyLjYzIDUuNzggMTIgOC45IDEyIDYuNTcgNC4xOSAzLjQ0IDIuNjMiLz48L2c+PC9nPjwvc3ZnPg==" />
 <text x="94" y="399" font-size="16" fill="#1a56c4" font-weight="700">APIルート（src/app/api）— Cloud Run 上の Next.js</text>

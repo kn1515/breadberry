@@ -1,4 +1,4 @@
-.PHONY: setup dev build test docker deploy
+.PHONY: setup dev build test docker deploy cloud-armor
 setup:
 	npm ci
 dev:
@@ -13,3 +13,6 @@ docker:
 	docker compose up --build
 deploy:
 	./scripts/deploy.sh
+
+cloud-armor:
+	./scripts/setup-cloud-armor.sh

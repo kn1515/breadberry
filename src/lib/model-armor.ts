@@ -63,8 +63,10 @@ const sanitize = traced(
         return await response.json();
       }, 8000);
       const result = data?.sanitizationResult;
-      if (result?.filterMatchState !== "MATCH_FOUND")
+      if (result?.filterMatchState === "NO_MATCH_FOUND")
         return { status: "passed", filters: [] };
+      if (result?.filterMatchState !== "MATCH_FOUND")
+        throw new Error("Unexpected Model Armor response");
       const filters = Object.entries(result.filterResults ?? {})
         .filter(([, value]) => hasMatch(value))
         .map(([key]) => key);

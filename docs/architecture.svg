@@ -76,8 +76,17 @@
 <text x="1336" y="330" font-size="18" fill="#202124" font-weight="700">DigiKey API</text>
 <text x="1290" y="362" font-size="13" fill="#202124">部品の検索・在庫・価格</text>
 <text x="1290" y="384" font-size="13" fill="#5f6368">OAuth 2.0（クライアント認証）</text>
-<path d="M300 335 H398" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" marker-start="url(#a)" />
-<text x="335" y="325" font-size="13" fill="#3c4043" text-anchor="middle">HTTPS</text>
+<rect x="40" y="610" width="260" height="170" rx="12" fill="#ffffff" stroke="#4285f4" stroke-width="2" />
+<image x="58" y="624" width="36" height="36" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTEyIDIuNSA0LjUgNS41djZjMCA0LjYgMy4xIDguMiA3LjUgMTAgNC40LTEuOCA3LjUtNS40IDcuNS0xMHYtNnoiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzQyODVmNCIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48cGF0aCBkPSJtOC42IDEyIDIuNCAyLjQgNC40LTQuNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNDI4NWY0IiBzdHJva2Utd2lkdGg9IjEuOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+" />
+<text x="106" y="650" font-size="18" fill="#1a56c4" font-weight="700">Cloud Armor</text>
+<text x="60" y="682" font-size="13" fill="#202124">Google Cloud / グローバルHTTPS LB</text>
+<text x="60" y="704" font-size="13" fill="#202124">SQLi / XSSを403で拒否</text>
+<text x="60" y="726" font-size="13" fill="#202124">API: IP単位120件/分・超過429</text>
+<text x="60" y="748" font-size="13" fill="#5f6368">serverless NEG → Cloud Run</text>
+<path d="M170 550 V608" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" marker-start="url(#a)" />
+<text x="186" y="586" font-size="13" fill="#3c4043">HTTPS（独自ドメイン）</text>
+<path d="M300 695 H350 V335 H398" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" marker-start="url(#a)" />
+<text x="420" y="777" font-size="12" fill="#1a56c4">Ingress制限 + run.app URL無効</text>
 <path d="M780 204 H898" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />
 <path d="M780 344 H898" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" marker-start="url(#a)" />
 <path d="M900 475 H782" fill="none" stroke="#3c4043" stroke-width="2" marker-end="url(#a)" />

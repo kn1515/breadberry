@@ -131,4 +131,5 @@
 <path d="M317 1740 H113" fill="none" stroke="#80868b" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#b)" />
 <rect x="163.5" y="1716" width="103" height="18" fill="#ffffff" />
 <text x="215" y="1731" font-size="13" fill="#5f6368" text-anchor="middle">購入候補を表示</text>
+<text x="40" y="1794" font-size="13" fill="#5f6368">ブラウザ⇔Cloud RunはHTTPS LB・Cloud Armor・serverless NEG経由。WAF拒否(403)・APIレート超過(429)はCloud Runへ届かない。</text>
 </svg>

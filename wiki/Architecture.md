@@ -6,29 +6,9 @@ breadberry のシステム構成、API、データ構造の概要です。
 
 ![breadberry システム構成図](../docs/architecture.png)
 
-```
-ブラウザ (React / Three.js)
-    │
-    ▼
-Next.js App Router (src/app)
-    ├── ページ・レイアウト ... SSRされたワークスペース
-    └── API Routes (src/app/api)
-            ├── POST /api/generate ... 回路設計エージェント（安全性検査 + Gemini生成 + 接続検査 + GMIレビュー + 自己修正）+ Firestore保存
-            ├── GET  /api/projects ... 保存プロジェクト一覧
-            ├── GET  /api/projects/[id] ... プロジェクト取得
-            ├── POST /api/purchase/search ... 部品の購入先検索（DigiKey + Gemini）
-            ├── POST /api/session ... HMAC署名セッション開始
-            └── GET  /api/health ... ヘルスチェック
-    │
-    ▼
-外部サービス
-    ├── Gemini API ... 回路の構造化JSON生成
-    ├── Model Armor ... 入力と生成結果の安全性検査
-    ├── GMI Cloud ... 生成結果の補助レビュー
-    ├── DigiKey API ... 部品の検索・在庫・価格
-    ├── Cloud Firestore ... プロジェクト保存・利用回数管理
-    └── Cloud Trace / Cloud Logging ... 生成工程のトレースと構造化ログ
-```
+公開通信は ブラウザ → HTTPS Application Load Balancer（Cloud Armor適用）→ serverless NEG → Cloud Run の順です。Cloud Runは `internal-and-cloud-load-balancing`、run.app URLは無効です。WAFはSQLi/XSSを403で拒否し、APIはIPごと120件/分を超えると429になります。Cloud Armorで拒否した通信は回路設計エージェントに到達しません。
+
+Cloud RunのNext.js APIは回路設計エージェント、購入検索、署名セッション、プロジェクト保存を提供します。Model Armorはエージェントの入力・生成結果を検査する別の層です。Firestore、Gemini、GMI Cloud、DigiKey、Cloud Trace / Loggingとの連携は継続します。[公開入口の構成・設定](../docs/cloud-armor.md)を参照してください。
 
 ## コンポーネント構成
 

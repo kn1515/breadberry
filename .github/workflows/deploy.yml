@@ -27,6 +27,10 @@ jobs:
       GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
       GMI_MODEL: ${{ vars.GMI_MODEL }}
       APP_ORIGIN: ${{ vars.APP_ORIGIN }}
+      MODEL_ARMOR_TEMPLATE: ${{ vars.MODEL_ARMOR_TEMPLATE }}
+      MODEL_ARMOR_LOCATION: ${{ vars.MODEL_ARMOR_LOCATION }}
+      MODEL_ARMOR_MODE: ${{ vars.MODEL_ARMOR_MODE }}
+      CLOUD_TRACE: ${{ vars.CLOUD_TRACE }}
     steps:
       - name: Check out merged main
         uses: actions/checkout@v4

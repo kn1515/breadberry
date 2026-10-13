@@ -359,7 +359,6 @@ export const messages: Record<string, string> = {
   次の工程: "Next step",
   再生速度: "Playback speed",
   組み立てガイド: "Assembly guide",
-  "ひとつずつ、カタチにしていこう。": "Bring it to life, one step at a time.",
   すべての工程を表示中: "Showing all steps",
   工程を選んで確認できます: "Select a step to inspect",
   "配線中は電源をオフに。": "Turn off power while wiring.",
@@ -374,7 +373,7 @@ export const messages: Record<string, string> = {
   レビュー未実施: "Not reviewed",
   保存済み: "Saved",
   ブラウザでプレビュー: "Browser preview",
-  "つなぐ前に、ひと呼吸。": "Before connecting, take a moment.",
+  設計ノート: "Design notes",
   "配線・コードの注意点を確認": "Review wiring and code notes",
   補助レビュー: "Advisory review",
   アイデアを伝える: "Share your idea",
@@ -383,7 +382,6 @@ export const messages: Record<string, string> = {
   "回路に必要な部品を、ひと目で。": "See all the parts your circuit needs.",
   "ひとつずつ、つなぐ": "Connect one at a time",
   "3Dガイドと一緒に、最初の一歩。": "Take the first step with the 3D guide.",
-  "想像を、つなごう。": "Connect your imagination.",
   "AIとの接続を、準備しよう。": "Get ready to connect with AI.",
   "キーはサーバーの環境変数で管理されます。設定がなくてもサンプル回路を体験できます。":
     "Keys are managed through server environment variables. You can explore sample circuits without configuring them.",
@@ -612,6 +610,10 @@ export const messages: Record<string, string> = {
   "JSONの形式が不正です。": "Invalid JSON format.",
   "処理に失敗しました。Firestoreの接続・権限を確認し、再試行してください。":
     "The operation failed. Check Firestore connectivity and permissions, then try again.",
+  "入力が安全性検査で拒否されました。電子工作の依頼として書き直してください。":
+    "Your request was rejected by the safety check. Please rewrite it as an electronics request.",
+  "生成した設計が安全性検査を通過しませんでした。要件を変えて再試行してください。":
+    "The generated design did not pass the safety check. Change the requirements and try again.",
   "本日の生成回数の上限に達しました。":
     "You have reached today’s generation limit.",
   "本日の部品検索回数の上限に達しました。":

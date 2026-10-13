@@ -461,6 +461,9 @@ export function Part({
     </group>
   );
 }
+const WIRE_TUBE_SEGMENTS = 24;
+const WIRE_RADIAL_SEGMENTS = 6;
+
 function AnimatedWire({
   start,
   end,
@@ -498,12 +501,16 @@ function AnimatedWire({
     progress.current = Math.min(1, progress.current + delta * 0.9);
     mesh.current?.geometry.setDrawRange(
       0,
-      Math.floor((64 * 8 * 6 * progress.current) / 6) * 6,
+      Math.floor(
+        WIRE_TUBE_SEGMENTS * WIRE_RADIAL_SEGMENTS * 6 * progress.current,
+      ),
     );
   });
   return (
     <mesh ref={mesh} castShadow>
-      <tubeGeometry args={[curve, 64, 0.033, 8, false]} />
+      <tubeGeometry
+        args={[curve, WIRE_TUBE_SEGMENTS, 0.033, WIRE_RADIAL_SEGMENTS, false]}
+      />
       <meshStandardMaterial
         color={color}
         roughness={0.36}

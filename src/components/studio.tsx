@@ -853,12 +853,6 @@ export default function Studio() {
               <span className="tip-icon">
                 <Layers3 size={18} />
               </span>
-              <strong>{t("小さな一歩が、大きな発見に。")}</strong>
-              <p>
-                {t("すべてのパーツには役割があります。")}
-                <br />
-                {t("ひとつずつ、つないでみましょう。")}
-              </p>
               <span>LET’S MAKE SOMETHING.</span>
             </div>
           </aside>
@@ -1100,9 +1094,6 @@ export default function Studio() {
               </span>
               <span className="live-pill">STEP BY STEP</span>
             </div>
-            <p className="guide-intro">
-              {t("ひとつずつ、カタチにしていこう。")}
-            </p>
             <div className="guide-progress">
               <span>
                 <b>{String(step).padStart(2, "0")}</b>
@@ -1213,7 +1204,7 @@ export default function Studio() {
           <div className="eyebrow">
             <Sparkles size={13} /> DESIGN NOTES
           </div>
-          <h3>{t("つなぐ前に、ひと呼吸。")}</h3>
+          <h3>{t("設計ノート")}</h3>
           <p>
             {project.source === "demo"
               ? t(circuit.description)
@@ -1273,9 +1264,8 @@ export default function Studio() {
           <CircuitBoard size={17} />
           breadberry
         </a>
-        <span>Made for curious minds.</span>
+        <span>created by ponn</span>
         <span>
-          {t("想像を、つなごう。")}
           <span className="footer-spark">✧</span>
         </span>
       </footer>

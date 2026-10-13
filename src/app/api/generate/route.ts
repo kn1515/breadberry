@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { validateDraft, type Project } from "@/lib/circuit";
 import { appendExchange, generateRequestSchema } from "@/lib/conversation";
 import { ServiceError } from "@/lib/ai";
-import { runCircuitAgent } from "@/lib/agent";
+import { runCircuitAgent, type AgentEvent } from "@/lib/agent";
+import { screenPrompt, screenResponse } from "@/lib/model-armor";
+import { flushTraces, traced } from "@/lib/tracing";
 import {
   apiError,
   bodyJson,
@@ -14,6 +17,38 @@ import {
 } from "@/lib/server";
 export const runtime = "nodejs";
 export const maxDuration = 180;
+/** One trace per request: Model Armor screening around the repair agent. */
+const design = traced(
+  "Circuit design request",
+  "chain",
+  async (input: {
+    request: z.infer<typeof generateRequestSchema>;
+    user: string;
+    onEvent?: (event: AgentEvent) => void;
+  }) => {
+    const { request } = input;
+    await screenPrompt(request.prompt);
+    const result = await runCircuitAgent(
+      request.prompt,
+      request.board,
+      request.context,
+      request.locale,
+      input.user,
+      input.onEvent,
+    );
+    const { circuit } = result;
+    await screenResponse(
+      [
+        circuit.title,
+        circuit.description,
+        ...circuit.notes,
+        circuit.firmware,
+      ].join("\n"),
+    );
+    return result;
+  },
+  { processInputs: ({ request }) => request },
+);
 export async function POST(req: NextRequest) {
   try {
     checkOrigin(req);
@@ -48,10 +83,9 @@ export async function POST(req: NextRequest) {
           };
           void (async () => {
             try {
-              const { circuit, review, agentEvents, traceId } = await runCircuitAgent(
-                input.data.prompt, input.data.board, input.data.context, input.data.locale, user,
-                (event) => send("event", event),
-              );
+              const { circuit, review, agentEvents, traceId } = await design({
+                request: input.data, user, onEvent: (event) => send("event", event),
+              });
               const project: Project = {
                 id: randomUUID(), circuit, createdAt: new Date().toISOString(),
                 source: "gemini", messages: appendExchange(input.data.context?.messages ?? [], input.data.prompt, circuit),
@@ -63,7 +97,10 @@ export async function POST(req: NextRequest) {
               }
             } catch (error) {
               send("error", { message: error instanceof ServiceError ? error.message : "回路生成に失敗しました。" });
-            } finally { controller.close(); }
+            } finally {
+              await flushTraces();
+              controller.close();
+            }
           })();
         },
       });
@@ -71,7 +108,7 @@ export async function POST(req: NextRequest) {
         headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no" },
       });
     }
-    const { circuit, review, agentEvents, traceId } = await runCircuitAgent(input.data.prompt, input.data.board, input.data.context, input.data.locale, user);
+    const { circuit, review, agentEvents, traceId } = await design({ request: input.data, user });
     const project: Project = {
       id: randomUUID(),
       circuit,
@@ -100,5 +137,7 @@ export async function POST(req: NextRequest) {
     }
   } catch (e) {
     return apiError(e);
+  } finally {
+    await flushTraces();
   }
 }

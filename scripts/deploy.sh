@@ -11,6 +11,9 @@ if [[ "${ALLOW_UNAUTHENTICATED:-true}" == "false" ]]; then
 else
   AUTH_FLAG="--allow-unauthenticated"
 fi
+# Model Armor is opt-in; an unset template is deployed as disabled.
+# Cloud Trace is on by default; set CLOUD_TRACE=false to turn it off.
+ENV_VARS+=",MODEL_ARMOR_TEMPLATE=${MODEL_ARMOR_TEMPLATE:-},MODEL_ARMOR_LOCATION=${MODEL_ARMOR_LOCATION:-$REGION},MODEL_ARMOR_MODE=${MODEL_ARMOR_MODE:-block},CLOUD_TRACE=${CLOUD_TRACE:-true}"
 if [[ -n "${APP_ORIGIN:-}" ]]; then
   ENV_VARS+=",APP_ORIGIN=${APP_ORIGIN}"
 fi

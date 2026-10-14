@@ -81,10 +81,18 @@ async function sceneGeometry(page: Page, top: boolean) {
     0.1,
     1000,
   );
+  const scale = Math.max(1, 15.14 / 9, 8.15 / ((10 * box.width) / box.height));
+  const cz = -10.44 / 2 + 1;
   camera.position.set(
-    ...((top ? [0, 15, -0.2] : [7.8, 10.2, 9.8]) as [number, number, number]),
+    ...((top
+      ? [0, 15 * scale, cz + 0.4]
+      : [7.8 * scale, 10.2 * scale, cz + 10.4 * scale]) as [
+      number,
+      number,
+      number,
+    ]),
   );
-  camera.lookAt(0, 0.3, -0.6);
+  camera.lookAt(0, 0.3, cz);
   camera.updateMatrixWorld();
   const screen = (point: THREE.Vector3) => {
     const p = point.clone().project(camera);

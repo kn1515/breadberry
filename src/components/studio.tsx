@@ -124,7 +124,7 @@ export default function Studio() {
   const [tab, setTab] = useState<"3d" | "schematic" | "code">("3d");
   const [view, setView] = useState<"perspective" | "top">("perspective");
   const [reset, setReset] = useState(0);
-  const [step, setStep] = useState(12);
+  const [step, setStep] = useState(() => compileCircuit(project.circuit).steps.length);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [query, setQuery] = useState("");
@@ -1135,15 +1135,15 @@ export default function Studio() {
                   </span>
                   <span>
                     <strong>
-                      {s.type === "part"
+                      {s.type !== "wire"
                         ? t(s.title)
                         : t("ジャンパ線をつなぐ {0}", [
-                            i - circuit.parts.length + 1,
+                            i - circuit.parts.length - compiled.mountingSteps + 1,
                           ])}
                     </strong>
                     <small>
                       {s.type === "part"
-                        ? t(catalog[circuit.parts[i].kind].name)
+                        ? t(catalog[circuit.parts[i - compiled.mountingSteps].kind].name)
                         : t(s.title)}
                     </small>
                     {i === step - 1 && (

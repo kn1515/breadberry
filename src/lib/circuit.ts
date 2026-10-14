@@ -297,7 +297,7 @@ export type Project = {
 export type Point = [number, number, number];
 export type Step = {
   id: string;
-  type: "part" | "wire";
+  type: "board" | "part" | "wire";
   title: string;
   detail: string;
   ref: string;
@@ -311,20 +311,62 @@ export function holePosition(hole: string): Point {
   return [
     (+m[2] - 15.5) * 0.24,
     0.18,
-    (col - 4.5) * 0.24 + (col < 5 ? -0.18 : 0.18),
+    (col - 4.5) * 0.24 + (col < 5 ? -0.24 : 0.24),
   ];
+}
+/** Dedicated mounting boards keep existing BB1–BB6 part placements unchanged.
+ * Pico straddles the trench; the wide 30-pin ESP32 spans two boards so both
+ * header banks have accessible jumper holes outside its body. Units are schematic.
+ */
+export function controllerBreadboards(
+  board: Board,
+): { id: string; position: Point }[] {
+  if (board === "raspberry-pi") return [];
+  return [
+    { id: "MCU1", position: [0, 0, -5.4] },
+    ...(board === "esp32"
+      ? [{ id: "MCU2", position: [0, 0, -10.44] as Point }]
+      : []),
+  ];
+}
+export function controllerPinHole(board: Board, n: number): string {
+  if (board === "pico")
+    return `MCU1:${n <= 20 ? "h" : "c"}${n <= 20 ? n + 5 : 46 - n}`;
+  return `${n <= 15 ? "MCU1:a" : "MCU2:j"}${n <= 15 ? n + 7 : n - 8}`;
+}
+export function controllerHolePosition(board: Board, qualified: string): Point {
+  const [id, hole] = qualified.split(":");
+  const origin = controllerBreadboards(board).find((b) => b.id === id);
+  if (!origin) throw new Error(`Unknown controller breadboard: ${id}`);
+  const p = holePosition(hole);
+  return [p[0] + origin.position[0], p[1], p[2] + origin.position[2]];
+}
+export function controllerMount(board: Board) {
+  if (board === "raspberry-pi") return null;
+  const count = board === "pico" ? 40 : 30;
+  const pins = Array.from({ length: count }, (_, i) => {
+    const number = i + 1;
+    const hole = controllerPinHole(board, number);
+    return { number, hole, position: controllerHolePosition(board, hole) };
+  });
+  const first = pins[0].position;
+  const opposite = pins[board === "pico" ? 39 : 15].position;
+  return {
+    pins,
+    center: [
+      (first[0] + pins[count / 2 - 1].position[0]) / 2,
+      0.62,
+      (first[2] + opposite[2]) / 2,
+    ] as Point,
+    length: board === "pico" ? 4.82 : 4.9,
+    depth: board === "pico" ? 1.98 : 2.75,
+  };
 }
 export function boardPinPosition(board: Board, pin: string): Point {
   const n = boards[board].pins[pin];
   if (!n) throw new Error(`未対応ピン: ${pin}`);
-  if (board === "esp32")
-    return [(n <= 15 ? n - 8 : n - 23) * 0.24, 0.3, n <= 15 ? -3.2 : -4.5];
-  if (board === "pico")
-    return [
-      (n <= 20 ? n - 10.5 : 30.5 - n) * 0.2,
-      0.3,
-      n <= 20 ? -3.15 : -4.45,
-    ];
+  if (board !== "raspberry-pi")
+    return controllerHolePosition(board, controllerPinHole(board, n));
   return [(Math.ceil(n / 2) - 10.5) * 0.21, 0.3, n % 2 ? -3.1 : -3.4];
 }
 /** Editor drafts may be incomplete, but must be safe to render and serialize. */
@@ -422,15 +464,46 @@ export function layoutHolePosition(qualified: string): Point {
   return [
     origin[0] + (Number(hole.slice(1)) - 15.5) * 0.24,
     0.18,
-    origin[2] + (col - 4.5) * 0.24 + (col < 5 ? -0.18 : 0.18),
+    origin[2] + (col - 4.5) * 0.24 + (col < 5 ? -0.24 : 0.24),
   ];
 }
 export function compileCircuit(c: Circuit) {
   const pinHoles = partPinHoles(c);
-  const occupied = new Set(Object.values(pinHoles));
+  const mounting = controllerMount(c.board);
+  const occupied = new Set([
+    ...Object.values(pinHoles),
+    ...(mounting?.pins.map((p) => p.hole) ?? []),
+  ]);
   const allocationIssues: string[] = [];
   const railUsed = new Map<string, number>();
   const endpoint = (key: string) => {
+    if (key.startsWith("board.") && mounting) {
+      const pin = key.slice(6);
+      const qualified = controllerPinHole(c.board, boards[c.board].pins[pin]);
+      const [id, hole] = qualified.split(":");
+      // Only holes outside the PCB are accessible after mounting.
+      const columns =
+        c.board === "pico"
+          ? hole[0] === "c"
+            ? ["a", "b"]
+            : ["j", "i"]
+          : hole[0] === "a"
+            ? ["e", "d", "c", "b"]
+            : ["f", "g", "h", "i"];
+      const free = columns
+        .map((col) => `${id}:${col}${hole.slice(1)}`)
+        .find((h) => !occupied.has(h));
+      if (!free)
+        allocationIssues.push(
+          `${key}: 導通列にジャンパ線を挿す空き穴がありません。`,
+        );
+      const jumperHole = free ?? qualified;
+      occupied.add(jumperHole);
+      return {
+        label: `${jumperHole.toUpperCase()} → ${key}`,
+        position: controllerHolePosition(c.board, jumperHole),
+      };
+    }
     if (key.startsWith("board."))
       return {
         label:
@@ -480,7 +553,22 @@ export function compileCircuit(c: Circuit) {
     start: endpoint(w.from),
     end: endpoint(w.to),
   }));
+  const mountingSteps = mounting ? 1 : 0;
   const steps: Step[] = [
+    ...(mounting
+      ? [
+          {
+            id: "mount-controller",
+            type: "board" as const,
+            ref: "board",
+            title: "マイコンをブレッドボードに挿す",
+            detail:
+              c.board === "pico"
+                ? "電源を外し、下向きのオスヘッダー付きPicoをMCU1の中央溝にまたがせます。USB端子を小さい行番号側へ向け、1〜20番ピンをH6〜H25、40〜21番ピンをC6〜C25に挿します。ジャンパ線は外側のA/B列とI/J列へ挿します。"
+                : "電源を外し、下向きのオスヘッダー付き30ピンESP32をMCU1とMCU2にまたがせます。USB端子を小さい行番号側へ向け、3V3をMCU1:A8、VINをMCU2:J8に合わせ、両側15本を8〜22行へ挿します。基板の幅に合わせて2枚の間隔を調整し、外側の空き穴へ配線します。38ピン版などピン配列の違う基板は対象外です。",
+          },
+        ]
+      : []),
     ...c.parts.map((p) => ({
       id: p.id,
       type: "part" as const,
@@ -498,7 +586,7 @@ export function compileCircuit(c: Circuit) {
       to: w.end.label,
     })),
   ];
-  return { pinHoles, wires, steps, allocationIssues };
+  return { pinHoles, wires, steps, mountingSteps, allocationIssues };
 }
 
 // A wire-only union-find represents actual breadboard nets. Components do not
@@ -938,20 +1026,26 @@ export function billOfMaterials(c: Circuit) {
   return [
     {
       name: boards[c.board].name,
-      value: boards[c.board].detail,
+      value:
+        boards[c.board].detail +
+        (c.board === "raspberry-pi" ? "" : " · 下向きオスヘッダー実装済み"),
       quantity: 1,
       kind: "board",
     },
     {
       name: "ブレッドボード",
       value: "400穴 · 30列",
-      quantity: getBreadboards(c).length,
+      quantity:
+        getBreadboards(c).length + controllerBreadboards(c.board).length,
       kind: "breadboard",
     },
     ...grouped.values(),
     {
       name: "ジャンパワイヤー",
-      value: "オス–オス / 基板側に合うメス端子",
+      value:
+        c.board === "raspberry-pi"
+          ? "オス–オス / 基板側に合うメス端子"
+          : "オス–オス",
       quantity: c.wires.length,
       kind: "wire",
     },

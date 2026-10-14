@@ -33,7 +33,7 @@ for (const board of ["esp32", "pico", "raspberry-pi"] as const)
     assert.deepEqual(validateCircuit(c), c);
     assert.equal(
       billOfMaterials(c).find((p) => p.kind === "breadboard")?.quantity,
-      4,
+      board === "esp32" ? 6 : board === "pico" ? 5 : 4,
     );
     const compiled = compileCircuit(c);
     assert.deepEqual(compiled.allocationIssues, []);
@@ -54,7 +54,7 @@ for (const board of ["esp32", "pico", "raspberry-pi"] as const)
     );
     assert.equal(c.parts.filter((p) => isLogic(p.kind)).length, 5);
     const bom = purchaseParts(c);
-    assert.equal(bom.find((p) => p.kind === "breadboard")?.quantity, 4);
+    assert.equal(bom.find((p) => p.kind === "breadboard")?.quantity, board === "esp32" ? 6 : board === "pico" ? 5 : 4);
     assert.match(bom.find((p) => p.kind === "74hc74")!.query, /74HC74 PDIP/);
     assert.equal(
       bom

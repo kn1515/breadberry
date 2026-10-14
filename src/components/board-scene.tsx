@@ -35,6 +35,8 @@ import {
   layoutHolePosition,
   placementFor,
   boardPinPosition,
+  controllerBreadboards,
+  controllerMount,
   type Circuit,
   type Point,
 } from "@/lib/circuit";
@@ -146,20 +148,33 @@ function Breadboard({ id = "BB1" }: { id?: string }) {
 function Controller({ circuit }: { circuit: Circuit }) {
   const board = circuit.board;
   const pico = board === "pico";
-  const pi = board === "raspberry-pi";
+  const mount = controllerMount(board);
+  const center: Point = mount?.center ?? [0, 0.13, -3.85];
+  const length = mount?.length ?? 5.25;
+  const pins = mount
+    ? mount.pins.map((p) => ({
+        key: String(p.number),
+        pin: Object.keys(boards[board].pins).find(
+          (name) => boards[board].pins[name] === p.number,
+        ),
+        position: p.position,
+      }))
+    : Object.keys(boards[board].pins).map((pin) => ({
+        key: pin,
+        pin,
+        position: boardPinPosition(board, pin),
+      }));
   return (
     <group>
-      <mesh castShadow position={[0, 0.13, -3.85]}>
-        <boxGeometry
-          args={[pi ? 5.25 : pico ? 4.4 : 3.85, 0.18, pi ? 2.2 : 1.65]}
-        />
+      <mesh castShadow position={center}>
+        <boxGeometry args={[length, 0.18, mount?.depth ?? 2.2]} />
         <meshStandardMaterial
           color={board === "esp32" ? "#172d37" : "#136b51"}
           metalness={0.35}
           roughness={0.5}
         />
       </mesh>
-      <mesh castShadow position={[0, 0.3, -3.85]}>
+      <mesh castShadow position={[center[0], center[1] + 0.17, center[2]]}>
         <boxGeometry args={[board === "esp32" ? 1.5 : 0.75, 0.2, 1]} />
         <meshStandardMaterial
           color={board === "esp32" ? "#9daab8" : "#202938"}
@@ -167,7 +182,7 @@ function Controller({ circuit }: { circuit: Circuit }) {
           roughness={0.4}
         />
       </mesh>
-      <mesh position={[-(pi ? 2.5 : pico ? 2.1 : 1.9), 0.29, -3.85]}>
+      <mesh position={[center[0] - length / 2, center[1] + 0.16, center[2]]}>
         <boxGeometry args={[0.35, 0.28, 0.65]} />
         <meshStandardMaterial
           color="#bdc6d2"
@@ -175,36 +190,35 @@ function Controller({ circuit }: { circuit: Circuit }) {
           roughness={0.25}
         />
       </mesh>
-      {Object.keys(boards[board].pins).map((pin) => (
-        <group key={pin}>
-          <mesh position={boardPinPosition(board, pin)}>
-            <boxGeometry args={[0.095, 0.21, 0.095]} />
+      {pins.map(({ key, pin, position }) => (
+        <group key={key}>
+          <mesh
+            position={[position[0], mount ? 0.39 : position[1], position[2]]}
+          >
+            <boxGeometry args={[0.065, mount ? 0.5 : 0.21, 0.065]} />
             <meshStandardMaterial
               color="#dbc78c"
               metalness={0.8}
               roughness={0.3}
             />
           </mesh>
-          {circuit.wires.some((w) =>
-            [w.from, w.to].includes(`board.${pin}`),
-          ) && (
-            <Label
-              at={[
-                boardPinPosition(board, pin)[0],
-                0.38,
-                boardPinPosition(board, pin)[2] + 0.14,
-              ]}
-              color="#cee3df"
-            >
-              {pin.replace("GPIO", "").replace("GP", "")}
-            </Label>
-          )}
+          {pin &&
+            circuit.wires.some((w) =>
+              [w.from, w.to].includes(`board.${pin}`),
+            ) && (
+              <Label
+                at={[position[0], center[1] + 0.25, position[2]]}
+                color="#cee3df"
+              >
+                {pin.replace("GPIO", "").replace("GP", "")}
+              </Label>
+            )}
         </group>
       ))}
-      <Label at={[0, 0.43, -4.18]} color="#f3f7ff">
+      <Label at={[0, center[1] + 0.3, center[2] - 0.33]} color="#f3f7ff">
         {board === "esp32" ? "ESP32" : pico ? "PICO · RP2040" : "RASPBERRY PI"}
       </Label>
-      <mesh position={[1.2, 0.27, -4.1]}>
+      <mesh position={[1.2, center[1] + 0.14, center[2] - 0.25]}>
         <sphereGeometry args={[0.045, 8, 8]} />
         <meshStandardMaterial
           color="#34d399"
@@ -571,7 +585,7 @@ function SceneWorkspace({
 }) {
   const { camera, gl, size, invalidate } = useThree();
   const breadboards = getBreadboards(circuit);
-  const boardKey = breadboards.map((b) => b.id).join(",");
+  const boardKey = `${circuit.board}:${breadboards.map((b) => b.id).join(",")}`;
   const controls = useRef<OrbitControlsImpl>(null);
   const latest = useRef({ circuit, editor });
   latest.current = { circuit, editor };
@@ -588,19 +602,21 @@ function SceneWorkspace({
   );
   const [dragging, setDragging] = useState(false);
   useEffect(() => {
-    const origins = breadboards.map((b) => breadboardPosition(b.id));
+    const origins = [
+      ...breadboards.map((b) => breadboardPosition(b.id)),
+      ...controllerBreadboards(circuit.board).map((b) => b.position),
+    ];
     const maxX = Math.max(...origins.map((p) => p[0]));
     const maxZ = Math.max(...origins.map((p) => p[2]));
+    const minZ = Math.min(-2.4, ...origins.map((p) => p[2]));
     const cx = maxX / 2,
-      cz = maxZ / 2 - 0.6;
-    const scale =
-      breadboards.length === 1
-        ? 1
-        : Math.max(
-            (maxX + 8.15) / 8.15,
-            (maxZ + 9) / 9,
-            (maxX + 8.15) / ((10 * size.width) / size.height),
-          );
+      cz = (maxZ + minZ) / 2 + 1;
+    const scale = Math.max(
+      1,
+      (maxZ - minZ + 4.7) / 9,
+      (maxX + 8.15) / 8.15,
+      (maxX + 8.15) / ((10 * size.width) / size.height),
+    );
     const position: Point =
       view === "top"
         ? [cx, 15 * scale, cz + 0.4]
@@ -617,6 +633,8 @@ function SceneWorkspace({
     [circuit, preview],
   );
   const compiled = useMemo(() => compileCircuit(displayed), [displayed]);
+  const partStep = step - compiled.mountingSteps;
+  const wireOffset = compiled.mountingSteps + circuit.parts.length;
 
   useEffect(() => {
     const canvas = gl.domElement;
@@ -797,10 +815,17 @@ function SceneWorkspace({
             <Breadboard id={id} />
           </group>
         ))}
-        <Controller circuit={displayed} />
+        {controllerBreadboards(circuit.board).map(({ id, position }) => (
+          <group key={id} position={position}>
+            <Breadboard id={id} />
+          </group>
+        ))}
+        {(editor || !compiled.mountingSteps || step > 0) && (
+          <Controller circuit={displayed} />
+        )}
         {displayed.parts.map(
           (part, i) =>
-            (editor || i < step) && (
+            (editor || i < partStep) && (
               <group
                 key={part.id}
                 onPointerDown={editor ? (e) => begin(e, part.id, i) : undefined}
@@ -824,7 +849,7 @@ function SceneWorkspace({
                 <Part
                   part={part}
                   holes={compiled.pinHoles}
-                  active={!editor && i === step - 1 && !reduced}
+                  active={!editor && i === partStep - 1 && !reduced}
                 />
                 {editor &&
                   (editor.selected === part.id ||
@@ -856,11 +881,11 @@ function SceneWorkspace({
             ),
         )}
         {!editor &&
-          step > circuit.parts.length &&
-          compiled.wires[step - circuit.parts.length - 1] &&
+          step > wireOffset &&
+          compiled.wires[step - wireOffset - 1] &&
           [
-            compiled.wires[step - circuit.parts.length - 1].start.position,
-            compiled.wires[step - circuit.parts.length - 1].end.position,
+            compiled.wires[step - wireOffset - 1].start.position,
+            compiled.wires[step - wireOffset - 1].end.position,
           ].map((position, i) => (
             <mesh
               key={`target-${i}`}
@@ -873,15 +898,13 @@ function SceneWorkspace({
           ))}
         {compiled.wires.map(
           (w, i) =>
-            (editor || i + circuit.parts.length < step) && (
+            (editor || i + wireOffset < step) && (
               <AnimatedWire
                 key={w.id}
                 start={w.start.position}
                 end={w.end.position}
                 color={w.color}
-                active={
-                  !editor && i + circuit.parts.length === step - 1 && !reduced
-                }
+                active={!editor && i + wireOffset === step - 1 && !reduced}
                 index={i}
               />
             ),

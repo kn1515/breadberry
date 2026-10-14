@@ -131,11 +131,11 @@ test("drag an existing 3D part from BB1 to BB2", async ({ page, isMobile }) => {
   );
   const scale = Math.max(
     17.15 / 8.15,
-    1,
+    15.14 / 9,
     17.15 / ((10 * box.width) / box.height),
   );
-  camera.position.set(4.5, 15 * scale, -0.2);
-  camera.lookAt(4.5, 0.3, -0.6);
+  camera.position.set(4.5, 15 * scale, -3.82);
+  camera.lookAt(4.5, 0.3, -4.22);
   camera.updateMatrixWorld();
   function screen(point: THREE.Vector3) {
     const p = point.clone().project(camera);

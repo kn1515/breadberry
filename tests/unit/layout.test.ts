@@ -35,7 +35,7 @@ test("moving and reversing a part updates legs, jumper bank and guide holes", ()
     .filter((e) => e.label.includes(`→ ${p.id}.`));
   assert.ok(endpoints.length);
   assert.ok(endpoints.every((e) => /^[F-J]/.test(e.label)));
-  assert.ok(compiled.steps[0].detail.includes("I20"));
+  assert.ok(compiled.steps[compiled.mountingSteps].detail.includes("I20"));
   assert.deepEqual(checkLayout(c), []);
 });
 test("same hole and shared strips report physical collisions and unintended nets", () => {

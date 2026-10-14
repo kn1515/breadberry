@@ -96,7 +96,7 @@ test("guided tour highlights real controls, plays assembly and restores the view
     "入力中の内容を保持",
   );
   await expect(page.getByRole("slider", { name: "組み立て工程" })).toHaveValue(
-    "12",
+    "13",
   );
   expect(generationCalls).toBe(0);
   expect(errors).toEqual([]);

@@ -268,7 +268,7 @@ export CLOUD_ARMOR_DOMAIN=breadberry.example.com
 make deploy
 ```
 
-`scripts/deploy.sh` がCloud BuildでDockerをビルドし、Cloud Runへデプロイします。東京リージョン、1GiBメモリ、最大3インスタンス、180秒タイムアウト、**認証なしでアクセスできる公開サービス**が既定です。環境変数 `REGION` / `SERVICE` / `SERVICE_ACCOUNT` で変更できます。公開LBでは `ALLOW_UNAUTHENTICATED=true` が必要です。入口はingress制限とCloud Armorで保護します。
+`scripts/deploy.sh` がCloud BuildでDockerをビルドし、Cloud Runへデプロイします。東京リージョン、1GiBメモリ、最大3インスタンス、240秒タイムアウト、**認証なしでアクセスできる公開サービス**が既定です。環境変数 `REGION` / `SERVICE` / `SERVICE_ACCOUNT` で変更できます。公開LBでは `ALLOW_UNAUTHENTICATED=true` が必要です。入口はingress制限とCloud Armorで保護します。
 
 `APP_ORIGIN` を指定して実行すると、そのURLを操作の送信元として許可します（末尾 `/` なし）。未指定の場合は `https://${CLOUD_ARMOR_DOMAIN}` を設定し、異なる値は拒否します。他の追加済み環境変数も再デプロイ時に保持します。
 
@@ -421,6 +421,7 @@ Pi 4/5はマイコンではなくLinux SBCです。ESP32/Picoとは生成コー�
 - 抵抗の脚は必要に応じて曲げて指定穴へ挿します。3Dモデルは説明用で、機械CADや実寸モデルではありません。
 - AI応答はZodの型検査とネット検査を通します。未知ピン、NC接続、重複ID、未接続、端子短絡、3.3V–GND短絡、GPIOへの電源直結、LED抵抗欠如、DHT22/DS18B20プルアップ欠如、ADC以外へのアナログ接続、I2Cアドレス重複などを拒否します。
 - GMIは補助レビューです。失敗時は「未実施」として設計を保持します。電気的な動作シミュレーターや安全認証ではありません。
+- 既定の `Qwen/Qwen3.8-Flash` は推論を有効にしたまま `thinking_budget: 512` で制限し、補助レビューには20秒の期限を設けます。別モデルにはこの指定を送りません。基板と使用部品の仕様も渡し、推測による誤指摘を減らします。最大3回の生成・レビューに備え、生成APIとCloud Runの期限は240秒です。取得失敗は成功扱いにせず、サーバーログの `gmi_review_failed` にモデル名・失敗段階・所要時間・HTTPステータスを記録します。APIキーや応答本文は記録しません。
 - 部品外形の干渉、全電流・熱設計、タイミング、生成ファームウェアの実機動作は検証しません。高電圧、モーター、リレー、未登録部品、大規模回路は対象外です。
 - ジャンパ線は実物の端子に合わせてオス–オス／オス–メスを選んでください。USBケーブル等は基板付属品・作業環境として別途必要です。
 

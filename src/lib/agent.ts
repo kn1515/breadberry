@@ -34,7 +34,7 @@ export async function runCircuitAgent(prompt: string, board: Board, context: Cir
     record("review", attempt, "started", "補助レビューを実行");
     review = await reviewCircuit(circuit, locale);
     const actionable = review.status === "reviewed" && /^FIX\s*:/i.test(review.text.trim());
-    record("review", attempt, actionable ? "failed" : "passed", review.status === "unavailable" ? "レビューを取得できませんでした" : review.text);
+    record("review", attempt, actionable || review.status === "unavailable" ? "failed" : "passed", review.status === "unavailable" ? "レビューを取得できませんでした" : review.text);
     if (actionable && attempt < maxAttempts) {
       feedback = "補助レビューの修正指摘: " + review.text.slice(0, 700);
       record("repair", attempt, "retry", "レビューの修正指摘に基づき再生成");

@@ -17,7 +17,7 @@ ensure network-endpoint-groups "$EDGE_NAME" "--regions=$REGION" \
   --network-endpoint-type=serverless --cloud-run-service="$SERVICE"
 ensure security-policies "$EDGE_NAME" --global --type=CLOUD_ARMOR
 # Reapply managed rules on every deploy: preview must never silently persist.
-gc compute security-policies update "$EDGE_NAME" --global --json-parsing=STANDARD --request-body-inspection-size=64KB
+gc beta compute security-policies update "$EDGE_NAME" --global --json-parsing=STANDARD --request-body-inspection-size=64KB
 priorities="$(gc compute security-policies describe "$EDGE_NAME" --global --format='value(rules.priority)')"
 rule() {
   local priority="$1" verb=create

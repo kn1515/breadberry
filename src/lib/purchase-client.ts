@@ -1,3 +1,4 @@
+import { responseError } from "./api-error";
 import { abortable, withDeadline } from "./async";
 import {
   PURCHASE_SEARCH_TIMEOUT_MS,
@@ -21,10 +22,8 @@ export async function requestPurchase(
         body: JSON.stringify(body),
         signal: requestSignal,
       });
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "商品検索に失敗しました。");
-      }
+      if (!response.ok)
+        throw await responseError(response, "商品検索に失敗しました。");
       // Keep compatibility with JSON responses (and servers being rolled out).
       if (
         !response.headers.get("content-type")?.includes("application/x-ndjson")

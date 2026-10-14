@@ -81,6 +81,9 @@ esac
         `rules ${existing ? "update" : "create"} 1010 .*--no-preview .*xss-v33-stable`,
       ),
     );
+    // Circuit JSON bodies trigger these signatures (false positives).
+    for (const id of ["942160-sqli", "942230-sqli", "941120-xss"])
+      assert.match(commands, new RegExp(`'opt_out_rule_ids': \\[[^\\]]*'owasp-crs-v030301-id${id}'`));
     assert.match(commands, /--exceed-action=deny-429 --enforce-on-key=IP/);
     assert.match(
       commands,

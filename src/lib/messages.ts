@@ -1,5 +1,11 @@
 // Japanese source messages and their English translations.
 export const messages: Record<string, string> = {
+  "USBでビルド・実行": "Build and run over USB",
+  "MicroPythonと必要なドライバーを導入済みのESP32／PicoをUSB接続します。PC版Chrome／EdgeでHTTPSまたはlocalhostから開き、「自動ビルド」→「接続してビルド・実行」で接続先を選ぶと、転送・ビルド・保存・実行が進みます。":
+    "Connect an ESP32 or Pico with MicroPython and any required drivers installed via USB. Open the app over HTTPS or localhost in desktop Chrome or Edge, then choose Auto build → Connect, build & run and select the port to upload, compile, save and run.",
+  "エラーはAIで解析": "Analyze errors with AI",
+  "失敗するとログをもとにAIが原因と対処方法を案内します。自動解析はオフにもできます。修正案がある場合は「修正コードを確認」し、「修正を反映して再ビルド・実行」で試せます。main.pyは上書きされ、元のコードはバックアップされます。":
+    "When a build or run fails, AI uses the logs to explain the cause and next steps. You can turn automatic analysis off. If a fix is suggested, select Review corrected code, then Apply fix, rebuild & run to try it. This replaces main.py and backs up the original code.",
   "自動ビルド": "Auto build",
   "自動ビルド・実行": "Auto build & run",
   "ボードに接続中": "Connecting to board",

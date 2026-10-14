@@ -1,17 +1,44 @@
 "use client";
 import { usePreferences } from "./preferences";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  Activity,
   ArrowRight,
+  Check,
   ChevronDown,
+  CircuitBoard,
   Cpu,
+  Flag,
   LoaderCircle,
   MessageSquare,
+  Play,
+  RotateCcw,
+  ScanSearch,
+  ShieldCheck,
   Sparkles,
+  TriangleAlert,
+  User,
+  Wrench,
+  type LucideIcon,
 } from "lucide-react";
 import { boards, type Board } from "@/lib/circuit";
 import { MAX_MESSAGES, type ChatMessage } from "@/lib/conversation";
 import type { AgentEvent } from "@/lib/agent";
+
+const traceSteps: Record<string, { label: string; icon: LucideIcon }> = {
+  generation: { label: "回路生成", icon: Sparkles },
+  selection: { label: "部品選定", icon: Cpu },
+  validation: { label: "接続検査", icon: ShieldCheck },
+  repair: { label: "回路を自動修正", icon: Wrench },
+  review: { label: "補助レビュー", icon: ScanSearch },
+  complete: { label: "検証完了", icon: Flag },
+};
+const traceOutcomes: Record<AgentEvent["outcome"], { label: string; icon: LucideIcon }> = {
+  started: { label: "開始", icon: Play },
+  passed: { label: "成功", icon: Check },
+  failed: { label: "問題を検出", icon: TriangleAlert },
+  retry: { label: "再試行", icon: RotateCcw },
+};
 
 type Props = {
   messages: ChatMessage[];
@@ -43,11 +70,27 @@ export default function CircuitChat({
 }: Props) {
   const { t } = usePreferences();
   const transcript = useRef<HTMLDivElement>(null);
+  const traceList = useRef<HTMLOListElement>(null);
+  const [traceOpen, setTraceOpen] = useState(busy);
   const atLimit = !newDesign && messages.length >= MAX_MESSAGES;
+  const lastEvent = agentEvents.at(-1);
+  const traceStatus = busy
+    ? "running"
+    : lastEvent?.step === "complete"
+      ? "done"
+      : "failed";
   useEffect(() => {
     const list = transcript.current;
     if (list) list.scrollTop = list.scrollHeight;
   }, [messages, busy, error]);
+  useEffect(() => {
+    // Expand the trace while the agent runs; fold it afterwards to give the conversation room.
+    setTraceOpen(busy);
+  }, [busy]);
+  useEffect(() => {
+    const list = traceList.current;
+    if (list) list.scrollTop = list.scrollHeight;
+  }, [agentEvents, traceOpen]);
   return (
     <aside className="chat-panel" aria-label={t("回路設計チャット")}>
       <div className="chat-heading">
@@ -58,18 +101,84 @@ export default function CircuitChat({
         </span>
       </div>
       {(busy || agentEvents.length > 0) && (
-        <section className="agent-trace" aria-label={t("回路設計の実行履歴")} style={{ padding: 12, maxHeight: 240, overflowY: "auto" }}>
-          <strong>{t("回路設計の実行履歴")}</strong>
-          <ol role="log" aria-live="polite" style={{ paddingLeft: 18 }}>
-            {agentEvents.map((event, index) => (
-              <li key={index} style={{ marginTop: 7 }}>
-                <strong>{t(({ generation: "回路生成", selection: "部品選定", validation: event.outcome === "failed" ? "接続検査：問題を検出" : "接続検査：問題なし", repair: "回路を自動修正", review: "補助レビュー", complete: "検証完了" } as Record<string, string>)[event.step] ?? event.step)}</strong>
-                <p style={{ margin: "3px 0", overflowWrap: "anywhere" }}>{event.detail}</p>
+        <details
+          className={`agent-trace ${traceStatus}`}
+          open={traceOpen}
+          onToggle={(e) => setTraceOpen(e.currentTarget.open)}
+        >
+          <summary>
+            <Activity size={14} />
+            <span className="agent-trace-title">{t("回路設計の実行履歴")}</span>
+            <span className="agent-trace-status">
+              {traceStatus === "running" ? (
+                <LoaderCircle size={11} className="spin" />
+              ) : traceStatus === "done" ? (
+                <Check size={11} />
+              ) : (
+                <TriangleAlert size={11} />
+              )}
+              {t(
+                { running: "実行中", done: "正常終了", failed: "中断" }[traceStatus],
+              )}
+            </span>
+            <span className="agent-trace-count">
+              {t("{0}ステップ", [agentEvents.length])}
+            </span>
+            <ChevronDown size={14} className="agent-trace-chevron" />
+          </summary>
+          <ol ref={traceList} role="log" aria-live="polite">
+            {agentEvents.map((event, index) => {
+              const meta = traceSteps[event.step] ?? {
+                label: event.step,
+                icon: Activity,
+              };
+              const outcome = traceOutcomes[event.outcome];
+              const StepIcon = meta.icon;
+              const OutcomeIcon = outcome.icon;
+              return (
+                <li key={index} className={`trace-item ${event.outcome}`}>
+                  <span className="trace-icon" aria-hidden="true">
+                    <StepIcon size={13} />
+                  </span>
+                  <div className="trace-body">
+                    <div className="trace-row">
+                      <strong>{t(meta.label)}</strong>
+                      <span className="trace-outcome">
+                        <OutcomeIcon size={10} />
+                        {t(outcome.label)}
+                      </span>
+                      {event.attempt > 1 && (
+                        <span className="trace-attempt">
+                          {t("試行{0}", [event.attempt])}
+                        </span>
+                      )}
+                      <time dateTime={event.at}>
+                        {new Date(event.at).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          second: "2-digit",
+                        })}
+                      </time>
+                    </div>
+                    <p>{t(event.detail)}</p>
+                  </div>
+                </li>
+              );
+            })}
+            {busy && (
+              <li className="trace-item running">
+                <span className="trace-icon" aria-hidden="true">
+                  <LoaderCircle size={13} className="spin" />
+                </span>
+                <div className="trace-body">
+                  <div className="trace-row">
+                    <strong>{t("処理中…")}</strong>
+                  </div>
+                </div>
               </li>
-            ))}
-            {busy && <li>{t("処理中…")}</li>}
+            )}
           </ol>
-        </section>
+        </details>
       )}
       <div className="chat-mode" role="group" aria-label={t("設計モード")}>
         <button
@@ -111,6 +220,11 @@ export default function CircuitChat({
         {messages.map((message, i) => (
           <article key={i} className={`chat-message ${message.role}`}>
             <strong>
+              {message.role === "user" ? (
+                <User size={12} />
+              ) : (
+                <CircuitBoard size={12} />
+              )}
               {message.role === "user" ? t("あなた") : "breadberry"}
             </strong>
             <p>{message.content}</p>
@@ -119,7 +233,10 @@ export default function CircuitChat({
         {busy && (
           <>
             <article className="chat-message user pending">
-              <strong>{t("あなた")}</strong>
+              <strong>
+                <User size={12} />
+                {t("あなた")}
+              </strong>
               <p>{prompt}</p>
             </article>
             <p className="chat-pending">

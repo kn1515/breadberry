@@ -37,6 +37,9 @@ import {
   type Circuit,
   type Point,
 } from "@/lib/circuit";
+// The canvas renders on demand, so the first frame after an idle period reports
+// the whole idle time as its delta; cap it to keep animations from skipping.
+const MAX_FRAME_DELTA = 1 / 20;
 
 function Label({
   at,
@@ -65,6 +68,7 @@ function Label({
 }
 function Holes() {
   const ref = useRef<THREE.InstancedMesh>(null);
+  const invalidate = useThree((s) => s.invalidate);
   useEffect(() => {
     const matrix = new THREE.Object3D();
     let index = 0;
@@ -81,7 +85,8 @@ function Holes() {
         ref.current!.setMatrixAt(index++, matrix.matrix);
       }
     ref.current!.instanceMatrix.needsUpdate = true;
-  }, []);
+    invalidate();
+  }, [invalidate]);
   return (
     <instancedMesh ref={ref} args={[undefined, undefined, 420]}>
       <boxGeometry args={[0.085, 0.02, 0.085]} />
@@ -253,11 +258,17 @@ export function Part({
 }) {
   const group = useRef<THREE.Group>(null);
   const progress = useRef(0);
+  const invalidate = useThree((s) => s.invalidate);
   useEffect(() => {
     progress.current = active ? 0 : 1;
-  }, [active]);
+    invalidate();
+  }, [active, invalidate]);
   useFrame((_, delta) => {
-    progress.current = Math.min(1, progress.current + delta * 1.6);
+    if (progress.current < 1) invalidate();
+    progress.current = Math.min(
+      1,
+      progress.current + Math.min(delta, MAX_FRAME_DELTA) * 1.6,
+    );
     if (group.current)
       group.current.position.y = active
         ? Math.pow(1 - progress.current, 3) * 2
@@ -494,11 +505,17 @@ function AnimatedWire({
       ]),
     [start, end, index],
   );
+  const invalidate = useThree((s) => s.invalidate);
   useEffect(() => {
     progress.current = active ? 0 : 1;
-  }, [active]);
+    invalidate();
+  }, [active, invalidate]);
   useFrame((_, delta) => {
-    progress.current = Math.min(1, progress.current + delta * 0.9);
+    if (progress.current < 1) invalidate();
+    progress.current = Math.min(
+      1,
+      progress.current + Math.min(delta, MAX_FRAME_DELTA) * 0.9,
+    );
     mesh.current?.geometry.setDrawRange(
       0,
       Math.floor(
@@ -544,7 +561,7 @@ function SceneWorkspace({
   reset: number;
   editor?: SceneEditor;
 }) {
-  const { camera, gl, size } = useThree();
+  const { camera, gl, size, invalidate } = useThree();
   const breadboards = getBreadboards(circuit);
   const boardKey = breadboards.map((b) => b.id).join(",");
   const controls = useRef<OrbitControlsImpl>(null);
@@ -585,7 +602,8 @@ function SceneWorkspace({
     camera.lookAt(cx, 0.3, cz);
     camera.updateProjectionMatrix();
     controls.current?.update();
-  }, [camera, reset, view, boardKey, size.width, size.height]);
+    invalidate();
+  }, [camera, invalidate, reset, view, boardKey, size.width, size.height]);
   const displayed = useMemo(
     () => (preview ? movePart(circuit, preview.id, preview.hole) : circuit),
     [circuit, preview],
@@ -931,6 +949,7 @@ export default function BoardScene({
     <SceneBoundary>
       <Canvas
         shadows="percentage"
+        frameloop="demand"
         camera={{
           position: [7.8, 10.2, 9.8],
           fov: 39,

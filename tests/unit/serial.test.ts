@@ -15,6 +15,7 @@ function board(
     runtimeError?: boolean;
     running?: boolean;
     unplug?: boolean;
+    silent?: boolean;
   } = {},
 ) {
   let receive!: ReadableStreamDefaultController<Uint8Array>;
@@ -46,6 +47,7 @@ function board(
             receive.error(new Error("unplugged"));
             return;
           }
+          if (options.silent) return;
           send("\r\nraw REPL; CTRL-B to exit\r\n>");
         } else if (text === "\x04") {
           commands.push(command);
@@ -233,6 +235,22 @@ test("USB disconnect rejects a pending handshake and closes port", async () => {
   );
   await connection.open();
   await assert.rejects(connection.enter(), /unplugged/);
+  await connection.close();
+  assert.equal(mock.closed(), true);
+});
+
+test("a board without MicroPython explains how to install it", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout", "Date"] });
+  const mock = board({ silent: true });
+  const connection = new MicroPythonSerial(
+    mock.port,
+    new AbortController().signal,
+  );
+  await connection.open();
+  const entering = connection.enter();
+  await new Promise((resolve) => setImmediate(resolve));
+  t.mock.timers.tick(10000);
+  await assert.rejects(entering, /MicroPythonを書き込む/);
   await connection.close();
   assert.equal(mock.closed(), true);
 });

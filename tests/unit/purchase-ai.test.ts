@@ -55,7 +55,7 @@ function setup(t: TestContext) {
     else process.env.GEMINI_API_KEY = old;
   });
   const state = {
-    products: [products[4]],
+    products: [products[0]],
     productBatches: [] as (typeof products)[],
     rankedBatches: [] as (typeof choice)[][],
     ranked: [choice],
@@ -122,7 +122,7 @@ function setup(t: TestContext) {
 }
 const quota = async () => {};
 
-test("returns the first verified Amazon listing after two calls without enumerating all stores", async (t) => {
+test("returns the first verified store listing after two calls without enumerating all stores", async (t) => {
   const state = setup(t);
   let calls = 0;
   const result = await recommendPurchase(
@@ -136,8 +136,8 @@ test("returns the first verified Amazon listing after two calls without enumerat
   );
   assert.equal(calls, 2);
   assert.equal(result.partNumber, null);
-  assert.equal(result.best?.store, "amazon");
-  assert.equal(result.best?.url, products[4].url);
+  assert.equal(result.best?.store, "akizuki");
+  assert.equal(result.best?.url, products[0].url);
   assert.equal(result.best?.totalPrice, 10);
   assert.match(result.searchSuggestions, /Google Search/);
   assert.ok(!("alternatives" in result));
@@ -147,7 +147,6 @@ test("returns the first verified Amazon listing after two calls without enumerat
     "sengoku",
     "kyoritsu",
     "marutsu",
-    "amazon",
   ]);
   const selection = JSON.parse(state.requests[1].contents[0].parts[0].text);
   assert.deepEqual(selection.connections, circuit.wires);
@@ -159,8 +158,13 @@ test("returns the first verified Amazon listing after two calls without enumerat
     state.requests[0].systemInstruction.parts[0].text,
     /do not search every store/,
   );
+  // Tool calls must not use structured output (it loops on tool calls).
+  for (const request of state.requests) {
+    assert.ok(request.tools[0]);
+    assert.equal(request.generationConfig.responseMimeType, undefined);
+    assert.match(request.systemInstruction.parts[0].text, /JSON Schema/);
+  }
   assert.ok(state.requests[1].tools[0].url_context);
-  assert.ok(state.requests[1].generationConfig.responseJsonSchema);
 });
 
 test("a suitable DigiKey offer ends search after one call; unavailable and excessive lots are excluded", async (t) => {
@@ -263,7 +267,7 @@ test("sale quantities use pack size and minimum orders, reject insufficient pack
   );
 });
 
-test("untrusted discovery URLs and ungrounded results cannot become product recommendations", async (t) => {
+test("untrusted or Amazon discovery URLs are never verified; ungrounded ones still need live retrieval", async (t) => {
   const state = setup(t);
   state.products = [
     {
@@ -280,10 +284,25 @@ test("untrusted discovery URLs and ungrounded results cannot become product reco
     0,
   );
   state.products = [products[4]];
-  state.grounded = false;
   assert.equal(
     (await recommendPurchase(part, circuit, part.query, [], quota)).best,
     null,
+  );
+  assert.equal(
+    state.requests.filter((r) => r.tools?.[0]?.url_context).length,
+    0,
+  );
+  state.products = [products[0]];
+  state.grounded = false;
+  state.retrieved = [];
+  assert.equal(
+    (await recommendPurchase(part, circuit, part.query, [], quota)).best,
+    null,
+  );
+  state.retrieved = [products[0].url];
+  assert.equal(
+    (await recommendPurchase(part, circuit, part.query, [], quota)).best?.store,
+    "akizuki",
   );
 });
 
@@ -332,7 +351,7 @@ test("English, quota on both calls, missing credentials and incomplete responses
 
 test("failed stock verification tries one other listing and stops immediately on success", async (t) => {
   const state = setup(t);
-  state.productBatches = [[products[4]], [products[0]]];
+  state.productBatches = [[products[1]], [products[0]]];
   state.rankedBatches = [
     [{ ...choice, availability: "out_of_stock" }],
     [choice],
@@ -351,7 +370,7 @@ test("failed stock verification tries one other listing and stops immediately on
   assert.equal(result.best?.store, "akizuki");
   assert.equal(state.requests.length, 4);
   const retry = JSON.parse(state.requests[2].contents[0].parts[0].text);
-  assert.deepEqual(retry.excludedUrls, [products[4].url]);
+  assert.deepEqual(retry.excludedUrls, [products[1].url]);
   assert.deepEqual(phases, [
     "discovery",
     "verification",
@@ -360,7 +379,7 @@ test("failed stock verification tries one other listing and stops immediately on
   ]);
 });
 
-test("overkill DigiKey offers fall through to one suitable store, including all five allowed shops", async (t) => {
+test("overkill DigiKey offers fall through to one suitable store; Amazon is never verified", async (t) => {
   const state = setup(t);
   for (const product of products) {
     state.requests = [];
@@ -373,10 +392,15 @@ test("overkill DigiKey offers fall through to one suitable store, including all 
       [offer],
       quota,
     );
-    assert.equal(result.best?.store, product.store);
-    assert.equal(state.requests.length, 3);
     assert.equal(state.requests[0].tools, undefined);
     assert.ok(state.requests[1].tools[0].google_search);
+    if (product.store === "amazon") {
+      assert.equal(result.best, null);
+      assert.ok(!state.requests.some((r) => r.tools?.[0]?.url_context));
+      continue;
+    }
+    assert.equal(result.best?.store, product.store);
+    assert.equal(state.requests.length, 3);
     assert.ok(state.requests[2].tools[0].url_context);
   }
 });
@@ -431,7 +455,7 @@ test("registered products skip discovery and still require live retrieval and st
 test("unavailable catalog candidates fall back to discovery and cannot be retried as new URLs", async (t) => {
   const state = setup(t);
   const url = "https://akizukidenshi.com/catalog/g/g112117/";
-  state.retrieved = [url, products[4].url];
+  state.retrieved = [url, products[0].url];
   state.rankedBatches = [
     [{ ...choice, id: "catalog:0", availability: "out_of_stock" }],
     [choice],
@@ -443,7 +467,7 @@ test("unavailable catalog candidates fall back to discovery and cannot be retrie
     [],
     quota,
   );
-  assert.equal(result.best?.store, "amazon");
+  assert.equal(result.best?.store, "akizuki");
   assert.equal(state.requests.length, 3);
   assert.deepEqual(
     JSON.parse(state.requests[1].contents[0].parts[0].text).excludedUrls,
@@ -519,4 +543,54 @@ test("an expiring deadline returns an explicit unverified result instead of fail
   const data = JSON.parse(state.requests[0].contents[0].parts[0].text);
   assert.equal(data.offers.length, 10);
   assert.equal(data.offers[0].partNumber, "P24");
+});
+
+test("Amazon catalog entries are manual links only and never sent for verification", async (t) => {
+  const state = setup(t);
+  state.products = [];
+  const board = purchaseParts(circuit).find((p) => p.kind === "board")!;
+  const result = await recommendWithCatalog(
+    board,
+    circuit,
+    board.query,
+    [],
+    quota,
+    "ja",
+    undefined,
+    {
+      catalog: [
+        {
+          id: "amazon-test",
+          name: "ESP32 DevKit V1",
+          store: "amazon",
+          url: products[4].url,
+          match: { kind: "board", board: "esp32" },
+          reviewedOn: "2026-10-15",
+          enabled: true,
+        },
+      ],
+    },
+  );
+  assert.equal(result.best, null);
+  assert.ok(!state.requests.some((r) => r.tools?.[0]?.url_context));
+  assert.ok(
+    JSON.parse(
+      state.requests[0].contents[0].parts[0].text,
+    ).excludedUrls.includes(products[4].url),
+  );
+});
+
+test("a registered search link skips web discovery and points to the link", async (t) => {
+  const state = setup(t);
+  const board = purchaseParts(circuit).find((p) => p.kind === "board")!;
+  const result = await recommendWithCatalog(
+    board,
+    circuit,
+    board.query,
+    [],
+    quota,
+  );
+  assert.equal(result.best, null);
+  assert.match(result.reason, /検索リンク/);
+  assert.equal(state.requests.length, 0);
 });

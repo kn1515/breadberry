@@ -6,9 +6,11 @@ export interface SerialPortLike {
   writable: WritableStream<Uint8Array> | null;
   open(options: { baudRate: number }): Promise<void>;
   close(): Promise<void>;
+  getInfo?(): { usbVendorId?: number; usbProductId?: number };
 }
 export interface SerialApi {
   requestPort(): Promise<SerialPortLike>;
+  getPorts?(): Promise<SerialPortLike[]>;
 }
 export type BuildStage =
   "connecting" | "checking" | "uploading" | "compiling" | "saving" | "running";
@@ -93,17 +95,16 @@ export class MicroPythonSerial {
     })();
     this.signal.addEventListener("abort", this.onAbort, { once: true });
   }
-  private async changed(timeout: number) {
+  private async changed(
+    timeout: number,
+    message = "ボードの応答がタイムアウトしました。MicroPythonの導入と接続を確認してください。",
+  ) {
     this.signal.throwIfAborted();
     if (this.failure) throw this.failure;
     await new Promise<void>((resolve, reject) => {
       const timer = setTimeout(() => {
         this.wake = undefined;
-        reject(
-          new Error(
-            "ボードの応答がタイムアウトしました。MicroPythonの導入と接続を確認してください。",
-          ),
-        );
+        reject(new Error(message));
       }, timeout);
       this.wake = () => {
         clearTimeout(timer);
@@ -121,7 +122,11 @@ export class MicroPythonSerial {
       typeof value === "string" ? new TextEncoder().encode(value) : value,
     );
   }
-  private async until(delimiter: string, timeout = 10000): Promise<string> {
+  private async until(
+    delimiter: string,
+    timeout = 10000,
+    message?: string,
+  ): Promise<string> {
     const deadline = Date.now() + timeout;
     while (true) {
       this.signal.throwIfAborted();
@@ -131,13 +136,18 @@ export class MicroPythonSerial {
         this.pending = this.pending.slice(index + delimiter.length);
         return result;
       }
-      await this.changed(Math.max(1, deadline - Date.now()));
+      await this.changed(Math.max(1, deadline - Date.now()), message);
     }
   }
   async enter() {
     // Interrupt the running application, then enter raw REPL (never a Linux shell).
     await this.write("\r\x03\x03\x01");
-    await this.until("raw REPL; CTRL-B to exit\r\n>");
+    // Firmware other than MicroPython (for example an Arduino sketch) never answers.
+    await this.until(
+      "raw REPL; CTRL-B to exit\r\n>",
+      10000,
+      "MicroPythonが応答しません。MicroPythonが書き込まれていない可能性があります。Picoはこの画面の「MicroPythonを書き込む」から導入できます。ESP32はesptoolなどで導入してください。",
+    );
   }
   private async submit(source: string) {
     const bytes = new TextEncoder().encode(source);

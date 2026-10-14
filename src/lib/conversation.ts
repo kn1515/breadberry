@@ -21,6 +21,14 @@ export const generateRequestSchema = z.object({
 export type CircuitContext = NonNullable<
   z.infer<typeof generateRequestSchema>["context"]
 >;
+/** Ask mode answers questions about the current circuit without changing it. */
+export const askRequestSchema = z.object({
+  prompt: generateRequestSchema.shape.prompt,
+  locale: generateRequestSchema.shape.locale,
+  context: generateRequestSchema.shape.context.unwrap(),
+});
+export type AskRequest = z.infer<typeof askRequestSchema>;
+export type ChatMode = "revise" | "new" | "ask";
 
 export function appendExchange(
   messages: ChatMessage[],
@@ -34,5 +42,17 @@ export function appendExchange(
       role: "assistant",
       content: `${circuit.title}\n\n${circuit.description}`,
     },
+  ];
+}
+
+export function appendAnswer(
+  messages: ChatMessage[],
+  prompt: string,
+  answer: string,
+): ChatMessage[] {
+  return [
+    ...messages,
+    { role: "user", content: prompt },
+    { role: "assistant", content: answer },
   ];
 }

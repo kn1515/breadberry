@@ -50,7 +50,7 @@ function fixture(kind: Kind, board: Board): Circuit {
   ];
   if (kind === "st7789") {
     c.parts[0].value = "M154-240240-RGB";
-    c.parts[0].placement = { hole: "b9", reversed: false };
+    c.parts[0].placement = { hole: "e9", reversed: false };
     const pins =
       board === "pico"
         ? ["GP2", "GP3", "GP4", "GP5", "GP6"]

@@ -64,9 +64,14 @@ import CircuitChat from "./circuit-chat";
 import LayoutEditor from "./layout-editor";
 import PurchaseModal from "./purchase-modal";
 import SerialBuild from "./serial-build";
+import BuildToast, { type BuildToastState } from "./build-toast";
 import Tutorial from "./tutorial";
 const PartsCatalog = dynamic(() => import("./parts-catalog"), { ssr: false });
-import { MAX_MESSAGES } from "@/lib/conversation";
+import {
+  appendAnswer,
+  MAX_MESSAGES,
+  type ChatMode,
+} from "@/lib/conversation";
 import type { AgentEvent } from "@/lib/agent";
 const BoardScene = dynamic(() => import("./board-scene"), {
   ssr: false,
@@ -108,8 +113,8 @@ function readLocal(): Project[] {
 }
 export default function Studio() {
   const { t, locale } = usePreferences();
-  const [project, setProject] = useState<Project>(() => demoProject());
-  const [selectedBoard, setSelectedBoard] = useState<Board>("esp32");
+  const [project, setProject] = useState<Project>(() => demoProject("pico"));
+  const [selectedBoard, setSelectedBoard] = useState<Board>("pico");
   const [prompt, setPrompt] = useState("");
   const [busy, setBusy] = useState(false);
   const [liveAgentEvents, setLiveAgentEvents] = useState<AgentEvent[]>([]);
@@ -117,7 +122,8 @@ export default function Studio() {
   const [mode, setMode] = useState<"viewer" | "editor">("viewer");
   const [editorSession, setEditorSession] = useState(0);
   const generating = useRef(false);
-  const [newDesign, setNewDesign] = useState(false);
+  const [chatMode, setChatMode] = useState<ChatMode>("revise");
+  const newDesign = chatMode === "new";
   const [phase, setPhase] = useState(0);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -162,6 +168,8 @@ export default function Studio() {
   }, [tourStep]);
   const [purchasing, setPurchasing] = useState(false);
   const [serialBuild, setSerialBuild] = useState(false);
+  const [buildToast, setBuildToast] = useState<BuildToastState | null>(null);
+  const hideBuildToast = useCallback(() => setBuildToast(null), []);
   const [history, setHistory] = useState(false);
   const [examples, setExamples] = useState(false);
   const sessionRequest = useRef<Promise<void> | null>(null);
@@ -272,7 +280,7 @@ export default function Studio() {
     setEditorSession((s) => s + 1);
     setProject(p);
     setLiveAgentEvents([]);
-    setNewDesign(false);
+    setChatMode("revise");
     setPrompt("");
     setError("");
     setSelectedBoard(p.circuit.board);
@@ -405,6 +413,43 @@ export default function Studio() {
       workspace.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "生成に失敗しました。");
+    } finally {
+      generating.current = false;
+      setBusy(false);
+    }
+  }
+  /** Ask mode: answer a question about the current circuit without changing it. */
+  async function ask() {
+    const question = prompt.trim();
+    if (generating.current || !question || question.length > 2000) return;
+    if ((project.messages?.length ?? 0) >= MAX_MESSAGES) return;
+    generating.current = true;
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      await prepareSession();
+      const res = await fetch("/api/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: question,
+          locale,
+          context: {
+            circuit: project.circuit,
+            messages: project.messages ?? [],
+          },
+        }),
+      });
+      if (!res.ok) throw await responseError(res, "回答を取得できませんでした。");
+      const { answer } = (await res.json()) as { answer: string };
+      setProject((previous) => ({
+        ...previous,
+        messages: appendAnswer(previous.messages ?? [], question, answer),
+      }));
+      setPrompt("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "回答を取得できませんでした。");
     } finally {
       generating.current = false;
       setBusy(false);
@@ -1181,10 +1226,14 @@ export default function Studio() {
             busy={busy || saving}
             phase={phase}
             error={error}
-            newDesign={newDesign}
-            setNewDesign={setNewDesign}
-            onSubmit={() => void generate()}
-            agentEvents={busy ? liveAgentEvents : project.agentEvents ?? []}
+            chatMode={chatMode}
+            setChatMode={setChatMode}
+            onSubmit={() => void (chatMode === "ask" ? ask() : generate())}
+            agentEvents={
+              busy && chatMode !== "ask"
+                ? liveAgentEvents
+                : (project.agentEvents ?? [])
+            }
           />
         </div>
         <div className="workspace-status">
@@ -1288,13 +1337,17 @@ export default function Studio() {
           onClose={() => setCatalogOpen(false)}
           onSelect={(kind) => {
             setPrompt(
-              newDesign
-                ? t("{0}を使う回路と動作確認用のコードを作成してください。", [
+              chatMode === "ask"
+                ? t("{0}の使い方と注意点を教えてください。", [
                     t(catalog[kind].name),
                   ])
-                : t("現在の回路に{0}を追加してください。", [
-                    t(catalog[kind].name),
-                  ]),
+                : newDesign
+                  ? t("{0}を使う回路と動作確認用のコードを作成してください。", [
+                      t(catalog[kind].name),
+                    ])
+                  : t("現在の回路に{0}を追加してください。", [
+                      t(catalog[kind].name),
+                    ]),
             );
             setCatalogOpen(false);
           }}
@@ -1305,9 +1358,13 @@ export default function Studio() {
           circuit={circuit}
           prepareSession={prepareSession}
           onFirmware={(firmware) => editCircuit({ ...circuit, firmware })}
+          onBuilt={() =>
+            setBuildToast({ id: Date.now(), board: boards[circuit.board].name })
+          }
           onClose={() => setSerialBuild(false)}
         />
       )}
+      <BuildToast toast={buildToast} onHide={hideBuildToast} />
       {purchasing && (
         <PurchaseModal circuit={circuit} onClose={() => setPurchasing(false)} />
       )}

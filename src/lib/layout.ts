@@ -1,4 +1,4 @@
-import { st7789Geometry } from "./st7789";
+import { st7789Bounds } from "./st7789";
 import { isDip } from "./logic";
 import {
   catalog,
@@ -34,11 +34,8 @@ export function partBounds(circuit: Circuit, index: number) {
   const span = Math.max(...catalog[part.kind].offsets) * 0.24;
   if (part.kind === "st7789")
     return {
-      x: start[0] + ((placement.reversed ? -1 : 1) * span) / 2,
-      z: start[2] + (placement.reversed ? -1 : 1) * st7789Geometry.centerZ,
+      ...st7789Bounds(start[0], start[2], placement.reversed),
       breadboard: placement.breadboard ?? "BB1",
-      width: st7789Geometry.width,
-      depth: st7789Geometry.depth,
     };
   const module = ["bh1750", "bme280", "bmp280", "sht31", "ssd1306"].includes(
     part.kind,
@@ -210,22 +207,37 @@ export function addPart(circuit: Circuit, kind: Kind): Circuit {
     }),
   );
   let placement = {
-    hole: isDip(kind) ? "e1" : "g1",
+    hole: isDip(kind) || kind === "st7789" ? "e1" : "g1",
     reversed: false,
     breadboard: "BB1",
   };
   outer: for (const { id } of getBreadboards(circuit))
-    for (const col of isDip(kind) ? ["e"] : ["b", "g"]) {
-      for (let row = 1; row <= 30 - Math.max(...catalog[kind].offsets); row++) {
+    for (const col of isDip(kind)
+      ? ["e"]
+      : kind === "st7789"
+        ? ["e", "f"]
+        : ["b", "g"]) {
+      const reversed = kind === "st7789" && col === "f";
+      const span = Math.max(...catalog[kind].offsets);
+      for (
+        let row = reversed ? 1 + span : 1;
+        row <= (reversed ? 30 : 30 - span);
+        row++
+      ) {
         if (
           catalog[kind].offsets.every((offset) =>
             [
-              col === "g" ? "right" : "left",
+              col > "e" ? "right" : "left",
               ...(isDip(kind) ? ["right"] : []),
-            ].every((side) => !occupied.has(`${id}:${side}${row + offset}`)),
+            ].every(
+              (side) =>
+                !occupied.has(
+                  `${id}:${side}${row + (reversed ? -offset : offset)}`,
+                ),
+            ),
           )
         ) {
-          placement = { hole: `${col}${row}`, reversed: false, breadboard: id };
+          placement = { hole: `${col}${row}`, reversed, breadboard: id };
           break outer;
         }
       }

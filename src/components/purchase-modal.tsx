@@ -1,6 +1,6 @@
 "use client";
 import { usePreferences } from "./preferences";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import {
   ExternalLink,
   LoaderCircle,
@@ -551,6 +551,22 @@ export default function PurchaseModal({
           !row.loading && !row.best && !row.error && row.recommendation ? (
             <p className="purchase-note" key={parts[i].id}>
               {t(parts[i].name)}: {t(row.error || row.recommendation)}
+              {registered[i]
+                .filter((product) => product.search)
+                .map((product) => (
+                  <Fragment key={product.id}>
+                    {" "}
+                    <a
+                      href={product.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {t(domesticStores[product.store].name)} ·{" "}
+                      {t("{0}の検索結果", [product.name])}{" "}
+                      <ExternalLink size={14} />
+                    </a>
+                  </Fragment>
+                ))}
             </p>
           ) : null,
         )}
@@ -607,7 +623,10 @@ export default function PurchaseModal({
                             rel="noopener noreferrer"
                           >
                             {t(domesticStores[product.store].name)} ·{" "}
-                            {product.name} <ExternalLink size={14} />
+                            {product.search
+                              ? t("{0}の検索結果", [product.name])
+                              : product.name}{" "}
+                            <ExternalLink size={14} />
                           </a>
                         </li>
                       ))}

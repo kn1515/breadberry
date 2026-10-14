@@ -8,6 +8,8 @@ import {
 import type { ChatMessage } from "./conversation";
 import { z } from "zod";
 import { ledColorNames, resolveLedColor, type LedColor } from "./led";
+import { displayCoversPoint, st7789Bounds } from "./st7789";
+import { picoGpioPins } from "./pico";
 
 export const boardSchema = z.enum(["esp32", "pico", "raspberry-pi"]);
 export type Board = z.infer<typeof boardSchema>;
@@ -39,30 +41,12 @@ export const boards: Record<
     },
   },
   pico: {
-    name: "Raspberry Pi Pico",
+    name: "Raspberry Pi Pico / Pico H",
     detail: "RP2040 · 3.3 V logic",
     pins: {
       "3V3": 36,
       GND: 38,
-      GP0: 1,
-      GP1: 2,
-      GP2: 4,
-      GP3: 5,
-      GP4: 6,
-      GP5: 7,
-      GP6: 9,
-      GP7: 10,
-      GP8: 11,
-      GP9: 12,
-      GP10: 14,
-      GP11: 15,
-      GP12: 16,
-      GP13: 17,
-      GP14: 19,
-      GP15: 20,
-      GP26: 31,
-      GP27: 32,
-      GP28: 34,
+      ...picoGpioPins,
     },
   },
   "raspberry-pi": {
@@ -469,13 +453,22 @@ export function layoutHolePosition(qualified: string): Point {
 }
 export function compileCircuit(c: Circuit) {
   const pinHoles = partPinHoles(c);
+  const displayBounds = c.parts.flatMap((part, index) => {
+    if (part.kind !== "st7789") return [];
+    const placement = placementFor(part, index);
+    const [x, , z] = layoutHolePosition(
+      qualifyHole(placement.hole, placement.breadboard),
+    );
+    return [st7789Bounds(x, z, placement.reversed)];
+  });
+  const exposed = ([x, , z]: Point) =>
+    !displayBounds.some((bounds) => displayCoversPoint(bounds, x, z));
   const mounting = controllerMount(c.board);
   const occupied = new Set([
     ...Object.values(pinHoles),
     ...(mounting?.pins.map((p) => p.hole) ?? []),
   ]);
   const allocationIssues: string[] = [];
-  const railUsed = new Map<string, number>();
   const endpoint = (key: string) => {
     if (key.startsWith("board.") && mounting) {
       const pin = key.slice(6);
@@ -492,7 +485,10 @@ export function compileCircuit(c: Circuit) {
             : ["f", "g", "h", "i"];
       const free = columns
         .map((col) => `${id}:${col}${hole.slice(1)}`)
-        .find((h) => !occupied.has(h));
+        .find(
+          (h) =>
+            !occupied.has(h) && exposed(controllerHolePosition(c.board, h)),
+        );
       if (!free)
         allocationIssues.push(
           `${key}: 導通列にジャンパ線を挿す空き穴がありません。`,
@@ -500,32 +496,52 @@ export function compileCircuit(c: Circuit) {
       const jumperHole = free ?? qualified;
       occupied.add(jumperHole);
       return {
-        label: `${jumperHole.toUpperCase()} → ${key}`,
+        label: free
+          ? `${jumperHole.toUpperCase()} → ${key}${c.board === "pico" ? ` · pin ${boards.pico.pins[pin]}` : ""}`
+          : `${key}: 接続できる空き穴がありません。`,
         position: controllerHolePosition(c.board, jumperHole),
+        accessible: Boolean(free),
       };
     }
-    if (key.startsWith("board."))
+    if (key.startsWith("board.")) {
+      const position = boardPinPosition(c.board, key.slice(6));
+      const accessible = exposed(position);
+      if (!accessible)
+        allocationIssues.push(
+          `${key}: 液晶基板が接続先を覆っています。液晶を移動してください。`,
+        );
       return {
         label:
           c.board === "esp32"
             ? `${key.slice(6)} · 基板印字`
             : `${key.slice(6)} · pin ${boards[c.board].pins[key.slice(6)]}`,
-        position: boardPinPosition(c.board, key.slice(6)),
+        position,
+        accessible,
       };
+    }
     if (/^rail\.BB[1-6]\.(VCC|GND)$/.test(key)) {
       const [, id, rail] = key.split(".");
-      const row = (railUsed.get(key) ?? 0) + 1;
-      railUsed.set(key, row);
-      if (row > 30)
-        allocationIssues.push(`${key}: 電源レールの空き穴がありません。`);
       const origin = breadboardPosition(id);
+      const position = (row: number): Point => [
+        origin[0] + (row - 15.5) * 0.24,
+        0.18,
+        origin[2] + (rail === "VCC" ? -1.95 : -1.65),
+      ];
+      const free = Array.from({ length: 30 }, (_, i) => i + 1).find(
+        (row) => !occupied.has(`${key}:${row}`) && exposed(position(row)),
+      );
+      if (!free)
+        allocationIssues.push(
+          `${key}: 電源レールに接続できる空き穴がありません。`,
+        );
+      const row = free ?? 1;
+      occupied.add(`${key}:${row}`);
       return {
-        label: `${id} ${rail} ${row} → ${key}`,
-        position: [
-          origin[0] + (row - 15.5) * 0.24,
-          0.18,
-          origin[2] + (rail === "VCC" ? -1.95 : -1.65),
-        ] as Point,
+        label: free
+          ? `${id} ${rail} ${row} → ${key}`
+          : `${key}: 接続できる空き穴がありません。`,
+        position: position(row),
+        accessible: Boolean(free),
       };
     }
     const qualified = pinHoles[key];
@@ -535,16 +551,21 @@ export function compileCircuit(c: Circuit) {
       hole[0] <= "e" ? ["e", "d", "c", "a", "b"] : ["j", "i", "h", "f", "g"];
     const free = columns
       .map((col) => qualifyHole(`${col}${hole.slice(1)}`, breadboard))
-      .find((h) => !occupied.has(h));
+      .find((h) => !occupied.has(h) && exposed(layoutHolePosition(h)));
     if (!free)
       allocationIssues.push(
-        `${key}: 導通列にジャンパ線を挿す空き穴がありません。`,
+        displayBounds.length
+          ? `${key}: 液晶基板の外側にジャンパ線を挿す空き穴がありません。液晶の端子列をE列（通常向き）またはF列（反転）へ移動し、分岐用の穴を確保してください。`
+          : `${key}: 導通列にジャンパ線を挿す空き穴がありません。`,
       );
     const jumperHole = free ?? qualified;
     occupied.add(jumperHole);
     return {
-      label: `${jumperHole.toUpperCase()} → ${key}`,
+      label: free
+        ? `${jumperHole.toUpperCase()} → ${key}`
+        : `${key}: 接続できる空き穴がありません。`,
       position: layoutHolePosition(jumperHole),
+      accessible: Boolean(free),
     };
   };
   const wires = c.wires.map((w, i) => ({
@@ -564,7 +585,7 @@ export function compileCircuit(c: Circuit) {
             title: "マイコンをブレッドボードに挿す",
             detail:
               c.board === "pico"
-                ? "電源を外し、下向きのオスヘッダー付きPicoをMCU1の中央溝にまたがせます。USB端子を小さい行番号側へ向け、1〜20番ピンをH6〜H25、40〜21番ピンをC6〜C25に挿します。ジャンパ線は外側のA/B列とI/J列へ挿します。"
+                ? "電源を外し、Pico H（または下向きオスヘッダー付きPico）を部品面が上になるようMCU1の中央溝にまたがせます。USB端子を小さい行番号側へ向け、物理ピン1〜20をH6〜H25、40〜21をC6〜C25に挿します。GPはGPIO番号、pinは物理ピン番号、A〜Jと数字は穴の位置です。例：GP14は物理ピン19（H24）で、ジャンパ線は同じ導通列のJ24へ挿します。"
                 : "電源を外し、下向きのオスヘッダー付き30ピンESP32をMCU1とMCU2にまたがせます。USB端子を小さい行番号側へ向け、3V3をMCU1:A8、VINをMCU2:J8に合わせ、両側15本を8〜22行へ挿します。基板の幅に合わせて2枚の間隔を調整し、外側の空き穴へ配線します。38ピン版などピン配列の違う基板は対象外です。",
           },
         ]
@@ -586,7 +607,14 @@ export function compileCircuit(c: Circuit) {
       to: w.end.label,
     })),
   ];
-  return { pinHoles, wires, steps, mountingSteps, allocationIssues };
+  return {
+    pinHoles,
+    wires,
+    steps,
+    mountingSteps,
+    allocationIssues,
+    displayBounds,
+  };
 }
 
 // A wire-only union-find represents actual breadboard nets. Components do not

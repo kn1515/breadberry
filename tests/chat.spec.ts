@@ -115,3 +115,54 @@ test("chat stays to the right on desktop and remains usable on mobile", async ({
     await page.evaluate(() => document.documentElement.scrollWidth),
   ).toBeLessThanOrEqual(page.viewportSize()!.width + 1);
 });
+
+test("ask-only mode answers questions without editing the circuit", async ({
+  page,
+}) => {
+  const asks: any[] = [];
+  let generated = 0;
+  await page.route("**/api/session", (route) =>
+    route.fulfill({ json: { active: true, gemini: true, firestore: false } }),
+  );
+  await page.route("**/api/generate", (route) => {
+    generated++;
+    return route.fulfill({ status: 500, json: { error: "unexpected" } });
+  });
+  await page.route("**/api/ask", (route) => {
+    asks.push(route.request().postDataJSON());
+    return route.fulfill({
+      json: { answer: `LEDの電流を制限します。${asks.length}` },
+    });
+  });
+  await page.goto("/");
+  const chat = page.getByRole("complementary", { name: "回路設計チャット" });
+  const log = page.getByRole("log", { name: "会話履歴" });
+  const prompt = page.getByLabel("作りたいもの");
+  const title = page.getByRole("heading", {
+    name: "お部屋の小さな気象台",
+    exact: true,
+  });
+  await expect(title).toBeVisible();
+  await chat.getByRole("button", { name: "質問のみ", exact: true }).click();
+  await expect(chat.getByLabel("使用する基板")).toHaveCount(0);
+  await expect(chat).toContainText("回路は変更されません");
+  await prompt.fill("抵抗は何のため？");
+  await chat.getByRole("button", { name: "質問する", exact: true }).click();
+  await expect(log.locator("article")).toHaveCount(2);
+  await expect(log).toContainText("LEDの電流を制限します。1");
+  await expect(prompt).toHaveValue("");
+  await prompt.fill("GPIOは何番？");
+  await prompt.press("Control+Enter");
+  await expect(log.locator("article")).toHaveCount(4);
+  expect(asks[0].context.circuit.title).toBe("お部屋の小さな気象台");
+  expect(asks[0].board).toBeUndefined();
+  expect(asks[1].context.messages).toEqual([
+    { role: "user", content: "抵抗は何のため？" },
+    { role: "assistant", content: "LEDの電流を制限します。1" },
+  ]);
+  expect(generated).toBe(0);
+  await expect(title).toBeVisible();
+  await expect(
+    chat.getByRole("button", { name: "質問のみ", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+});

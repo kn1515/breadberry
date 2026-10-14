@@ -1,6 +1,14 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Download, LoaderCircle, Sparkles, Unplug, Usb, X } from "lucide-react";
+import {
+  Cpu,
+  Download,
+  LoaderCircle,
+  Sparkles,
+  Unplug,
+  Usb,
+  X,
+} from "lucide-react";
 import { boards, validateCircuit, type Circuit } from "@/lib/circuit";
 import { responseError } from "@/lib/api-error";
 import { firmwareAnalysisSchema, type FirmwareAnalysis } from "@/lib/firmware";
@@ -10,25 +18,62 @@ import {
   serialUnsupported,
   stageLabels,
   type BuildStage,
+  type SerialApi,
+  type SerialPortLike,
 } from "@/lib/serial";
+import {
+  PICO_USB_VENDOR_ID,
+  directoryPicker,
+  flashMicroPython,
+  flashStageLabels,
+  micropythonVersion,
+  picoFirmware,
+  type FlashStage,
+} from "@/lib/pico-flash";
 import { usePreferences } from "./preferences";
 
 type Failure = { circuit: Circuit; stage: BuildStage; log: string };
+
+/** Resolves with a newly attached, already-authorized Pico serial port, if one appears. */
+async function waitForPico(
+  api: SerialApi,
+  known: Set<SerialPortLike>,
+  signal: AbortSignal,
+  timeout = 20000,
+) {
+  const deadline = Date.now() + timeout;
+  while (api.getPorts && !signal.aborted && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    const port = (await api.getPorts().catch(() => [])).find(
+      (port) =>
+        !known.has(port) && port.getInfo?.().usbVendorId === PICO_USB_VENDOR_ID,
+    );
+    if (port && !signal.aborted) {
+      // Give MicroPython a moment to finish booting before interrupting it.
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      return signal.aborted ? undefined : port;
+    }
+  }
+}
 export default function SerialBuild({
   circuit,
   prepareSession,
   onFirmware,
+  onBuilt,
   onClose,
 }: {
   circuit: Circuit;
   prepareSession: () => Promise<void>;
   onFirmware: (source: string) => void;
+  /** Called once the code has compiled on the board and main.py is saved. */
+  onBuilt?: () => void;
   onClose: () => void;
 }) {
   const { t, locale } = usePreferences();
   const dialog = useRef<HTMLDialogElement>(null);
   const task = useRef<AbortController | null>(null);
   const analysisTask = useRef<AbortController | null>(null);
+  const waiting = useRef<AbortController | null>(null);
   const mounted = useRef(true);
   const logs = useRef("");
   const [log, setLog] = useState("");
@@ -41,15 +86,19 @@ export default function SerialBuild({
   const [analysisError, setAnalysisError] = useState("");
   const [autoAnalyze, setAutoAnalyze] = useState(true);
   const [supported, setSupported] = useState(false);
+  const [canFlash, setCanFlash] = useState(false);
+  const [flashStage, setFlashStage] = useState<FlashStage | null>(null);
   const unsupported = serialUnsupported(circuit);
   useEffect(() => {
     mounted.current = true;
     setSupported(Boolean(serialApi()));
+    setCanFlash(Boolean(directoryPicker()));
     dialog.current?.showModal();
     return () => {
       mounted.current = false;
       task.current?.abort();
       analysisTask.current?.abort();
+      waiting.current?.abort();
     };
   }, []);
   function append(text: string) {
@@ -93,10 +142,15 @@ export default function SerialBuild({
       if (mounted.current) setAnalyzing(false);
     }
   }
-  async function run(source = circuit.firmware, apply = false) {
+  async function run(
+    source = circuit.firmware,
+    apply = false,
+    known?: SerialPortLike,
+  ) {
     // requestPort must run in the original click handler, before network awaits.
     const api = serialApi();
     if (!api || task.current || analysisTask.current) return;
+    waiting.current?.abort();
     const snapshot = { ...circuit, firmware: source };
     try {
       const unavailable = serialUnsupported(snapshot);
@@ -124,7 +178,7 @@ export default function SerialBuild({
     let connection: MicroPythonSerial | undefined;
     let failed: Failure | undefined;
     try {
-      const port = await api.requestPort();
+      const port = known ?? (await api.requestPort());
       controller.signal.throwIfAborted();
       if (apply) onFirmware(source);
       connection = new MicroPythonSerial(port, controller.signal);
@@ -135,6 +189,8 @@ export default function SerialBuild({
           currentStage = next;
           if (mounted.current) setStage(next);
           append(`[${t(stageLabels[next])}]\n`);
+          // "running" follows a successful compile and save; the program may never exit.
+          if (next === "running") onBuilt?.();
         },
         append,
       );
@@ -173,9 +229,76 @@ export default function SerialBuild({
     if (failed && autoAnalyze && mounted.current && !controller.signal.aborted)
       await analyze(failed);
   }
+  async function installMicroPython() {
+    // showDirectoryPicker needs the click's user activation, so it runs first.
+    const picker = directoryPicker();
+    const api = serialApi();
+    if (!picker || task.current || analysisTask.current) return;
+    waiting.current?.abort();
+    const controller = new AbortController();
+    task.current = controller;
+    setActive(true);
+    setFailure(null);
+    setAnalysis(null);
+    setAnalysisError("");
+    setStatus("");
+    logs.current = "";
+    setLog("");
+    let flashed = false;
+    let known = new Set<SerialPortLike>();
+    try {
+      const drive = await picker({ id: "breadberry-pico", mode: "readwrite" });
+      // Ports that already exist belong to other boards, never the rebooting Pico.
+      known = new Set(await api?.getPorts?.().catch(() => []));
+      const bootloader = await flashMicroPython(
+        drive,
+        controller.signal,
+        (next) => {
+          if (mounted.current) setFlashStage(next);
+          append(`[${t(flashStageLabels[next])}]\n`);
+        },
+      );
+      append(
+        `MicroPython ${micropythonVersion} → ${picoFirmware[bootloader].name}\n`,
+      );
+      flashed = true;
+    } catch (error) {
+      if (controller.signal.aborted) {
+        if (mounted.current) setStatus(t("書き込みを中止しました。"));
+      } else if (error instanceof DOMException && error.name === "AbortError") {
+        if (mounted.current)
+          setStatus(t("ドライブの選択をキャンセルしました。"));
+      } else {
+        const message = error instanceof Error ? error.message : String(error);
+        append(`\n${t("エラー")}: ${t(message)}\n`);
+        if (mounted.current)
+          setStatus(t("MicroPythonの書き込みに失敗しました。"));
+      }
+    } finally {
+      task.current = null;
+      if (mounted.current) {
+        setActive(false);
+        setFlashStage(null);
+      }
+    }
+    if (!flashed || !mounted.current) return;
+    setStatus(
+      t(
+        "MicroPythonを書き込みました。Picoの再起動後に「接続してビルド・実行」を押し、Picoのポートを選択してください。",
+      ),
+    );
+    if (!api || unsupported) return;
+    // A port authorized earlier reappears after reboot, so the build can continue unattended.
+    const wait = new AbortController();
+    waiting.current = wait;
+    const port = await waitForPico(api, known, wait.signal);
+    if (waiting.current === wait) waiting.current = null;
+    if (port && mounted.current) await run(circuit.firmware, false, port);
+  }
   function close() {
     task.current?.abort();
     analysisTask.current?.abort();
+    waiting.current?.abort();
     dialog.current?.close();
     onClose();
   }
@@ -218,7 +341,7 @@ export default function SerialBuild({
       </p>
       <p>
         {t(
-          "MicroPython導入済みのESP32／PicoをUSBで接続し、接続先を選ぶと、転送・ビルド・保存・実行を自動で行います。",
+          "ESP32／PicoをUSBで接続し、接続先を選ぶと、転送・ビルド・保存・実行を自動で行います。ESP32はMicroPython導入済みのものを使ってください。PicoはMicroPythonが入っていなくても下から導入できます。",
         )}
       </p>
       <p className="serial-note">
@@ -234,6 +357,47 @@ export default function SerialBuild({
         </p>
       )}
       {unsupported && <p role="alert">{t(unsupported)}</p>}
+      {circuit.board === "pico" && (
+        <section className="serial-flash">
+          <h3>
+            <Cpu size={18} />
+            {t("MicroPythonが入っていないPico")}
+          </h3>
+          <p className="serial-note">
+            {t(
+              "新品のPicoはそのままUSB接続、書き込み済みのPicoはBOOTSELボタンを押しながら接続すると、RPI-RP2（Pico 2はRP2350）ドライブが現れます。「MicroPythonを書き込む」でそのドライブを選ぶと、MicroPython {0}を書き込みます。",
+              [micropythonVersion],
+            )}
+          </p>
+          <div className="serial-actions">
+            <button
+              disabled={!canFlash || active || analyzing}
+              onClick={() => void installMicroPython()}
+            >
+              <Cpu size={16} />
+              {t("MicroPythonを書き込む")}
+            </button>
+            {Object.entries(picoFirmware).map(([id, firmware]) => (
+              <a
+                key={id}
+                className="serial-download"
+                href={firmware.url}
+                download
+              >
+                <Download size={16} />
+                {t("{0}用UF2", [firmware.name])}
+              </a>
+            ))}
+          </div>
+          {!canFlash && (
+            <p className="serial-note">
+              {t(
+                "このブラウザはドライブへの直接書き込みに対応していません。UF2をダウンロードし、RPI-RP2（RP2350）ドライブへドラッグしてください。",
+              )}
+            </p>
+          )}
+        </section>
+      )}
       <label className="serial-option">
         <input
           type="checkbox"
@@ -265,7 +429,11 @@ export default function SerialBuild({
       </div>
       <p role="status" className="serial-status">
         {active && <LoaderCircle size={16} className="spin" />}
-        {stage ? t(stageLabels[stage]) : status || t("接続待ち")}
+        {flashStage
+          ? t(flashStageLabels[flashStage])
+          : stage
+            ? t(stageLabels[stage])
+            : status || t("接続待ち")}
       </p>
       {stage === "running" && (
         <p className="serial-note">

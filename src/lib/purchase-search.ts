@@ -30,7 +30,7 @@ export async function runPurchaseSearch(
   services = {
     search: searchDigiKey,
     recommend: recommendPurchase,
-    timeoutMs: 55_000,
+    timeoutMs: 75_000,
     quotaTimeoutMs: 5_000,
   },
 ): Promise<RecommendedPurchaseSearch> {

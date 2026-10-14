@@ -23,6 +23,13 @@ import { resolveLedColor } from "@/lib/led";
 import St7789Model from "./st7789-model";
 import LedModel from "./led-model";
 import {
+  createWireCurve,
+  DISPLAY_WIRE_SEGMENTS,
+  WIRE_RADIUS,
+} from "@/lib/wiring";
+import type { DisplayBounds } from "@/lib/st7789";
+import { picoPinout } from "@/lib/pico";
+import {
   boards,
   getBreadboards,
   breadboardPosition,
@@ -66,6 +73,54 @@ function Label({
       }}
     >
       {children}
+    </Html>
+  );
+}
+/** A pin number printed flat on the PCB, so it reads as part of the 3D board. */
+function PinLabel({
+  at,
+  children,
+  color,
+  physicalPin,
+}: {
+  at: Point;
+  children: ReactNode;
+  color?: string;
+  physicalPin?: number;
+}) {
+  return (
+    <Html
+      position={at}
+      rotation={[-Math.PI / 2, 0, Math.PI / 2]}
+      transform
+      distanceFactor={2.5}
+      center
+      zIndexRange={[10, 0]}
+      style={{ pointerEvents: "none" }}
+    >
+      <span
+        data-pin-wired={color ? "true" : "false"}
+        data-physical-pin={physicalPin}
+        style={{
+          display: "block",
+          color: color ?? "#ffffff",
+          fontSize: physicalPin === undefined ? 26 : 20,
+          fontWeight: color ? 800 : 600,
+          lineHeight: 1,
+          whiteSpace: "nowrap",
+          fontFamily: "Inter, sans-serif",
+          textShadow: color
+            ? `0 0 6px ${color}, 0 2px 2px #000`
+            : "0 2px 2px rgba(0,0,0,0.85)",
+        }}
+      >
+        {children}
+        {physicalPin !== undefined && (
+          <small style={{ display: "block", fontSize: 12, marginTop: 2 }}>
+            pin {physicalPin}
+          </small>
+        )}
+      </span>
     </Html>
   );
 }
@@ -154,6 +209,8 @@ function Controller({ circuit }: { circuit: Circuit }) {
   const pins = mount
     ? mount.pins.map((p) => ({
         key: String(p.number),
+        number: p.number,
+        label: pico ? picoPinout[p.number - 1] : undefined,
         pin: Object.keys(boards[board].pins).find(
           (name) => boards[board].pins[name] === p.number,
         ),
@@ -161,9 +218,26 @@ function Controller({ circuit }: { circuit: Circuit }) {
       }))
     : Object.keys(boards[board].pins).map((pin) => ({
         key: pin,
+        number: boards[board].pins[pin],
+        label: undefined,
         pin,
         position: boardPinPosition(board, pin),
       }));
+  // Connected pins take the colour of their (first) wire; free pins stay white.
+  const pinColors = new Map<string, string>();
+  for (const w of circuit.wires)
+    for (const end of [w.from, w.to])
+      if (end.startsWith("board.") && !pinColors.has(end.slice(6)))
+        pinColors.set(end.slice(6), w.color);
+  // Breadboard-mounted boards face their outer edge onto jumper holes, so the
+  // labels sit inboard on the PCB; the Pi header labels sit beside each row.
+  const rowsMid = mount
+    ? center[2]
+    : (Math.min(...pins.map((p) => p.position[2])) +
+        Math.max(...pins.map((p) => p.position[2]))) /
+      2;
+  const labelOffset = (z: number) =>
+    mount ? (z < rowsMid ? 0.2 : -0.2) : z < rowsMid ? -0.28 : 0.28;
   return (
     <group>
       <mesh castShadow position={center}>
@@ -190,7 +264,12 @@ function Controller({ circuit }: { circuit: Circuit }) {
           roughness={0.25}
         />
       </mesh>
-      {pins.map(({ key, pin, position }) => (
+      {pico && (
+        <Label at={[center[0] - length / 2 - 0.3, center[1] + 0.3, center[2]]}>
+          USB
+        </Label>
+      )}
+      {pins.map(({ key, pin, label, number, position }) => (
         <group key={key}>
           <mesh
             position={[position[0], mount ? 0.39 : position[1], position[2]]}
@@ -202,21 +281,23 @@ function Controller({ circuit }: { circuit: Circuit }) {
               roughness={0.3}
             />
           </mesh>
-          {pin &&
-            circuit.wires.some((w) =>
-              [w.from, w.to].includes(`board.${pin}`),
-            ) && (
-              <Label
-                at={[position[0], center[1] + 0.25, position[2]]}
-                color="#cee3df"
-              >
-                {pin.replace("GPIO", "").replace("GP", "")}
-              </Label>
-            )}
+          {(label || pin) && (
+            <PinLabel
+              at={[
+                position[0],
+                center[1] + 0.1,
+                position[2] + labelOffset(position[2]),
+              ]}
+              color={pin ? pinColors.get(pin) : undefined}
+              physicalPin={pico ? number : undefined}
+            >
+              {label ?? pin!.replace("GPIO", "").replace("GP", "")}
+            </PinLabel>
+          )}
         </group>
       ))}
-      <Label at={[0, center[1] + 0.3, center[2] - 0.33]} color="#f3f7ff">
-        {board === "esp32" ? "ESP32" : pico ? "PICO · RP2040" : "RASPBERRY PI"}
+      <Label at={[0, center[1] + 0.3, center[2] - (pico ? 0 : 0.33)]} color="#f3f7ff">
+        {board === "esp32" ? "ESP32" : pico ? "PICO / PICO H · RP2040" : "RASPBERRY PI"}
       </Label>
       <mesh position={[1.2, center[1] + 0.14, center[2] - 0.25]}>
         <sphereGeometry args={[0.045, 8, 8]} />
@@ -503,29 +584,21 @@ function AnimatedWire({
   color,
   active,
   index,
+  displays,
 }: {
   start: Point;
   end: Point;
   color: string;
   active: boolean;
   index: number;
+  displays: DisplayBounds[];
 }) {
   const progress = useRef(active ? 0 : 1);
   const mesh = useRef<THREE.Mesh>(null);
+  const segments = displays.length ? DISPLAY_WIRE_SEGMENTS : WIRE_TUBE_SEGMENTS;
   const curve = useMemo(
-    () =>
-      new THREE.CatmullRomCurve3([
-        new THREE.Vector3(...start),
-        new THREE.Vector3(start[0], 0.75 + (index % 12) * 0.045, start[2]),
-        new THREE.Vector3(
-          (start[0] + end[0]) / 2,
-          1.15 + (index % 12) * 0.06,
-          (start[2] + end[2]) / 2,
-        ),
-        new THREE.Vector3(end[0], 0.8 + (index % 12) * 0.045, end[2]),
-        new THREE.Vector3(...end),
-      ]),
-    [start, end, index],
+    () => createWireCurve(start, end, index, displays),
+    [start, end, index, displays],
   );
   const invalidate = useThree((s) => s.invalidate);
   useEffect(() => {
@@ -540,15 +613,13 @@ function AnimatedWire({
     );
     mesh.current?.geometry.setDrawRange(
       0,
-      Math.floor(
-        WIRE_TUBE_SEGMENTS * WIRE_RADIAL_SEGMENTS * 6 * progress.current,
-      ),
+      Math.floor(segments * WIRE_RADIAL_SEGMENTS * 6 * progress.current),
     );
   });
   return (
     <mesh ref={mesh} castShadow>
       <tubeGeometry
-        args={[curve, WIRE_TUBE_SEGMENTS, 0.033, WIRE_RADIAL_SEGMENTS, false]}
+        args={[curve, segments, WIRE_RADIUS, WIRE_RADIAL_SEGMENTS, false]}
       />
       <meshStandardMaterial
         color={color}
@@ -884,20 +955,24 @@ function SceneWorkspace({
           step > wireOffset &&
           compiled.wires[step - wireOffset - 1] &&
           [
-            compiled.wires[step - wireOffset - 1].start.position,
-            compiled.wires[step - wireOffset - 1].end.position,
-          ].map((position, i) => (
-            <mesh
-              key={`target-${i}`}
-              position={[position[0], position[1] + 0.04, position[2]]}
-              rotation={[-Math.PI / 2, 0, 0]}
-            >
-              <ringGeometry args={[0.1, 0.145, 24]} />
-              <meshBasicMaterial color="#c4b5fd" side={THREE.DoubleSide} />
-            </mesh>
-          ))}
+            compiled.wires[step - wireOffset - 1].start,
+            compiled.wires[step - wireOffset - 1].end,
+          ]
+            .filter((endpoint) => endpoint.accessible)
+            .map(({ position }, i) => (
+              <mesh
+                key={`target-${i}`}
+                position={[position[0], position[1] + 0.04, position[2]]}
+                rotation={[-Math.PI / 2, 0, 0]}
+              >
+                <ringGeometry args={[0.1, 0.145, 24]} />
+                <meshBasicMaterial color="#c4b5fd" side={THREE.DoubleSide} />
+              </mesh>
+            ))}
         {compiled.wires.map(
           (w, i) =>
+            w.start.accessible &&
+            w.end.accessible &&
             (editor || i + wireOffset < step) && (
               <AnimatedWire
                 key={w.id}
@@ -906,6 +981,7 @@ function SceneWorkspace({
                 color={w.color}
                 active={!editor && i + wireOffset === step - 1 && !reduced}
                 index={i}
+                displays={compiled.displayBounds}
               />
             ),
         )}

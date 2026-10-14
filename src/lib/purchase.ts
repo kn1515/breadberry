@@ -84,6 +84,30 @@ export function storeProductUrl(
     return null;
   }
 }
+// Keyword search pages, for parts no verifiable store sells (Amazon only).
+export function storeSearchUrl(
+  store: DomesticStore,
+  value: string,
+): string | null {
+  try {
+    const url = new URL(value);
+    const keywords = url.searchParams.get("k")?.trim();
+    if (
+      store !== "amazon" ||
+      url.protocol !== "https:" ||
+      url.username ||
+      url.password ||
+      url.port ||
+      url.hostname !== "www.amazon.co.jp" ||
+      url.pathname !== "/s" ||
+      !keywords
+    )
+      return null;
+    return `https://www.amazon.co.jp/s?${new URLSearchParams({ k: keywords })}`;
+  } catch {
+    return null;
+  }
+}
 // Avoid automatically ordering an industrial lot for a small breadboard circuit.
 // Larger lots remain available for explicit manual selection.
 export function maxAutomaticQuantity(requested: number) {
@@ -98,7 +122,7 @@ export type PurchaseRecommendation = {
 export type RecommendedPurchaseSearch = PurchaseSearch & {
   recommendation: PurchaseRecommendation;
 };
-export const PURCHASE_SEARCH_TIMEOUT_MS = 60_000;
+export const PURCHASE_SEARCH_TIMEOUT_MS = 80_000;
 export type PurchasePhase =
   "queued" | "connecting" | "digikey" | "discovery" | "verification" | "done";
 export type PurchaseSearchEvent =

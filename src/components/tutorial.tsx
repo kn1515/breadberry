@@ -40,7 +40,7 @@ const steps = [
     target: '[data-tour="build"]',
     title: "USBでビルド・実行",
     description:
-      "MicroPythonと必要なドライバーを導入済みのESP32／PicoをUSB接続します。PC版Chrome／EdgeでHTTPSまたはlocalhostから開き、「自動ビルド」→「接続してビルド・実行」で接続先を選ぶと、転送・ビルド・保存・実行が進みます。",
+      "ESP32／PicoをUSB接続します（ESP32はMicroPythonと必要なドライバーを事前に導入）。MicroPythonが入っていないPicoは「MicroPythonを書き込む」で導入できます。PC版Chrome／EdgeでHTTPSまたはlocalhostから開き、「自動ビルド」→「接続してビルド・実行」で接続先を選ぶと、転送・ビルド・保存・実行が進みます。",
   },
   {
     target: '[data-tour="build"]',

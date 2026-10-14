@@ -2,6 +2,7 @@ import { resistanceOhms, type Board, type Circuit, type Kind } from "./circuit";
 import type { LedColor } from "./led";
 import {
   storeProductUrl,
+  storeSearchUrl,
   type DomesticStore,
   type PurchasePart,
 } from "./purchase";
@@ -11,7 +12,8 @@ type Match =
   | { kind: "resistor"; ohms: number }
   | { kind: "board"; board: Board }
   | { kind: "breadboard" }
-  | { kind: Exclude<Kind, "led" | "resistor"> | "wire"; value: string };
+  // Without a value, any part of the kind matches (e.g. DHT22 labels vary).
+  | { kind: Exclude<Kind, "led" | "resistor"> | "wire"; value?: string };
 
 export type RegisteredProduct = {
   id: string;
@@ -22,6 +24,11 @@ export type RegisteredProduct = {
   /** Identity/specification review date, NEVER evidence of current stock. */
   reviewedOn: string;
   enabled: boolean;
+  /**
+   * A store keyword search instead of a product page, for parts that no
+   * verifiable store sells. Shown as a manual link only; never verified.
+   */
+  search?: boolean;
 };
 
 // Retrieval seeds only: verify live price, stock, pack size and compatibility.
@@ -52,6 +59,81 @@ export const purchaseCatalog: readonly RegisteredProduct[] = [
     match: { kind: "resistor", ohms: 10000 },
     reviewedOn: "2026-10-03",
     enabled: true,
+  },
+  {
+    id: "akizuki-125221",
+    name: "カーボン抵抗 1/4W 220Ω · 100本入",
+    store: "akizuki",
+    url: "https://akizukidenshi.com/catalog/g/g125221/",
+    match: { kind: "resistor", ohms: 220 },
+    reviewedOn: "2026-10-15",
+    enabled: true,
+  },
+  {
+    id: "akizuki-125331",
+    name: "カーボン抵抗 1/4W 330Ω · 100本入",
+    store: "akizuki",
+    url: "https://akizukidenshi.com/catalog/g/g125331/",
+    match: { kind: "resistor", ohms: 330 },
+    reviewedOn: "2026-10-15",
+    enabled: true,
+  },
+  {
+    id: "akizuki-125102",
+    name: "カーボン抵抗 1/4W 1kΩ · 100本入",
+    store: "akizuki",
+    url: "https://akizukidenshi.com/catalog/g/g125102/",
+    match: { kind: "resistor", ohms: 1000 },
+    reviewedOn: "2026-10-15",
+    enabled: true,
+  },
+  {
+    id: "akizuki-125103",
+    name: "カーボン抵抗 1/4W 10kΩ · 100本入",
+    store: "akizuki",
+    url: "https://akizukidenshi.com/catalog/g/g125103/",
+    match: { kind: "resistor", ohms: 10000 },
+    reviewedOn: "2026-10-15",
+    enabled: true,
+  },
+  {
+    id: "akizuki-107002",
+    name: "AM2302 (DHT22) 温湿度センサー",
+    store: "akizuki",
+    url: "https://akizukidenshi.com/catalog/g/g107002/",
+    match: { kind: "dht22" },
+    reviewedOn: "2026-10-15",
+    enabled: true,
+  },
+  {
+    id: "akizuki-130088",
+    name: "ZYJ-W1 · ジャンパーワイヤ オス-オス 60本以上",
+    store: "akizuki",
+    url: "https://akizukidenshi.com/catalog/g/g130088/",
+    match: { kind: "wire", value: "オス–オス" },
+    reviewedOn: "2026-10-15",
+    enabled: true,
+  },
+  {
+    id: "akizuki-102315",
+    name: "ジャンパーワイヤ オス-オス 14種類×5本",
+    store: "akizuki",
+    url: "https://akizukidenshi.com/catalog/g/g102315/",
+    match: { kind: "wire", value: "オス–オス" },
+    reviewedOn: "2026-10-15",
+    enabled: true,
+  },
+  {
+    // No domestic store sells the 30-pin DevKit V1, and Amazon product pages
+    // cannot be retrieved for verification, so only a search can be offered.
+    id: "amazon-search-esp32-devkit-v1-30pin",
+    name: "ESP32 DevKit V1 30ピン ESP-WROOM-32",
+    store: "amazon",
+    url: "https://www.amazon.co.jp/s?k=ESP32+DevKit+V1+30%E3%83%94%E3%83%B3+ESP-WROOM-32",
+    match: { kind: "board", board: "esp32" },
+    reviewedOn: "2026-10-15",
+    enabled: true,
+    search: true,
   },
   {
     id: "akizuki-100315",
@@ -100,8 +182,11 @@ export function registeredCandidates(
       )
         return false;
       if (match.kind === "board" && match.board !== circuit.board) return false;
-      if ("value" in match && match.value !== part.value) return false;
-      const url = storeProductUrl(entry.store, entry.url);
+      if ("value" in match && match.value && match.value !== part.value)
+        return false;
+      const url = entry.search
+        ? storeSearchUrl(entry.store, entry.url)
+        : storeProductUrl(entry.store, entry.url);
       if (!url || urls.has(url)) return false;
       urls.add(url);
       return true;

@@ -530,6 +530,14 @@ export const messages: Record<string, string> = {
     "I2C address 0x76. Does not measure humidity.",
   "SHT31 温湿度モジュール": "SHT31 temperature & humidity module",
   "I2Cアドレス0x44。": "I2C address 0x44.",
+  "{0} は出力可能なGPIOに接続してください（BLKは3.3Vも可）。":
+    "Connect {0} to an output-capable GPIO (BLK may also connect to 3.3V).",
+  "{0}: SPI信号をI2Cバスと共有できません。":
+    "{0}: SPI signals cannot share an I2C bus.",
+  "ST7789 1.54インチ TFT液晶 (M154-240240-RGB)":
+    "ST7789 1.54-inch TFT LCD (M154-240240-RGB)",
+  "秋月131019 / M154-240240-RGB。OLEDではなく240×240のTFT液晶。3.3V電源・3.3Vロジック専用（5V不可）。SCL=SCK、SDA=MOSIの4線式SPIで、I2Cではありません。RES/DC/CSは別々の出力GPIO、BLKは3.3Vまたは出力GPIO（HIGHで点灯）。8端子・2.54mmピッチ。基板32×43.72mm。ヘッダー実装状態を確認し、実物の端子印字を優先してください。":
+    "Akizuki 131019 / M154-240240-RGB. 240×240 TFT LCD, not OLED. 3.3V supply and logic only; never use 5V. Four-wire SPI: SCL=SCK, SDA=MOSI, not I2C. RES/DC/CS need separate output GPIOs. BLK connects to 3.3V or an output GPIO (HIGH turns the backlight on). Eight pins at 2.54mm pitch; 32×43.72mm PCB. Check header assembly and follow the actual pin markings.",
   "SSD1306 OLEDディスプレイ": "SSD1306 OLED display",
   "128×64、I2Cアドレス0x3C、リセット回路内蔵の4端子モジュール。SPI版は対象外です。":
     "128×64, I2C address 0x3C, four-pin module with reset circuitry. SPI versions are not supported.",

@@ -1,3 +1,4 @@
+import { st7789Geometry } from "./st7789";
 import { isDip } from "./logic";
 import {
   catalog,
@@ -31,6 +32,14 @@ export function partBounds(circuit: Circuit, index: number) {
     qualifyHole(placement.hole, placement.breadboard),
   );
   const span = Math.max(...catalog[part.kind].offsets) * 0.24;
+  if (part.kind === "st7789")
+    return {
+      x: start[0] + ((placement.reversed ? -1 : 1) * span) / 2,
+      z: start[2] + (placement.reversed ? -1 : 1) * st7789Geometry.centerZ,
+      breadboard: placement.breadboard ?? "BB1",
+      width: st7789Geometry.width,
+      depth: st7789Geometry.depth,
+    };
   const module = ["bh1750", "bme280", "bmp280", "sht31", "ssd1306"].includes(
     part.kind,
   );
@@ -229,13 +238,15 @@ export function addPart(circuit: Circuit, kind: Kind): Circuit {
         id: `P${n}`,
         kind,
         value:
-          kind === "resistor"
-            ? "330Ω"
-            : kind === "capacitor"
-              ? "100nF"
-              : ["ntc", "potentiometer"].includes(kind)
-                ? "10kΩ"
-                : "",
+          kind === "st7789"
+            ? "M154-240240-RGB"
+            : kind === "resistor"
+              ? "330Ω"
+              : kind === "capacitor"
+                ? "100nF"
+                : ["ntc", "potentiometer"].includes(kind)
+                  ? "10kΩ"
+                  : "",
         purpose: "ユーザーが追加した部品",
         placement,
       },

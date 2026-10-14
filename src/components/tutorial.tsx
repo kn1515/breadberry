@@ -116,11 +116,16 @@ export default function Tutorial({
         y: rect.bottom - 4,
       });
     };
-    // Studio switches the displayed mode before locating the actual control.
-    const frame = requestAnimationFrame(() => {
+    // Studio switches the displayed mode in its own effect, which can render
+    // after the next frame (e.g. leaving the Editor mounts the toolbar), so
+    // keep looking for the actual control for up to about two seconds.
+    let attempts = 0;
+    let frame = 0;
+    const locate = () => {
       target = document.querySelector<HTMLElement>(current.target);
       if (!target) {
         setPoint(null);
+        if (++attempts < 120) frame = requestAnimationFrame(locate);
         return;
       }
       target.classList.add("tour-highlight");
@@ -135,7 +140,8 @@ export default function Tutorial({
         inline: "center",
       });
       update();
-    });
+    };
+    frame = requestAnimationFrame(locate);
     window.addEventListener("resize", update);
     window.addEventListener("scroll", update, true);
     return () => {

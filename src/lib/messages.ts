@@ -906,8 +906,8 @@ export const messages: Record<string, string> = {
   "プロジェクトが見つかりません。": "Project not found.",
   "確認済み {0} / {1} 部品": "Checked {0} / {1} parts",
   商品検索の進捗: "Product search progress",
-  "見つかった商品から表示します。検索は最大90秒で一旦終了し、未完了の部品だけ再試行できます。":
-    "Products appear as they are found. Search stops after 90 seconds; you can retry unfinished parts.",
+  "見つかった商品から表示します。1部品の検索は最大80秒で一旦終了し、未完了の部品だけ再試行できます。":
+    "Products appear as they are found. Each part's search stops after 80 seconds; you can retry unfinished parts.",
   検索を中止: "Stop search",
   未完了の部品を再試行: "Retry unfinished parts",
   この部品を再試行: "Retry this part",

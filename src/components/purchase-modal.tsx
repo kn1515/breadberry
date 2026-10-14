@@ -420,7 +420,7 @@ export default function PurchaseModal({
               />
               <p className="purchase-note">
                 {t(
-                  "見つかった商品から表示します。検索は最大90秒で一旦終了し、未完了の部品だけ再試行できます。",
+                  "見つかった商品から表示します。1部品の検索は最大80秒で一旦終了し、未完了の部品だけ再試行できます。",
                 )}
               </p>
               {loading && (

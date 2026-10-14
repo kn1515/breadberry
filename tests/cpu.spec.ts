@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import * as THREE from "three";
 import { holePosition } from "../src/lib/circuit";
+import { openEsp32Sample } from "./samples";
 
 test("multiple breadboards persist placements, cross-board wires and undo", async ({
   page,
@@ -113,7 +114,7 @@ test("drag an existing 3D part from BB1 to BB2", async ({ page, isMobile }) => {
     isMobile,
     "Desktop pointer drag; mobile placement selector is tested above.",
   );
-  await page.goto("/");
+  await openEsp32Sample(page);
   await page.getByRole("button", { name: "Editor · 編集" }).click();
   await page
     .getByRole("button", { name: "ブレッドボードを追加", exact: true })

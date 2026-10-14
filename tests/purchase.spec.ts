@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { PURCHASE_SEARCH_TIMEOUT_MS } from "../src/lib/purchase";
 
 const offer = {
   partNumber: "TEST-LED-ND",
@@ -29,7 +30,7 @@ test("purchase modal selects products and POSTs combined quantities to FastAdd",
   await page.route("**/api/purchase/search", (r) => {
     queries.push(r.request().postDataJSON().query);
     const body = r.request().postDataJSON();
-    expect(body.circuit.board).toBe("esp32");
+    expect(body.circuit.board).toBe("pico");
     expect(body.partId).toMatch(/^bom-/);
     return r.fulfill({
       json: {
@@ -484,7 +485,7 @@ test("streamed offers are usable while AI runs and its result preserves a manual
   await expect(row.locator("select")).toHaveValue(offer.partNumber);
 });
 
-test("an unresponsive search ends at the batch deadline and leaves queued parts retryable", async ({
+test("an unresponsive search times out per part and keeps queued parts searching", async ({
   page,
 }) => {
   await page.route("**/api/session", (r) =>
@@ -498,11 +499,14 @@ test("an unresponsive search ends at the batch deadline and leaves queued parts 
   await page.clock.install();
   await page.getByRole("button", { name: "購入する", exact: true }).click();
   await expect.poll(() => searches).toBe(3);
-  await page.clock.fastForward(91000);
+  // No batch-wide deadline: parts queued behind the stalled ones still start.
+  await page.clock.fastForward(PURCHASE_SEARCH_TIMEOUT_MS + 1000);
+  await expect.poll(() => searches).toBe(6);
   const dialog = page.getByRole("dialog");
-  await expect(
-    dialog.getByRole("button", { name: "検索を中止", exact: true }),
-  ).toHaveCount(0);
+  await expect(dialog).toContainText("検索に時間がかかっているため中断しました");
+  await dialog
+    .getByRole("button", { name: "検索を中止", exact: true })
+    .click();
   await expect(
     dialog.getByRole("button", { name: "未完了の部品を再試行", exact: true }),
   ).toBeVisible();
@@ -510,10 +514,7 @@ test("an unresponsive search ends at the batch deadline and leaves queued parts 
     "aria-busy",
     "false",
   );
-  await expect(dialog.locator(".purchase-search-progress")).toContainText(
-    "待ち時間が長いため",
-  );
-  expect(searches).toBe(3);
+  expect(searches).toBe(6);
 });
 
 test("DigiKey quota notice does not block verified products from other stores", async ({

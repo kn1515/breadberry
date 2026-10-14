@@ -12,8 +12,9 @@ test("workspace renders, steps play, views switch, and exports download", async 
   await expect(page.locator("canvas")).toBeVisible({ timeout: 30000 });
   await expect(page.getByRole("slider", { name: "組み立て工程" })).toHaveValue("13");
   await page.locator(".step-item").first().click();
-  await expect(page.locator(".step-item").first()).toContainText("MCU1:A8");
-  await expect(page.locator(".step-item").first()).toContainText("MCU2:J8");
+  await expect(page.locator(".step-item").first()).toContainText(
+    "物理ピン1〜20をH6〜H25、40〜21をC6〜C25",
+  );
   await page.locator(".step-item").last().click();
   await page.getByRole("button", { name: "前の工程", exact: true }).click();
   await expect(page.getByRole("slider", { name: "組み立て工程" })).toHaveValue(

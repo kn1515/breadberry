@@ -19,7 +19,7 @@ BUILD_ID="$(gcloud builds submit --project "$GOOGLE_CLOUD_PROJECT" --config clou
 IMAGE="${REGION}-docker.pkg.dev/${GOOGLE_CLOUD_PROJECT}/${REPOSITORY}/breadberry:${BUILD_ID}"
 gcloud run deploy "$SERVICE" --project "$GOOGLE_CLOUD_PROJECT" --region "$REGION" \
   --image "$IMAGE" --service-account "$SERVICE_ACCOUNT" --port 8080 \
-  --memory 1Gi --cpu 1 --min-instances 0 --max-instances 3 --concurrency 8 --timeout 180 \
+  --memory 1Gi --cpu 1 --min-instances 0 --max-instances 3 --concurrency 8 --timeout 240 \
   --allow-unauthenticated --ingress=internal-and-cloud-load-balancing --no-default-url \
   --update-env-vars "$ENV_VARS" \
   --remove-secrets APP_ACCESS_TOKEN \

@@ -16,7 +16,9 @@ import {
   takeQuota,
 } from "@/lib/server";
 export const runtime = "nodejs";
-export const maxDuration = 180;
+// Three attempts can each take 45s for generation and 20s for review.
+// Leave time for Model Armor, storage and trace export as well.
+export const maxDuration = 240;
 /** One trace per request: Model Armor screening around the repair agent. */
 const design = traced(
   "Circuit design request",

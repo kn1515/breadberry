@@ -4,7 +4,7 @@
 
 Next.js / TypeScript / Tailwind CSS / Three.js（React Three Fiber）/ Gemini API / GMI Cloud / Cloud Firestore。Fritzingの部品・回路・インスペクターという構成を参考にした、オリジナルのダッシュボードです。
 
-**公開URL：** Cloud Armor導入後は `https://${CLOUD_ARMOR_DOMAIN}` を使用します。従来のrun.app URLは無効になります。[公開入口の設定](docs/cloud-armor.md)
+**公開デモ：** [https://breadberry.ponnlog.com/](https://breadberry.ponnlog.com/)（Cloud Armor経由・認証不要）。従来のrun.app URLは無効です。[公開入口の設定](docs/cloud-armor.md)
 
 ![breadberry ワークスペース](docs/preview.jpg)
 
@@ -367,7 +367,7 @@ GitHubリポジトリの **Settings > Secrets and variables > Actions > Variable
 
 `production` Environmentを作成して承認者を設定すると、マージ後のデプロイ前にGitHub上で承認を必須にできます。Cloud Build実行用サービスアカウントには、従来どおりArtifact Registryへの書き込み権限が必要です。
 
-デプロイ後は `https://${CLOUD_ARMOR_DOMAIN}` を開きます。`APP_ORIGIN` はこのURLに自動設定されます。旧run.app URLは利用できません。DNS・証明書・WAFの動作確認は[導入手順](docs/cloud-armor.md#導入後の確認)を参照してください。
+公開デモは [https://breadberry.ponnlog.com/](https://breadberry.ponnlog.com/) です。独自ドメインを変更した場合は、`CLOUD_ARMOR_DOMAIN` に対応するURLを開いてください。`APP_ORIGIN` はこのURLに自動設定されます。旧run.app URLは利用できません。DNS・証明書・WAFの動作確認は[導入手順](docs/cloud-armor.md#導入後の確認)を参照してください。
 
 現在の実装で許可する送信元は1つです。localhostと公開URLの両方を同時には指定できません。「この送信元からは操作できません。」という403は、セッション開始などの操作時にブラウザの送信元と許可URLが一致しない場合にアプリが返します。Cloud RunのIAM認証による `Error: Forbidden` とは別の設定です。
 

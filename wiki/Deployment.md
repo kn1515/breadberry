@@ -182,7 +182,7 @@ GitHub リポジトリの **Settings > Secrets and variables > Actions > Variabl
 
 ## デプロイ後の動作確認
 
-公開URLは `https://${CLOUD_ARMOR_DOMAIN}` です。旧run.app URLは無効です。[Cloud Armor導入後の確認](../docs/cloud-armor.md#導入後の確認)でDNS・証明書・WAF・レート制限・逐次表示を確認してください。
+公開デモは [https://breadberry.ponnlog.com/](https://breadberry.ponnlog.com/) です。独自ドメインを変更した場合は、`CLOUD_ARMOR_DOMAIN` に対応するURLを使用してください。旧run.app URLは無効です。[Cloud Armor導入後の確認](../docs/cloud-armor.md#導入後の確認)でDNS・証明書・WAF・レート制限・逐次表示を確認してください。
 
 現在の実装で許可する送信元は1つです。localhost と公開 URL の両方を同時には指定できません。
 

@@ -15,7 +15,7 @@ import {
 } from "@/lib/server";
 
 export const runtime = "nodejs";
-export const maxDuration = 65;
+export const maxDuration = 85;
 export async function POST(req: NextRequest) {
   try {
     checkOrigin(req);

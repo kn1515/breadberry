@@ -99,7 +99,7 @@ test("English generation requests retain the selected language and circuit", asy
       .getByRole("alert"),
   ).toContainText("Generation temporarily unavailable");
   expect(request.locale).toBe("en");
-  expect(request.context.circuit.board).toBe("esp32");
+  expect(request.context.circuit.board).toBe("pico");
 });
 
 test("invalid storage and unavailable storage do not break the controls", async ({

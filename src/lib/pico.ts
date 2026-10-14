@@ -1,0 +1,51 @@
+// Pico / Pico H, component side up, USB at the top: left 1–20, right 40–21.
+// https://datasheets.raspberrypi.com/pico/Pico-R3-A4-Pinout.pdf
+// Display every physical pin, including pins unavailable to the circuit editor.
+export const picoPinout = [
+  "GP0",
+  "GP1",
+  "GND",
+  "GP2",
+  "GP3",
+  "GP4",
+  "GP5",
+  "GND",
+  "GP6",
+  "GP7",
+  "GP8",
+  "GP9",
+  "GND",
+  "GP10",
+  "GP11",
+  "GP12",
+  "GP13",
+  "GND",
+  "GP14",
+  "GP15",
+  "GP16",
+  "GP17",
+  "GND",
+  "GP18",
+  "GP19",
+  "GP20",
+  "GP21",
+  "GND",
+  "GP22",
+  "RUN",
+  "GP26",
+  "GP27",
+  "AGND",
+  "GP28",
+  "ADC_VREF",
+  "3V3(OUT)",
+  "3V3_EN",
+  "GND",
+  "VSYS",
+  "VBUS",
+] as const;
+
+export const picoGpioPins = Object.fromEntries(
+  picoPinout.flatMap((name, index) =>
+    /^GP\d+$/.test(name) ? [[name, index + 1]] : [],
+  ),
+);

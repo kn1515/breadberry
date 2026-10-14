@@ -76,7 +76,9 @@ test("guided tour highlights real controls, plays assembly and restores the view
   await expect(page.locator('[data-tour="build"]')).toHaveClass(
     /tour-highlight/,
   );
-  await expect(tour).toContainText("修正を反映して再ビルド・実行");
+  await expect(tour).toContainText("AIによるコード変更");
+  await expect(tour).toContainText("変更前に確認するか、自動修復するかを選べます");
+  await expect(tour).toContainText("自動修復は最大3回まで再ビルドします");
   await expect(page.getByRole("dialog")).toHaveCount(0);
   expect(await page.evaluate(() => (window as any).__tourSerialRequests)).toBe(
     0,

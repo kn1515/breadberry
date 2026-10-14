@@ -4,16 +4,16 @@ export const messages: Record<string, string> = {
   "オス–オス": "Male–male",
   "{0} · 下向きオスヘッダー実装済み":
     "{0} · downward-facing male headers fitted",
-  "電源を外し、下向きのオスヘッダー付きPicoをMCU1の中央溝にまたがせます。USB端子を小さい行番号側へ向け、1〜20番ピンをH6〜H25、40〜21番ピンをC6〜C25に挿します。ジャンパ線は外側のA/B列とI/J列へ挿します。":
-    "Disconnect power. Mount a Pico with downward-facing male headers across MCU1's center trench, with USB toward the low row numbers. Insert pins 1–20 into H6–H25 and pins 40–21 into C6–C25. Connect jumpers to the exposed A/B and I/J columns.",
+  "電源を外し、Pico H（または下向きオスヘッダー付きPico）を部品面が上になるようMCU1の中央溝にまたがせます。USB端子を小さい行番号側へ向け、物理ピン1〜20をH6〜H25、40〜21をC6〜C25に挿します。GPはGPIO番号、pinは物理ピン番号、A〜Jと数字は穴の位置です。例：GP14は物理ピン19（H24）で、ジャンパ線は同じ導通列のJ24へ挿します。":
+    "Disconnect power. Mount a Pico H (or Pico with downward-facing male headers) component side up across MCU1's center trench, with USB toward the low row numbers. Insert physical pins 1–20 into H6–H25 and 40–21 into C6–C25. GP identifies a GPIO, pin a physical pin, and A–J plus a number a breadboard hole. For example, GP14 is physical pin 19 (H24); connect its jumper to J24 on the same conductive strip.",
   "電源を外し、下向きのオスヘッダー付き30ピンESP32をMCU1とMCU2にまたがせます。USB端子を小さい行番号側へ向け、3V3をMCU1:A8、VINをMCU2:J8に合わせ、両側15本を8〜22行へ挿します。基板の幅に合わせて2枚の間隔を調整し、外側の空き穴へ配線します。38ピン版などピン配列の違う基板は対象外です。":
     "Disconnect power. Mount a 30-pin ESP32 with downward-facing male headers across MCU1 and MCU2, with USB toward the low row numbers. Align 3V3 with MCU1:A8 and VIN with MCU2:J8; insert both 15-pin banks into rows 8–22. Adjust the gap between breadboards to fit the board and connect jumpers to the exposed outer holes. Other pinouts, including 38-pin boards, are not supported.",
   "USBでビルド・実行": "Build and run over USB",
-  "MicroPythonと必要なドライバーを導入済みのESP32／PicoをUSB接続します。PC版Chrome／EdgeでHTTPSまたはlocalhostから開き、「自動ビルド」→「接続してビルド・実行」で接続先を選ぶと、転送・ビルド・保存・実行が進みます。":
-    "Connect an ESP32 or Pico with MicroPython and any required drivers installed via USB. Open the app over HTTPS or localhost in desktop Chrome or Edge, then choose Auto build → Connect, build & run and select the port to upload, compile, save and run.",
+  "ESP32／PicoをUSB接続します（ESP32はMicroPythonと必要なドライバーを事前に導入）。MicroPythonが入っていないPicoは「MicroPythonを書き込む」で導入できます。PC版Chrome／EdgeでHTTPSまたはlocalhostから開き、「自動ビルド」→「接続してビルド・実行」で接続先を選ぶと、転送・ビルド・保存・実行が進みます。":
+    "Connect an ESP32 or Pico via USB (install MicroPython and any required drivers on an ESP32 beforehand). A Pico without MicroPython can be set up with Install MicroPython. Open the app over HTTPS or localhost in desktop Chrome or Edge, then choose Auto build → Connect, build & run and select the port to upload, compile, save and run.",
   エラーはAIで解析: "Analyze errors with AI",
-  "失敗するとログをもとにAIが原因と対処方法を案内します。自動解析はオフにもできます。修正案がある場合は「修正コードを確認」し、「修正を反映して再ビルド・実行」で試せます。main.pyは上書きされ、元のコードはバックアップされます。":
-    "When a build or run fails, AI uses the logs to explain the cause and next steps. You can turn automatic analysis off. If a fix is suggested, select Review corrected code, then Apply fix, rebuild & run to try it. This replaces main.py and backs up the original code.",
+  "ビルドの失敗や動作のフィードバックをもとに、AIが原因と修正案を提示します。「AIによるコード変更」で、変更前に確認するか、自動修復するかを選べます。自動修復は最大3回まで再ビルドします。main.pyは上書きされ、直前のコードはバックアップされます。":
+    "AI suggests causes and fixes based on build failures or behavior feedback. Under AI code changes, choose to approve changes or repair automatically. Automatic repair rebuilds up to three times. This replaces main.py and backs up the previous code.",
   自動ビルド: "Auto build",
   "自動ビルド・実行": "Auto build & run",
   ボードに接続中: "Connecting to board",
@@ -37,6 +37,34 @@ export const messages: Record<string, string> = {
   "ボードの応答がタイムアウトしました。MicroPythonの導入と接続を確認してください。":
     "The board timed out. Check its connection and MicroPython installation.",
   "シリアルポートが接続されていません。": "No serial port is connected.",
+  "MicroPythonが応答しません。MicroPythonが書き込まれていない可能性があります。Picoはこの画面の「MicroPythonを書き込む」から導入できます。ESP32はesptoolなどで導入してください。":
+    "MicroPython is not responding. It may not be installed. For a Pico, use Install MicroPython in this dialog. For an ESP32, install it with a tool such as esptool.",
+  "MicroPythonが入っていないPico": "Pico without MicroPython",
+  ビルド成功: "Build succeeded",
+  "{0} · main.pyを保存して実行を開始しました":
+    "{0} · main.py saved and running",
+  "新品のPicoはそのままUSB接続、書き込み済みのPicoはBOOTSELボタンを押しながら接続すると、RPI-RP2（Pico 2はRP2350）ドライブが現れます。「MicroPythonを書き込む」でそのドライブを選ぶと、MicroPython {0}を書き込みます。":
+    "Connect a new Pico over USB as is, or hold BOOTSEL while connecting a programmed one, and an RPI-RP2 drive (RP2350 on Pico 2) appears. Select Install MicroPython and choose that drive to install MicroPython {0}.",
+  MicroPythonを書き込む: "Install MicroPython",
+  "{0}用UF2": "UF2 for {0}",
+  "このブラウザはドライブへの直接書き込みに対応していません。UF2をダウンロードし、RPI-RP2（RP2350）ドライブへドラッグしてください。":
+    "This browser cannot write to the drive directly. Download the UF2 and drag it onto the RPI-RP2 (RP2350) drive.",
+  Picoのドライブを確認中: "Checking Pico drive",
+  MicroPythonを準備中: "Preparing MicroPython",
+  MicroPythonを書き込み中: "Installing MicroPython",
+  "書き込みを中止しました。": "Installation stopped.",
+  "ドライブの選択をキャンセルしました。": "Drive selection canceled.",
+  "MicroPythonの書き込みに失敗しました。": "Failed to install MicroPython.",
+  "MicroPythonを書き込みました。Picoの再起動後に「接続してビルド・実行」を押し、Picoのポートを選択してください。":
+    "MicroPython installed. After the Pico restarts, select Connect, build & run and choose the Pico's port.",
+  "選択したフォルダはPicoのドライブではありません。BOOTSELモードで表示されるRPI-RP2（Pico 2はRP2350）ドライブを選択してください。":
+    "The selected folder is not a Pico drive. Choose the RPI-RP2 drive (RP2350 on Pico 2) shown in BOOTSEL mode.",
+  "対応していないボードです。Raspberry Pi Pico／Pico 2のドライブを選択してください。":
+    "Unsupported board. Choose a Raspberry Pi Pico or Pico 2 drive.",
+  "MicroPythonのファームウェアが破損しています。":
+    "The MicroPython firmware is corrupted.",
+  "MicroPythonのファームウェアを取得できませんでした。":
+    "Could not load the MicroPython firmware.",
   "MicroPythonから予期しない応答が返されました。":
     "Unexpected response from MicroPython.",
   "選択した基板と接続先の実行環境が一致しません。MicroPythonと基板を確認してください。":
@@ -59,8 +87,8 @@ export const messages: Record<string, string> = {
     "Disconnected. The program may continue running on the board.",
   "接続先の選択をキャンセルしました。": "Port selection was canceled.",
   "ビルドまたは実行に失敗しました。": "Build or execution failed.",
-  "MicroPython導入済みのESP32／PicoをUSBで接続し、接続先を選ぶと、転送・ビルド・保存・実行を自動で行います。":
-    "Connect an ESP32 or Pico with MicroPython installed via USB. Select its port to automatically upload, compile, save and run.",
+  "ESP32／PicoをUSBで接続し、接続先を選ぶと、転送・ビルド・保存・実行を自動で行います。ESP32はMicroPython導入済みのものを使ってください。PicoはMicroPythonが入っていなくても下から導入できます。":
+    "Connect an ESP32 or Pico via USB and select its port to automatically upload, compile, save and run. Use an ESP32 with MicroPython already installed. A Pico without MicroPython can be set up below.",
   "現在のプログラムを中断し、main.pyを上書きします。元のファイルはmain.py.breadberry.bakに保存します。必要な外部ドライバーは事前に導入してください。":
     "The current program will be interrupted and main.py replaced. The original is backed up as main.py.breadberry.bak. Install any required external drivers first.",
   "Web Serialに対応したPC版Chrome／Edgeで、HTTPSまたはlocalhostから開いてください。":
@@ -76,11 +104,31 @@ export const messages: Record<string, string> = {
   "ビルド・実行ログ": "Build & runtime log",
   "ここにビルド結果と実行ログが表示されます。":
     "Build results and runtime logs will appear here.",
+  修正案を作成中: "Preparing a fix",
+  AIで再解析: "Analyze again with AI",
   AIエラー解析: "AI error analysis",
   エラーを解析中: "Analyzing error",
   AIでエラーを解析: "Analyze error with AI",
   修正コードを確認: "Review corrected code",
   "修正を反映して再ビルド・実行": "Apply fix, rebuild & run",
+
+  "AIによるコード変更": "AI code changes",
+  "変更前に確認する": "Ask before changing",
+  "自動で修復する": "Repair automatically",
+  "自動修復はコードを変更し、接続済みのボードで再ビルド・実行します。1回のビルドまたはフィードバックにつき最大{0}回です。": "Automatic repair changes the code, then rebuilds and runs it on the connected board, up to {0} times per build or feedback submission.",
+  "自動修復: {0}/{1}回": "Automatic repair: {0}/{1}",
+  "動作のフィードバック": "Behavior feedback",
+  "例: ビルドは成功しましたが、LEDの点滅が速すぎます。1秒間隔にしてください。": "Example: The build succeeded, but the LED blinks too fast. Please change it to one-second intervals.",
+  "コード・回路・ログと一緒にAIへ送信します。実行ログの監視中でも送信できます。": "Sent to AI with the code, circuit and logs. You can submit feedback while monitoring runtime logs.",
+  "フィードバックから修正案を作成": "Suggest a fix from feedback",
+  "AIによるファームウェア修復": "AI firmware repair",
+  "解析を中止": "Cancel analysis",
+  "この修正コードを反映してよいですか？": "Apply this corrected code?",
+  "変更しない": "Keep current code",
+  "自動修復を停止しました。修正案とログを確認してください。": "Automatic repair stopped. Review the suggested fix and logs.",
+  "コードの変更案はありません。AIの対処方法を確認してください。": "No code change is suggested. Review the AI guidance.",
+  "修正コードを反映しました。接続してビルド・実行してください。": "Corrected code applied. Connect the board to build and run it.",
+  "解析中にコードまたは回路が変更されました。もう一度解析してください。": "The code or circuit changed during analysis. Please analyze it again.",
 
   回路図の操作: "Schematic controls",
   "CAD 回路図": "CAD schematic",
@@ -173,6 +221,9 @@ export const messages: Record<string, string> = {
   "Aを2.2kΩ経由でLEDへ出力します。": "Drive the LED from A through 2.2kΩ.",
   "LEDのアノードへ接続します。": "Connect to the LED anode.",
   登録済みの商品候補: "Registered product candidates",
+  "{0}の検索結果": "Search results for {0}",
+  "確認できる国内ショップでの取り扱いが見つかりません。登録済みの検索リンクから、型番・ピン数・出品者を確認して購入してください。":
+    "No verifiable store carries this part. Use the registered search link and check the model, pin count and seller before buying.",
   "在庫・価格・適合性は未確認です。商品ページで仕様と入数を確認してください。":
     "Stock, price and compatibility are unverified. Check specifications and pack size on the product page.",
 
@@ -215,6 +266,25 @@ export const messages: Record<string, string> = {
   設計モード: "Design mode",
   現在の回路を修正: "Revise current circuit",
   新しい回路: "New circuit",
+  質問のみ: "Ask only",
+  "「この抵抗は何のため？」「GP15を選んだ理由は？」など、回路やコードについて質問できます。回路は変更されません。":
+    "Ask about the circuit or code, such as “What is this resistor for?” or “Why GP15?”. The circuit will not be changed.",
+  "回答を考えています…": "Thinking about an answer…",
+  質問を入力: "Ask a question",
+  "例：この回路で抵抗が必要なのはなぜ？":
+    "Example: Why does this circuit need a resistor?",
+  回路は変更されません: "The circuit will not change",
+  回答しています: "Answering",
+  質問する: "Ask",
+  "AIが回答を考えています…": "AI is preparing an answer…",
+  "回答を取得できませんでした。": "Could not get an answer.",
+  "AIへの質問は現在利用できません。": "Asking AI is currently unavailable.",
+  "AIが回答を完了できませんでした。質問を短くして再試行してください。":
+    "AI could not finish the answer. Shorten the question and try again.",
+  "質問対象の回路データが不正です。プロジェクトを開き直してください。":
+    "The circuit data for this question is invalid. Reopen the project.",
+  "1〜2000文字で入力してください。会話が50往復に達した場合は新しい回路を開始してください。":
+    "Enter 1–2000 characters. If the conversation has reached 50 exchanges, start a new circuit.",
   会話履歴: "Conversation history",
   回路設計の実行履歴: "Circuit design run history",
   "処理中…": "Processing…",
@@ -787,6 +857,8 @@ export const messages: Record<string, string> = {
   "{0}を使う回路と動作確認用のコードを作成してください。":
     "Create a circuit using {0} and code to test it.",
   "現在の回路に{0}を追加してください。": "Add {0} to the current circuit.",
+  "{0}の使い方と注意点を教えてください。":
+    "Explain how to use {0} and what to watch out for.",
   "ジャンパ線をつなぐ {0}": "Connect jumper wire {0}",
   "ステップ{0}：{1}": "Step {0}: {1}",
   "AIサービスがリクエストを処理できませんでした（{0}）。管理者はモデル名・APIキー・利用枠を確認してください。":
@@ -801,6 +873,14 @@ export const messages: Record<string, string> = {
   "存在しないピン: {0}": "Nonexistent pin: {0}",
   "{0}: 導通列にジャンパ線を挿す空き穴がありません。":
     "{0}: No free hole for a jumper in this connected row.",
+  "{0}: 接続できる空き穴がありません。":
+    "{0}: No accessible hole is available for this connection.",
+  "{0}: 電源レールに接続できる空き穴がありません。":
+    "{0}: No accessible hole remains on the power rail.",
+  "{0}: 液晶基板が接続先を覆っています。液晶を移動してください。":
+    "{0}: The LCD covers this connection. Move the LCD.",
+  "{0}: 液晶基板の外側にジャンパ線を挿す空き穴がありません。液晶の端子列をE列（通常向き）またはF列（反転）へ移動し、分岐用の穴を確保してください。":
+    "{0}: No free jumper hole remains outside the LCD PCB. Move its header to column E (normal) or F (reversed) to leave room for branches.",
   "{0} · {1}を置く": "{0} · Place {1}",
   "{0} {1}。{2}": "{0} {1}. {2}",
   "接続先が不正です: {0} → {1}": "Invalid connection: {0} → {1}",
@@ -846,8 +926,8 @@ export const messages: Record<string, string> = {
   "プロジェクトが見つかりません。": "Project not found.",
   "確認済み {0} / {1} 部品": "Checked {0} / {1} parts",
   商品検索の進捗: "Product search progress",
-  "見つかった商品から表示します。検索は最大90秒で一旦終了し、未完了の部品だけ再試行できます。":
-    "Products appear as they are found. Search stops after 90 seconds; you can retry unfinished parts.",
+  "見つかった商品から表示します。1部品の検索は最大80秒で一旦終了し、未完了の部品だけ再試行できます。":
+    "Products appear as they are found. Each part's search stops after 80 seconds; you can retry unfinished parts.",
   検索を中止: "Stop search",
   未完了の部品を再試行: "Retry unfinished parts",
   この部品を再試行: "Retry this part",

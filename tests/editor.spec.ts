@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import * as THREE from "three";
 import { holePosition } from "../src/lib/circuit";
+import { openEsp32Sample } from "./samples";
 
 test("editor places catalog parts, checks layout, undoes changes and reopens a saved draft", async ({
   page,
@@ -131,7 +132,7 @@ for (const top of [false, true])
       isMobile,
       "Mouse drag is tested on desktop; touch uses the same pointer handler.",
     );
-    await page.goto("/");
+    await openEsp32Sample(page);
     await page.getByRole("button", { name: "Editor · 編集" }).click();
     if (top)
       await page
@@ -162,7 +163,7 @@ test("Escape cancels a 3D drag and clicking a 3D hole moves the selected part", 
   isMobile,
 }) => {
   test.skip(isMobile, "Mouse drag is tested on desktop.");
-  await page.goto("/");
+  await openEsp32Sample(page);
   await page.getByRole("button", { name: "Editor · 編集" }).click();
   await page.getByRole("button", { name: "真上から編集", exact: true }).click();
   const g = await sceneGeometry(page, true);
@@ -254,7 +255,7 @@ test("touch dragging edits the 3D model on mobile", async ({
   isMobile,
 }) => {
   test.skip(!isMobile, "Touch input test uses the mobile viewport.");
-  await page.goto("/");
+  await openEsp32Sample(page);
   await page.getByRole("button", { name: "Editor · 編集" }).click();
   await page.getByRole("button", { name: "真上から編集", exact: true }).click();
   const g = await sceneGeometry(page, true);

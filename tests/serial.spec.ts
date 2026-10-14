@@ -70,7 +70,7 @@ test("compile failure runs AI analysis, correction rebuilds once, and closes unl
                 else if (text === "\x04") {
                   state.writes.push(source);
                   const stdout = source.includes("sys.implementation")
-                    ? "micropython:esp32\r\n"
+                    ? "micropython:rp2\r\n"
                     : source.includes("exec(compile")
                       ? "fixed and running\n"
                       : "";

@@ -40,13 +40,13 @@ const steps = [
     target: '[data-tour="build"]',
     title: "USBでビルド・実行",
     description:
-      "MicroPythonと必要なドライバーを導入済みのESP32／PicoをUSB接続します。PC版Chrome／EdgeでHTTPSまたはlocalhostから開き、「自動ビルド」→「接続してビルド・実行」で接続先を選ぶと、転送・ビルド・保存・実行が進みます。",
+      "ESP32／PicoをUSB接続します（ESP32はMicroPythonと必要なドライバーを事前に導入）。MicroPythonが入っていないPicoは「MicroPythonを書き込む」で導入できます。PC版Chrome／EdgeでHTTPSまたはlocalhostから開き、「自動ビルド」→「接続してビルド・実行」で接続先を選ぶと、転送・ビルド・保存・実行が進みます。",
   },
   {
     target: '[data-tour="build"]',
     title: "エラーはAIで解析",
     description:
-      "失敗するとログをもとにAIが原因と対処方法を案内します。自動解析はオフにもできます。修正案がある場合は「修正コードを確認」し、「修正を反映して再ビルド・実行」で試せます。main.pyは上書きされ、元のコードはバックアップされます。",
+      "ビルドの失敗や動作のフィードバックをもとに、AIが原因と修正案を提示します。「AIによるコード変更」で、変更前に確認するか、自動修復するかを選べます。自動修復は最大3回まで再ビルドします。main.pyは上書きされ、直前のコードはバックアップされます。",
   },
   {
     target: '[data-tour="download"]',
@@ -116,11 +116,16 @@ export default function Tutorial({
         y: rect.bottom - 4,
       });
     };
-    // Studio switches the displayed mode before locating the actual control.
-    const frame = requestAnimationFrame(() => {
+    // Studio switches the displayed mode in its own effect, which can render
+    // after the next frame (e.g. leaving the Editor mounts the toolbar), so
+    // keep looking for the actual control for up to about two seconds.
+    let attempts = 0;
+    let frame = 0;
+    const locate = () => {
       target = document.querySelector<HTMLElement>(current.target);
       if (!target) {
         setPoint(null);
+        if (++attempts < 120) frame = requestAnimationFrame(locate);
         return;
       }
       target.classList.add("tour-highlight");
@@ -135,7 +140,8 @@ export default function Tutorial({
         inline: "center",
       });
       update();
-    });
+    };
+    frame = requestAnimationFrame(locate);
     window.addEventListener("resize", update);
     window.addEventListener("scroll", update, true);
     return () => {

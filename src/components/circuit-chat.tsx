@@ -8,6 +8,7 @@ import {
   ChevronDown,
   CircuitBoard,
   Cpu,
+  CircleHelp,
   Flag,
   LoaderCircle,
   MessageSquare,
@@ -22,7 +23,11 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { boards, type Board } from "@/lib/circuit";
-import { MAX_MESSAGES, type ChatMessage } from "@/lib/conversation";
+import {
+  MAX_MESSAGES,
+  type ChatMessage,
+  type ChatMode,
+} from "@/lib/conversation";
 import type { AgentEvent } from "@/lib/agent";
 
 const traceSteps: Record<string, { label: string; icon: LucideIcon }> = {
@@ -33,7 +38,10 @@ const traceSteps: Record<string, { label: string; icon: LucideIcon }> = {
   review: { label: "補助レビュー", icon: ScanSearch },
   complete: { label: "検証完了", icon: Flag },
 };
-const traceOutcomes: Record<AgentEvent["outcome"], { label: string; icon: LucideIcon }> = {
+const traceOutcomes: Record<
+  AgentEvent["outcome"],
+  { label: string; icon: LucideIcon }
+> = {
   started: { label: "開始", icon: Play },
   passed: { label: "成功", icon: Check },
   failed: { label: "問題を検出", icon: TriangleAlert },
@@ -49,8 +57,8 @@ type Props = {
   busy: boolean;
   phase: number;
   error: string;
-  newDesign: boolean;
-  setNewDesign: (value: boolean) => void;
+  chatMode: ChatMode;
+  setChatMode: (value: ChatMode) => void;
   onSubmit: () => void;
   agentEvents: AgentEvent[];
 };
@@ -63,18 +71,21 @@ export default function CircuitChat({
   busy,
   phase,
   error,
-  newDesign,
-  setNewDesign,
+  chatMode,
+  setChatMode,
   onSubmit,
   agentEvents,
 }: Props) {
   const { t } = usePreferences();
   const transcript = useRef<HTMLDivElement>(null);
   const traceList = useRef<HTMLOListElement>(null);
-  const [traceOpen, setTraceOpen] = useState(busy);
-  const atLimit = !newDesign && messages.length >= MAX_MESSAGES;
+  const asking = chatMode === "ask";
+  // Ask mode runs no design agent, so it has no live trace to show.
+  const tracing = busy && !asking;
+  const [traceOpen, setTraceOpen] = useState(tracing);
+  const atLimit = chatMode !== "new" && messages.length >= MAX_MESSAGES;
   const lastEvent = agentEvents.at(-1);
-  const traceStatus = busy
+  const traceStatus = tracing
     ? "running"
     : lastEvent?.step === "complete"
       ? "done"
@@ -85,8 +96,8 @@ export default function CircuitChat({
   }, [messages, busy, error]);
   useEffect(() => {
     // Expand the trace while the agent runs; fold it afterwards to give the conversation room.
-    setTraceOpen(busy);
-  }, [busy]);
+    setTraceOpen(tracing);
+  }, [tracing]);
   useEffect(() => {
     const list = traceList.current;
     if (list) list.scrollTop = list.scrollHeight;
@@ -100,7 +111,7 @@ export default function CircuitChat({
           {messages.length / 2} {t("往復")}
         </span>
       </div>
-      {(busy || agentEvents.length > 0) && (
+      {(tracing || agentEvents.length > 0) && (
         <details
           className={`agent-trace ${traceStatus}`}
           open={traceOpen}
@@ -118,7 +129,9 @@ export default function CircuitChat({
                 <TriangleAlert size={11} />
               )}
               {t(
-                { running: "実行中", done: "正常終了", failed: "中断" }[traceStatus],
+                { running: "実行中", done: "正常終了", failed: "中断" }[
+                  traceStatus
+                ],
               )}
             </span>
             <span className="agent-trace-count">
@@ -165,7 +178,7 @@ export default function CircuitChat({
                 </li>
               );
             })}
-            {busy && (
+            {tracing && (
               <li className="trace-item running">
                 <span className="trace-icon" aria-hidden="true">
                   <LoaderCircle size={13} className="spin" />
@@ -181,22 +194,23 @@ export default function CircuitChat({
         </details>
       )}
       <div className="chat-mode" role="group" aria-label={t("設計モード")}>
-        <button
-          type="button"
-          aria-pressed={!newDesign}
-          disabled={busy}
-          onClick={() => setNewDesign(false)}
-        >
-          {t("現在の回路を修正")}
-        </button>
-        <button
-          type="button"
-          aria-pressed={newDesign}
-          disabled={busy}
-          onClick={() => setNewDesign(true)}
-        >
-          {t("新しい回路")}
-        </button>
+        {(
+          [
+            ["revise", "現在の回路を修正"],
+            ["new", "新しい回路"],
+            ["ask", "質問のみ"],
+          ] as const
+        ).map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            aria-pressed={chatMode === value}
+            disabled={busy}
+            onClick={() => setChatMode(value)}
+          >
+            {t(label)}
+          </button>
+        ))}
       </div>
       <div
         className="chat-messages"
@@ -208,12 +222,16 @@ export default function CircuitChat({
       >
         {messages.length === 0 && (
           <div className="chat-empty">
-            <Sparkles size={24} />
+            {asking ? <CircleHelp size={24} /> : <Sparkles size={24} />}
             <p>{t("回路を見ながら、何度でも相談。")}</p>
             <span>
-              {t(
-                "「抵抗を470Ωにして」「LEDを追加して」など、変更したいことを送信してください。サンプル回路からも始められます。",
-              )}
+              {asking
+                ? t(
+                    "「この抵抗は何のため？」「GP15を選んだ理由は？」など、回路やコードについて質問できます。回路は変更されません。",
+                  )
+                : t(
+                    "「抵抗を470Ωにして」「LEDを追加して」など、変更したいことを送信してください。サンプル回路からも始められます。",
+                  )}
             </span>
           </div>
         )}
@@ -241,7 +259,7 @@ export default function CircuitChat({
             </article>
             <p className="chat-pending">
               <LoaderCircle size={14} className="spin" />
-              {t("回路を設計しています…")}
+              {t(asking ? "回答を考えています…" : "回路を設計しています…")}
             </p>
           </>
         )}
@@ -267,9 +285,10 @@ export default function CircuitChat({
       >
         <div className="prompt-heading">
           <span>
-            <Sparkles size={17} /> {t("変更したいことを入力")}
+            {asking ? <CircleHelp size={17} /> : <Sparkles size={17} />}{" "}
+            {t(asking ? "質問を入力" : "変更したいことを入力")}
           </span>
-          <span className="ai-label">AI DESIGNER</span>
+          <span className="ai-label">{asking ? "ASK" : "AI DESIGNER"}</span>
         </div>
         <label htmlFor="prompt" className="sr-only">
           {t("作りたいもの")}
@@ -278,7 +297,11 @@ export default function CircuitChat({
           id="prompt"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder={t("例：LEDを青色に変更して、点滅間隔を1秒にして")}
+          placeholder={t(
+            asking
+              ? "例：この回路で抵抗が必要なのはなぜ？"
+              : "例：LEDを青色に変更して、点滅間隔を1秒にして",
+          )}
           minLength={1}
           maxLength={2000}
           required
@@ -295,47 +318,60 @@ export default function CircuitChat({
           }}
         />
         <div className="prompt-bottom">
-          <div className="select-wrap">
-            <Cpu size={14} />
-            <select
-              aria-label={t("使用する基板")}
-              value={selectedBoard}
-              onChange={(e) => setSelectedBoard(e.target.value as Board)}
-              disabled={busy}
-            >
-              {Object.entries(boards).map(([key, b]) => (
-                <option key={key} value={key}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-            <ChevronDown size={12} />
-          </div>
+          {asking ? (
+            <span className="prompt-readonly">
+              <ShieldCheck size={14} />
+              {t("回路は変更されません")}
+            </span>
+          ) : (
+            <div className="select-wrap">
+              <Cpu size={14} />
+              <select
+                aria-label={t("使用する基板")}
+                value={selectedBoard}
+                onChange={(e) => setSelectedBoard(e.target.value as Board)}
+                disabled={busy}
+              >
+                {Object.entries(boards).map(([key, b]) => (
+                  <option key={key} value={key}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={12} />
+            </div>
+          )}
           <button
             className="primary-button"
             disabled={busy || !prompt.trim() || atLimit}
           >
             {busy ? (
               <LoaderCircle className="spin" size={15} />
+            ) : asking ? (
+              <CircleHelp size={15} />
             ) : (
               <Sparkles size={15} />
             )}{" "}
             {busy
-              ? t("設計しています")
-              : newDesign
-                ? t("回路を生成")
-                : t("回路を修正")}
+              ? t(asking ? "回答しています" : "設計しています")
+              : t(
+                  { revise: "回路を修正", new: "回路を生成", ask: "質問する" }[
+                    chatMode
+                  ],
+                )}
             <ArrowRight size={16} />
           </button>
         </div>
         <div className="prompt-caption">
           <span className="status-dot online" />
           {busy
-            ? [
-                t("AIが回路を設計しています…"),
-                t("接続データを生成しています…"),
-                t("接続検査と補助レビューを進めています…"),
-              ][phase]
+            ? asking
+              ? t("AIが回答を考えています…")
+              : [
+                  t("AIが回路を設計しています…"),
+                  t("接続データを生成しています…"),
+                  t("接続検査と補助レビューを進めています…"),
+                ][phase]
             : t("Ctrl / ⌘ + Enter で送信")}
         </div>
       </form>

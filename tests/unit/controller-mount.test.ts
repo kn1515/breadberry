@@ -14,6 +14,98 @@ import {
 } from "../../src/lib/circuit";
 import { demoCircuit } from "../../src/lib/demo";
 import { purchaseParts } from "../../src/lib/purchase";
+import { picoPinout } from "../../src/lib/pico";
+
+test("Pico H pinout includes all physical pins and preserves GPIO/row distinctions", () => {
+  // Read down each bank from the USB end, as in the official top-view pinout.
+  assert.deepEqual(picoPinout.slice(0, 20), [
+    "GP0",
+    "GP1",
+    "GND",
+    "GP2",
+    "GP3",
+    "GP4",
+    "GP5",
+    "GND",
+    "GP6",
+    "GP7",
+    "GP8",
+    "GP9",
+    "GND",
+    "GP10",
+    "GP11",
+    "GP12",
+    "GP13",
+    "GND",
+    "GP14",
+    "GP15",
+  ]);
+  assert.deepEqual(picoPinout.slice(20).reverse(), [
+    "VBUS",
+    "VSYS",
+    "GND",
+    "3V3_EN",
+    "3V3(OUT)",
+    "ADC_VREF",
+    "GP28",
+    "AGND",
+    "GP27",
+    "GP26",
+    "RUN",
+    "GP22",
+    "GND",
+    "GP21",
+    "GP20",
+    "GP19",
+    "GP18",
+    "GND",
+    "GP17",
+    "GP16",
+  ]);
+  assert.equal(controllerPinHole("pico", 20), "MCU1:h25");
+  assert.equal(controllerPinHole("pico", 21), "MCU1:c25");
+  const c = demoCircuit("pico", "led");
+  const compiled = compileCircuit(c);
+  const ledWire = compiled.wires.find((w) => w.from === "board.GP14")!;
+  assert.equal(boards.pico.pins.GP14, 19);
+  assert.equal(controllerPinHole("pico", 19), "MCU1:h24");
+  assert.equal(ledWire.start.label, "MCU1:J24 → board.GP14 · pin 19");
+  assert.equal(boards.pico.pins.GND, 38);
+  assert.equal(boards.pico.pins["3V3"], 36);
+});
+
+test("Pico H exposes all 26 header GPIOs without exposing internal or power-control pins", () => {
+  assert.equal(
+    Object.keys(boards.pico.pins).filter((p) => p.startsWith("GP")).length,
+    26,
+  );
+  for (const [pin, number] of Object.entries({
+    GP16: 21,
+    GP17: 22,
+    GP18: 24,
+    GP19: 25,
+    GP20: 26,
+    GP21: 27,
+    GP22: 29,
+  })) {
+    assert.equal(boards.pico.pins[pin], number);
+    const c = demoCircuit("pico", "led");
+    c.wires.find((w) => w.from === "board.GP14")!.from = `board.${pin}`;
+    assert.deepEqual(validateDraft(c), c);
+    assert.deepEqual(compileCircuit(c).allocationIssues, []);
+  }
+  for (const pin of [
+    "GP23",
+    "GP24",
+    "GP25",
+    "GP29",
+    "VBUS",
+    "VSYS",
+    "RUN",
+    "3V3_EN",
+  ])
+    assert.equal(boards.pico.pins[pin], undefined);
+});
 
 for (const board of ["pico", "esp32"] as const) {
   test(`${board}: all headers mount in unique holes at 2.54 mm pitch`, () => {

@@ -16,7 +16,8 @@ import {
 } from "../../src/lib/purchase";
 
 const day = () => new Date().toISOString().slice(0, 10);
-const productUrl = "https://www.amazon.co.jp/dp/B012345678";
+const productUrl =
+  "https://www.sengoku.co.jp/mod/sgk_cart/detail.php?code=TEST";
 function setup(t: TestContext) {
   const values = {
     GOOGLE_CLOUD_PROJECT: "test-purchase-quota",
@@ -144,7 +145,7 @@ for (const exhausted of ["global", "session", "provider", "both"] as const) {
                   {
                     text: JSON.stringify(
                       search
-                        ? { products: [{ store: "amazon", url: productUrl }] }
+                        ? { products: [{ store: "sengoku", url: productUrl }] }
                         : {
                             reason: "適合する少量商品です。",
                             ranked: [
@@ -230,7 +231,7 @@ for (const exhausted of ["global", "session", "provider", "both"] as const) {
       assert.ok(
         last?.type === "result" &&
           last.result.digikeyLimited &&
-          last.result.recommendation.best?.store === "amazon",
+          last.result.recommendation.best?.store === "sengoku",
       );
       // Catalog verification, fallback discovery, then live product verification.
       assert.equal(aiCalls, 3);

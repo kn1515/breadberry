@@ -4,7 +4,7 @@
 
 Next.js / TypeScript / Tailwind CSS / Three.js（React Three Fiber）/ Gemini API / GMI Cloud / Cloud Firestore。Fritzingの部品・回路・インスペクターという構成を参考にした、オリジナルのダッシュボードです。
 
-**公開URL：** Cloud Armor導入後は `https://${CLOUD_ARMOR_DOMAIN}` を使用します。従来のrun.app URLは無効になります。[公開入口の設定](docs/cloud-armor.md)
+**公開デモ：** [https://breadberry.ponnlog.com/](https://breadberry.ponnlog.com/)（Cloud Armor経由・認証不要）。従来のrun.app URLは無効です。[公開入口の設定](docs/cloud-armor.md)
 
 ![breadberry ワークスペース](docs/preview.jpg)
 
@@ -367,7 +367,7 @@ GitHubリポジトリの **Settings > Secrets and variables > Actions > Variable
 
 `production` Environmentを作成して承認者を設定すると、マージ後のデプロイ前にGitHub上で承認を必須にできます。Cloud Build実行用サービスアカウントには、従来どおりArtifact Registryへの書き込み権限が必要です。
 
-デプロイ後は `https://${CLOUD_ARMOR_DOMAIN}` を開きます。`APP_ORIGIN` はこのURLに自動設定されます。旧run.app URLは利用できません。DNS・証明書・WAFの動作確認は[導入手順](docs/cloud-armor.md#導入後の確認)を参照してください。
+公開デモは [https://breadberry.ponnlog.com/](https://breadberry.ponnlog.com/) です。独自ドメインを変更した場合は、`CLOUD_ARMOR_DOMAIN` に対応するURLを開いてください。`APP_ORIGIN` はこのURLに自動設定されます。旧run.app URLは利用できません。DNS・証明書・WAFの動作確認は[導入手順](docs/cloud-armor.md#導入後の確認)を参照してください。
 
 現在の実装で許可する送信元は1つです。localhostと公開URLの両方を同時には指定できません。「この送信元からは操作できません。」という403は、セッション開始などの操作時にブラウザの送信元と許可URLが一致しない場合にアプリが返します。Cloud RunのIAM認証による `Error: Forbidden` とは別の設定です。
 
@@ -651,3 +651,7 @@ Gemini API、GMI Cloud、DigiKey API、Google Cloudの各サービスは、そ�
 「対応するセンサー・部品」で `ST7789` または `M154-240240-RGB` を検索すると、専用3Dモデルを確認してAIへの指示に追加できます。Editorの「追加するパーツ」から手動配置も可能です。基板・正方形の液晶面・4か所の取付穴・8ピンヘッダーを描画します。詳細なピン対応、電圧、ドライバ準備とモデルの制約は [ST7789ガイド](docs/st7789-display.md) を参照してください。
 
 SCL/SDAはSPIのクロック/データ端子です。SSD1306のI2C OLEDとは互換ではありません。3D画面は外観・配線ガイドであり、液晶の表示内容はシミュレーションしません。
+
+### USB接続からの自動ビルド・実行
+
+「コード」の右隣の「自動ビルド」で、MicroPython導入済みESP32／Picoに接続し、転送・コンパイル・保存・実行できます。失敗時はAIがエラーログとコードを解析し、修正案から再実行できます。PC版Chrome／Edge等とHTTPSが必要です。初回のMicroPython導入、外部ドライバー導入、C++、Raspberry Pi OSは対象外です。[操作・対応条件](docs/web-serial.md)を参照してください。

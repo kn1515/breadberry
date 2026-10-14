@@ -78,7 +78,7 @@ export async function providerJson(
   }
 }
 /** The API key stays out of the arguments so that it is never traced. */
-const geminiGenerate = traced(
+export const geminiGenerate = traced(
   "Gemini generateContent",
   "llm",
   (input: { model: string; body: object }) =>

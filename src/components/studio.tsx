@@ -42,6 +42,7 @@ import {
   Sparkles,
   Thermometer,
   Workflow,
+  Usb,
   X,
   Zap,
 } from "lucide-react";
@@ -62,6 +63,7 @@ import Schematic from "./schematic";
 import CircuitChat from "./circuit-chat";
 import LayoutEditor from "./layout-editor";
 import PurchaseModal from "./purchase-modal";
+import SerialBuild from "./serial-build";
 import Tutorial from "./tutorial";
 const PartsCatalog = dynamic(() => import("./parts-catalog"), { ssr: false });
 import { MAX_MESSAGES } from "@/lib/conversation";
@@ -159,6 +161,7 @@ export default function Studio() {
     if (tourStep === 3) setStep(0);
   }, [tourStep]);
   const [purchasing, setPurchasing] = useState(false);
+  const [serialBuild, setSerialBuild] = useState(false);
   const [history, setHistory] = useState(false);
   const [examples, setExamples] = useState(false);
   const sessionRequest = useRef<Promise<void> | null>(null);
@@ -897,6 +900,15 @@ export default function Studio() {
                       {t("コード")}
                     </button>
                   </div>
+                  <button
+                    className="serial-launch"
+                    disabled={busy || saving}
+                    aria-haspopup="dialog"
+                    onClick={() => setSerialBuild(true)}
+                  >
+                    <Usb size={14} />
+                    {t("自動ビルド")}
+                  </button>
                   <span className="toolbar-hint">
                     <span className="status-dot online" />
                     3.3 V
@@ -1285,6 +1297,14 @@ export default function Studio() {
             );
             setCatalogOpen(false);
           }}
+        />
+      )}
+      {serialBuild && (
+        <SerialBuild
+          circuit={circuit}
+          prepareSession={prepareSession}
+          onFirmware={(firmware) => editCircuit({ ...circuit, firmware })}
+          onClose={() => setSerialBuild(false)}
         />
       )}
       {purchasing && (

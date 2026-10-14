@@ -1,4 +1,15 @@
 import { defineConfig, devices } from "@playwright/test";
+// WebGL runs on SwiftShader (CPU). Keep the page compositor off it: compositing
+// every frame through SwiftShader stalls the GPU process for seconds per test.
+const launchOptions = {
+  executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
+  args: [
+    "--use-gl=angle",
+    "--use-angle=swiftshader",
+    "--enable-unsafe-swiftshader",
+    "--disable-gpu-compositing",
+  ],
+};
 export default defineConfig({
   testDir: "./tests",
   testIgnore: "**/unit/**",
@@ -19,28 +30,14 @@ export default defineConfig({
       name: "chromium",
       use: {
         ...devices["Desktop Chrome"],
-        launchOptions: {
-          executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
-          args: [
-            "--use-gl=angle",
-            "--use-angle=swiftshader",
-            "--enable-unsafe-swiftshader",
-          ],
-        },
+        launchOptions,
       },
     },
     {
       name: "mobile",
       use: {
         ...devices["Pixel 7"],
-        launchOptions: {
-          executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
-          args: [
-            "--use-gl=angle",
-            "--use-angle=swiftshader",
-            "--enable-unsafe-swiftshader",
-          ],
-        },
+        launchOptions,
       },
     },
   ],

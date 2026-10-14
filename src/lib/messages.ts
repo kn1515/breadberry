@@ -12,8 +12,8 @@ export const messages: Record<string, string> = {
   "ESP32／PicoをUSB接続します（ESP32はMicroPythonと必要なドライバーを事前に導入）。MicroPythonが入っていないPicoは「MicroPythonを書き込む」で導入できます。PC版Chrome／EdgeでHTTPSまたはlocalhostから開き、「自動ビルド」→「接続してビルド・実行」で接続先を選ぶと、転送・ビルド・保存・実行が進みます。":
     "Connect an ESP32 or Pico via USB (install MicroPython and any required drivers on an ESP32 beforehand). A Pico without MicroPython can be set up with Install MicroPython. Open the app over HTTPS or localhost in desktop Chrome or Edge, then choose Auto build → Connect, build & run and select the port to upload, compile, save and run.",
   エラーはAIで解析: "Analyze errors with AI",
-  "失敗するとログをもとにAIが原因と対処方法を案内します。自動解析はオフにもできます。修正案がある場合は「修正コードを確認」し、「修正を反映して再ビルド・実行」で試せます。main.pyは上書きされ、元のコードはバックアップされます。":
-    "When a build or run fails, AI uses the logs to explain the cause and next steps. You can turn automatic analysis off. If a fix is suggested, select Review corrected code, then Apply fix, rebuild & run to try it. This replaces main.py and backs up the original code.",
+  "ビルドの失敗や動作のフィードバックをもとに、AIが原因と修正案を提示します。「AIによるコード変更」で、変更前に確認するか、自動修復するかを選べます。自動修復は最大3回まで再ビルドします。main.pyは上書きされ、直前のコードはバックアップされます。":
+    "AI suggests causes and fixes based on build failures or behavior feedback. Under AI code changes, choose to approve changes or repair automatically. Automatic repair rebuilds up to three times. This replaces main.py and backs up the previous code.",
   自動ビルド: "Auto build",
   "自動ビルド・実行": "Auto build & run",
   ボードに接続中: "Connecting to board",
@@ -104,11 +104,31 @@ export const messages: Record<string, string> = {
   "ビルド・実行ログ": "Build & runtime log",
   "ここにビルド結果と実行ログが表示されます。":
     "Build results and runtime logs will appear here.",
+  修正案を作成中: "Preparing a fix",
+  AIで再解析: "Analyze again with AI",
   AIエラー解析: "AI error analysis",
   エラーを解析中: "Analyzing error",
   AIでエラーを解析: "Analyze error with AI",
   修正コードを確認: "Review corrected code",
   "修正を反映して再ビルド・実行": "Apply fix, rebuild & run",
+
+  "AIによるコード変更": "AI code changes",
+  "変更前に確認する": "Ask before changing",
+  "自動で修復する": "Repair automatically",
+  "自動修復はコードを変更し、接続済みのボードで再ビルド・実行します。1回のビルドまたはフィードバックにつき最大{0}回です。": "Automatic repair changes the code, then rebuilds and runs it on the connected board, up to {0} times per build or feedback submission.",
+  "自動修復: {0}/{1}回": "Automatic repair: {0}/{1}",
+  "動作のフィードバック": "Behavior feedback",
+  "例: ビルドは成功しましたが、LEDの点滅が速すぎます。1秒間隔にしてください。": "Example: The build succeeded, but the LED blinks too fast. Please change it to one-second intervals.",
+  "コード・回路・ログと一緒にAIへ送信します。実行ログの監視中でも送信できます。": "Sent to AI with the code, circuit and logs. You can submit feedback while monitoring runtime logs.",
+  "フィードバックから修正案を作成": "Suggest a fix from feedback",
+  "AIによるファームウェア修復": "AI firmware repair",
+  "解析を中止": "Cancel analysis",
+  "この修正コードを反映してよいですか？": "Apply this corrected code?",
+  "変更しない": "Keep current code",
+  "自動修復を停止しました。修正案とログを確認してください。": "Automatic repair stopped. Review the suggested fix and logs.",
+  "コードの変更案はありません。AIの対処方法を確認してください。": "No code change is suggested. Review the AI guidance.",
+  "修正コードを反映しました。接続してビルド・実行してください。": "Corrected code applied. Connect the board to build and run it.",
+  "解析中にコードまたは回路が変更されました。もう一度解析してください。": "The code or circuit changed during analysis. Please analyze it again.",
 
   回路図の操作: "Schematic controls",
   "CAD 回路図": "CAD schematic",

@@ -18,6 +18,7 @@ test("analysis includes exact code, circuit, failing stage and log as untrusted 
     circuit: demoCircuit("esp32", "led"),
     stage: "compiling",
     log: "SyntaxError: invalid syntax",
+    feedback: "LED should blink once per second.",
     locale: "en",
   });
   let body: any;
@@ -50,8 +51,46 @@ test("analysis includes exact code, circuit, failing stage and log as untrusted 
   assert.deepEqual(JSON.parse(body.contents[0].parts[0].text), input);
   assert.match(body.systemInstruction.parts[0].text, /untrusted evidence/);
   assert.match(body.systemInstruction.parts[0].text, /English/);
+  assert.match(body.systemInstruction.parts[0].text, /user feedback/);
+  output = { ...output, firmware: input.circuit.firmware };
+  assert.equal((await analyzeFirmware(input)).firmware, "");
+  output = { ...output, firmware: "print('fixed')" };
+  assert.equal(
+    (
+      await analyzeFirmware({
+        ...input,
+        circuit: demoCircuit("raspberry-pi", "led"),
+      })
+    ).firmware,
+    "",
+  );
   output = { ...output, firmware: "x".repeat(12001) };
   await assert.rejects(analyzeFirmware(input), /読み取れません/);
+});
+
+test("feedback can be analyzed without an error log, but empty or oversized evidence is rejected", () => {
+  const input = {
+    circuit: demoCircuit("esp32", "led"),
+    stage: "feedback",
+    feedback: "  LED blinks too fast.  ",
+  };
+  const parsed = firmwareAnalysisRequest.parse(input);
+  assert.equal(parsed.log, "");
+  assert.equal(parsed.feedback, "LED blinks too fast.");
+  assert.equal(
+    firmwareAnalysisRequest.safeParse({ ...input, feedback: "  " }).success,
+    false,
+  );
+  assert.equal(
+    firmwareAnalysisRequest.safeParse({ ...input, feedback: "x".repeat(4001) })
+      .success,
+    false,
+  );
+  assert.equal(
+    firmwareAnalysisRequest.safeParse({ ...input, feedback: "", log: "  " })
+      .success,
+    false,
+  );
 });
 
 test("analysis input bounds log, stage, and code size", () => {

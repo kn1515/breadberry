@@ -3903,6 +3903,10 @@ button.parts-catalog {
 .serial-actions { flex-wrap: wrap; margin: 16px 0; }
 .serial-note { color: #a5b6ce; }
 .serial-option { display: flex; align-items: center; gap: 8px; font-size: 12px; margin: 18px 0; }
+.serial-feedback { display: grid; gap: 10px; margin: 20px 0; font-size: 13px; }
+.serial-feedback textarea, .serial-option select { padding: 10px; border: 1px solid #7286a977; border-radius: 8px; background: #091322; color: #dce8f4; }
+.serial-feedback textarea { width: 100%; resize: vertical; }
+:root[data-theme="light"] .serial-feedback textarea, :root[data-theme="light"] .serial-option select { background: #fff; color: #243b50; }
 .serial-log { background: #091322; border: 1px solid #7286a944; color: #dce8f4; border-radius: 10px; padding: 14px; max-height: 300px; min-height: 100px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; }
 .serial-analysis { border-top: 1px solid #7286a944; padding-top: 14px; margin-top: 20px; }
 .build-toast { position: fixed; inset: auto 24px 24px auto; margin: 0; display: flex; align-items: flex-start; gap: 10px; width: min(340px, calc(100vw - 32px)); padding: 14px 16px; border: 1px solid #4cae89; border-radius: 12px; background: #183a33; color: #e5f6ef; box-shadow: 0 16px 48px #0007; z-index: 1000; animation: build-toast-in .25s ease-out; }

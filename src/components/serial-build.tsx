@@ -32,7 +32,13 @@ import {
 } from "@/lib/pico-flash";
 import { usePreferences } from "./preferences";
 
-type Failure = { circuit: Circuit; stage: BuildStage; log: string };
+type Failure = {
+  circuit: Circuit;
+  stage: BuildStage | "feedback";
+  log: string;
+  feedback?: string;
+};
+const MAX_AUTO_REPAIRS = 3;
 
 /** Resolves with a newly attached, already-authorized Pico serial port, if one appears. */
 async function waitForPico(
@@ -76,6 +82,20 @@ export default function SerialBuild({
   const waiting = useRef<AbortController | null>(null);
   const mounted = useRef(true);
   const logs = useRef("");
+  const latestCircuit = useRef(circuit);
+  latestCircuit.current = circuit;
+  const lastPort = useRef<SerialPortLike | undefined>(undefined);
+  const buildFinished = useRef<Promise<void>>(Promise.resolve());
+  const lastStage = useRef<BuildStage | null>(null);
+  const attemptedSources = useRef(new Set<string>());
+  const [repairMode, setRepairMode] = useState<"confirm" | "auto">("confirm");
+  const mode = useRef(repairMode);
+  mode.current = repairMode;
+  const [repairCount, setRepairCount] = useState(0);
+  const [repairNotice, setRepairNotice] = useState("");
+  const [feedback, setFeedback] = useState("");
+  const [sendingFeedback, setSendingFeedback] = useState(false);
+  const feedbackPending = useRef(false);
   const [log, setLog] = useState("");
   const [stage, setStage] = useState<BuildStage | null>(null);
   const [active, setActive] = useState(false);
@@ -105,12 +125,16 @@ export default function SerialBuild({
     logs.current = (logs.current + text).slice(-16000);
     if (mounted.current) setLog(logs.current);
   }
-  async function analyze(error: Failure) {
-    if (analysisTask.current) return;
+  async function analyze(error: Failure, attempt = 0, port?: SerialPortLike) {
+    if (analysisTask.current || task.current || !mounted.current) return;
     const controller = new AbortController();
     analysisTask.current = controller;
     setAnalyzing(true);
     setAnalysisError("");
+    setAnalysis(null);
+    setFailure(error);
+    setRepairNotice("");
+    let correction: string | undefined;
     try {
       await prepareSession();
       controller.signal.throwIfAborted();
@@ -129,7 +153,41 @@ export default function SerialBuild({
           "AIによるエラー解析に失敗しました。",
         );
       const result = firmwareAnalysisSchema.parse(await response.json());
-      if (!controller.signal.aborted && mounted.current) setAnalysis(result);
+      if (!controller.signal.aborted && mounted.current) {
+        if (
+          JSON.stringify(latestCircuit.current) !==
+          JSON.stringify(error.circuit)
+        ) {
+          setAnalysisError(
+            t(
+              "解析中にコードまたは回路が変更されました。もう一度解析してください。",
+            ),
+          );
+          return;
+        }
+        if (
+          !result.firmware.trim() ||
+          result.firmware.trim() === error.circuit.firmware.trim()
+        )
+          result.firmware = "";
+        setAnalysis(result);
+        if (result.firmware && mode.current === "auto") {
+          if (
+            attempt >= MAX_AUTO_REPAIRS ||
+            attemptedSources.current.has(result.firmware.trim())
+          ) {
+            setRepairNotice(
+              t("自動修復を停止しました。修正案とログを確認してください。"),
+            );
+          } else {
+            correction = result.firmware;
+          }
+        } else if (!result.firmware) {
+          setRepairNotice(
+            t("コードの変更案はありません。AIの対処方法を確認してください。"),
+          );
+        }
+      }
     } catch (error) {
       if (!controller.signal.aborted && mounted.current)
         setAnalysisError(
@@ -141,17 +199,37 @@ export default function SerialBuild({
       analysisTask.current = null;
       if (mounted.current) setAnalyzing(false);
     }
+    if (
+      correction &&
+      mounted.current &&
+      !controller.signal.aborted &&
+      mode.current === "auto"
+    ) {
+      setRepairCount(attempt + 1);
+      if (port) {
+        await run(correction, true, port, attempt + 1, error.feedback);
+      } else {
+        // Never open the browser's port picker after an asynchronous AI request.
+        onFirmware(correction);
+        setAnalysis(null);
+        setRepairNotice(
+          t("修正コードを反映しました。接続してビルド・実行してください。"),
+        );
+      }
+    }
   }
   async function run(
     source = circuit.firmware,
     apply = false,
     known?: SerialPortLike,
+    attempt = 0,
+    feedbackContext?: string,
   ) {
     // requestPort must run in the original click handler, before network awaits.
     const api = serialApi();
     if (!api || task.current || analysisTask.current) return;
     waiting.current?.abort();
-    const snapshot = { ...circuit, firmware: source };
+    const snapshot = { ...latestCircuit.current, firmware: source };
     try {
       const unavailable = serialUnsupported(snapshot);
       if (unavailable) throw new Error(t(unavailable));
@@ -166,6 +244,17 @@ export default function SerialBuild({
     }
     const controller = new AbortController();
     task.current = controller;
+    let finishBuild!: () => void;
+    buildFinished.current = new Promise<void>((resolve) => {
+      finishBuild = resolve;
+    });
+    if (attempt === 0) {
+      attemptedSources.current.clear();
+      setRepairCount(0);
+    }
+    if (!known) lastPort.current = undefined;
+    attemptedSources.current.add(source.trim());
+    setRepairNotice("");
     setActive(true);
     setFailure(null);
     setAnalysis(null);
@@ -174,11 +263,13 @@ export default function SerialBuild({
     logs.current = "";
     setLog("");
     let currentStage: BuildStage = "connecting";
+    lastStage.current = currentStage;
     setStage(currentStage);
     let connection: MicroPythonSerial | undefined;
     let failed: Failure | undefined;
     try {
       const port = known ?? (await api.requestPort());
+      lastPort.current = port;
       controller.signal.throwIfAborted();
       if (apply) onFirmware(source);
       connection = new MicroPythonSerial(port, controller.signal);
@@ -187,6 +278,7 @@ export default function SerialBuild({
         snapshot,
         (next) => {
           currentStage = next;
+          lastStage.current = next;
           if (mounted.current) setStage(next);
           append(`[${t(stageLabels[next])}]\n`);
           // "running" follows a successful compile and save; the program may never exit.
@@ -212,7 +304,12 @@ export default function SerialBuild({
       } else {
         const message = error instanceof Error ? error.message : String(error);
         append(`\n${t("エラー")}: ${t(message)}\n`);
-        failed = { circuit: snapshot, stage: currentStage, log: logs.current };
+        failed = {
+          circuit: snapshot,
+          stage: currentStage,
+          log: logs.current,
+          feedback: feedbackContext,
+        };
         if (mounted.current) {
           setFailure(failed);
           setStatus(t("ビルドまたは実行に失敗しました。"));
@@ -225,9 +322,56 @@ export default function SerialBuild({
         setActive(false);
         setStage(null);
       }
+      finishBuild();
     }
-    if (failed && autoAnalyze && mounted.current && !controller.signal.aborted)
-      await analyze(failed);
+    if (
+      failed &&
+      autoAnalyze &&
+      mounted.current &&
+      !controller.signal.aborted &&
+      !feedbackPending.current
+    )
+      await analyze(failed, attempt, lastPort.current);
+  }
+  async function submitFeedback() {
+    if (!feedback.trim() || analysisTask.current || feedbackPending.current)
+      return;
+    feedbackPending.current = true;
+    waiting.current?.abort();
+    setSendingFeedback(true);
+    const evidence: Failure = {
+      circuit: latestCircuit.current,
+      stage: lastStage.current ?? "feedback",
+      log: logs.current,
+      feedback: feedback.trim(),
+    };
+    try {
+      // Stop monitoring and release the port before an approved or automatic rebuild.
+      task.current?.abort();
+      await buildFinished.current;
+      if (!mounted.current) return;
+    } finally {
+      feedbackPending.current = false;
+      if (mounted.current) setSendingFeedback(false);
+    }
+    if (!mounted.current) return;
+    attemptedSources.current = new Set([evidence.circuit.firmware.trim()]);
+    setRepairCount(0);
+    await analyze(evidence, 0, lastPort.current);
+  }
+  function applyCorrection() {
+    if (!analysis?.firmware || !failure) return;
+    if (
+      JSON.stringify(latestCircuit.current) !== JSON.stringify(failure.circuit)
+    ) {
+      setAnalysisError(
+        t(
+          "解析中にコードまたは回路が変更されました。もう一度解析してください。",
+        ),
+      );
+      return;
+    }
+    void run(analysis.firmware, true, undefined, 0, failure.feedback);
   }
   async function installMicroPython() {
     // showDirectoryPicker needs the click's user activation, so it runs first.
@@ -296,6 +440,7 @@ export default function SerialBuild({
     if (port && mounted.current) await run(circuit.firmware, false, port);
   }
   function close() {
+    mounted.current = false;
     task.current?.abort();
     analysisTask.current?.abort();
     waiting.current?.abort();
@@ -371,7 +516,7 @@ export default function SerialBuild({
           </p>
           <div className="serial-actions">
             <button
-              disabled={!canFlash || active || analyzing}
+              disabled={!canFlash || active || analyzing || sendingFeedback}
               onClick={() => void installMicroPython()}
             >
               <Cpu size={16} />
@@ -407,10 +552,40 @@ export default function SerialBuild({
         />
         {t("失敗したらAIで自動解析する（コード・回路・ログを送信）")}
       </label>
+      <label className="serial-option">
+        {t("AIによるコード変更")}
+        <select
+          aria-label={t("AIによるコード変更")}
+          value={repairMode}
+          onChange={(event) =>
+            setRepairMode(event.target.value as "confirm" | "auto")
+          }
+        >
+          <option value="confirm">{t("変更前に確認する")}</option>
+          <option value="auto">{t("自動で修復する")}</option>
+        </select>
+      </label>
+      <p className="serial-note">
+        {t(
+          "自動修復はコードを変更し、接続済みのボードで再ビルド・実行します。1回のビルドまたはフィードバックにつき最大{0}回です。",
+          [MAX_AUTO_REPAIRS],
+        )}
+      </p>
+      {repairCount > 0 && (
+        <p className="serial-note">
+          {t("自動修復: {0}/{1}回", [repairCount, MAX_AUTO_REPAIRS])}
+        </p>
+      )}
       <div className="serial-actions">
         <button
           className="serial-primary"
-          disabled={!supported || Boolean(unsupported) || active || analyzing}
+          disabled={
+            !supported ||
+            Boolean(unsupported) ||
+            active ||
+            analyzing ||
+            sendingFeedback
+          }
           onClick={() => void run()}
         >
           <Usb size={16} />
@@ -449,23 +624,67 @@ export default function SerialBuild({
       >
         {log || t("ここにビルド結果と実行ログが表示されます。")}
       </pre>
+      <form
+        className="serial-feedback"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void submitFeedback();
+        }}
+      >
+        <label htmlFor="firmware-feedback">{t("動作のフィードバック")}</label>
+        <textarea
+          id="firmware-feedback"
+          value={feedback}
+          maxLength={4000}
+          rows={3}
+          disabled={analyzing || sendingFeedback}
+          onChange={(event) => setFeedback(event.target.value)}
+          placeholder={t(
+            "例: ビルドは成功しましたが、LEDの点滅が速すぎます。1秒間隔にしてください。",
+          )}
+        />
+        <p className="serial-note">
+          {t(
+            "コード・回路・ログと一緒にAIへ送信します。実行ログの監視中でも送信できます。",
+          )}
+        </p>
+        <button
+          type="submit"
+          disabled={
+            !feedback.trim() ||
+            Boolean(unsupported) ||
+            analyzing ||
+            sendingFeedback ||
+            (active && stage !== "running")
+          }
+        >
+          <Sparkles size={16} />
+          {t("フィードバックから修正案を作成")}
+        </button>
+      </form>
+      {repairNotice && <p role="status">{repairNotice}</p>}
       {failure && (
         <section className="serial-analysis">
           <h3>
             <Sparkles size={18} />
-            {t("AIエラー解析")}
+            {t("AIによるファームウェア修復")}
           </h3>
           <button
             disabled={analyzing || active}
-            onClick={() => void analyze(failure)}
+            onClick={() => void analyze(failure, repairCount, lastPort.current)}
           >
             {analyzing ? (
               <LoaderCircle size={16} className="spin" />
             ) : (
               <Sparkles size={16} />
             )}
-            {t(analyzing ? "エラーを解析中" : "AIでエラーを解析")}
+            {t(analyzing ? "修正案を作成中" : "AIで再解析")}
           </button>
+          {analyzing && (
+            <button onClick={() => analysisTask.current?.abort()}>
+              {t("解析を中止")}
+            </button>
+          )}
           {analysisError && <p role="alert">{t(analysisError)}</p>}
           {analysis && (
             <>
@@ -477,6 +696,7 @@ export default function SerialBuild({
               </ol>
               {analysis.firmware && (
                 <>
+                  <p>{t("この修正コードを反映してよいですか？")}</p>
                   <details>
                     <summary>{t("修正コードを確認")}</summary>
                     <pre className="serial-log">
@@ -485,10 +705,22 @@ export default function SerialBuild({
                   </details>
                   <button
                     className="serial-primary"
-                    disabled={active || analyzing}
-                    onClick={() => void run(analysis.firmware, true)}
+                    disabled={
+                      !supported ||
+                      Boolean(unsupported) ||
+                      active ||
+                      analyzing ||
+                      sendingFeedback
+                    }
+                    onClick={applyCorrection}
                   >
                     {t("修正を反映して再ビルド・実行")}
+                  </button>
+                  <button
+                    disabled={active || analyzing}
+                    onClick={() => setAnalysis(null)}
+                  >
+                    {t("変更しない")}
                   </button>
                 </>
               )}

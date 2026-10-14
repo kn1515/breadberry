@@ -25,6 +25,23 @@ test("workspace renders, steps play, views switch, and exports download", async 
   await expect(
     page.getByRole("img", { name: "接続データから描画した回路図" }),
   ).toBeVisible();
+  await page.getByRole("button", { name: "拡大", exact: true }).click();
+  await expect(page.locator(".schematic-toolbar output")).toHaveText("125%");
+  await page.getByRole("button", { name: "全体表示", exact: true }).click();
+  await expect(page.locator(".schematic-toolbar output")).toHaveText("100%");
+  const wire = page.locator('.schematic-sheet path[role="button"]').first();
+  await wire.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".cad-schematic [role=status]")).toContainText("→");
+  const svgDownload = page.waitForEvent("download");
+  await page.getByRole("button", { name: "SVG 保存", exact: true }).click();
+  const drawing = await svgDownload;
+  expect(drawing.suggestedFilename()).toBe("breadberry-schematic.svg");
+  const stream = await drawing.createReadStream();
+  let svg = "";
+  for await (const chunk of stream!) svg += chunk.toString();
+  expect(svg).toContain('xmlns="http://www.w3.org/2000/svg"');
+  expect(svg).not.toContain("var(--");
   await page.getByRole("tab", { name: "コード", exact: true }).click();
   await expect(page.locator("pre")).toContainText("dht.DHT22");
   const d = page.waitForEvent("download");

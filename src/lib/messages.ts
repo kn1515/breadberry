@@ -1,5 +1,11 @@
 // Japanese source messages and their English translations.
 export const messages: Record<string, string> = {
+  回路図の操作: "Schematic controls",
+  "CAD 回路図": "CAD schematic",
+  縮小: "Zoom out",
+  拡大: "Zoom in",
+  全体表示: "Fit to view",
+  "SVG 保存": "Save SVG",
   "74HC00 NANDゲート": "74HC00 NAND gates",
   "74HC08 ANDゲート": "74HC08 AND gates",
   "74HC32 ORゲート": "74HC32 OR gates",

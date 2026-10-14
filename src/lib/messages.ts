@@ -1,5 +1,13 @@
 // Japanese source messages and their English translations.
 export const messages: Record<string, string> = {
+  マイコンをブレッドボードに挿す: "Mount the controller on the breadboard",
+  "オス–オス": "Male–male",
+  "{0} · 下向きオスヘッダー実装済み":
+    "{0} · downward-facing male headers fitted",
+  "電源を外し、下向きのオスヘッダー付きPicoをMCU1の中央溝にまたがせます。USB端子を小さい行番号側へ向け、1〜20番ピンをH6〜H25、40〜21番ピンをC6〜C25に挿します。ジャンパ線は外側のA/B列とI/J列へ挿します。":
+    "Disconnect power. Mount a Pico with downward-facing male headers across MCU1's center trench, with USB toward the low row numbers. Insert pins 1–20 into H6–H25 and pins 40–21 into C6–C25. Connect jumpers to the exposed A/B and I/J columns.",
+  "電源を外し、下向きのオスヘッダー付き30ピンESP32をMCU1とMCU2にまたがせます。USB端子を小さい行番号側へ向け、3V3をMCU1:A8、VINをMCU2:J8に合わせ、両側15本を8〜22行へ挿します。基板の幅に合わせて2枚の間隔を調整し、外側の空き穴へ配線します。38ピン版などピン配列の違う基板は対象外です。":
+    "Disconnect power. Mount a 30-pin ESP32 with downward-facing male headers across MCU1 and MCU2, with USB toward the low row numbers. Align 3V3 with MCU1:A8 and VIN with MCU2:J8; insert both 15-pin banks into rows 8–22. Adjust the gap between breadboards to fit the board and connect jumpers to the exposed outer holes. Other pinouts, including 38-pin boards, are not supported.",
   "自動ビルド": "Auto build",
   "自動ビルド・実行": "Auto build & run",
   "ボードに接続中": "Connecting to board",

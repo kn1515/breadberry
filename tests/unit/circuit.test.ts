@@ -15,7 +15,10 @@ for (const board of Object.keys(boards) as Board[])
     test(`${board} ${example}: valid nets, unique real holes and matching BOM`, () => {
       const c = validateCircuit(demoCircuit(board, example));
       const { steps, wires, pinHoles } = compileCircuit(c);
-      assert.equal(steps.length, c.parts.length + c.wires.length);
+      assert.equal(
+        steps.length,
+        c.parts.length + c.wires.length + (board === "raspberry-pi" ? 0 : 1),
+      );
       assert.equal(billOfMaterials(c).at(-1)?.quantity, wires.length);
       const holes = Object.values(pinHoles);
       wires.forEach((w) => {

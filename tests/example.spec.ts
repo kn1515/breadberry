@@ -10,16 +10,21 @@ test("workspace renders, steps play, views switch, and exports download", async 
     page.getByRole("heading", { name: "お部屋の小さな気象台", exact: true }),
   ).toBeVisible();
   await expect(page.locator("canvas")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByRole("slider", { name: "組み立て工程" })).toHaveValue("13");
+  await page.locator(".step-item").first().click();
+  await expect(page.locator(".step-item").first()).toContainText("MCU1:A8");
+  await expect(page.locator(".step-item").first()).toContainText("MCU2:J8");
+  await page.locator(".step-item").last().click();
   await page.getByRole("button", { name: "前の工程", exact: true }).click();
   await expect(page.getByRole("slider", { name: "組み立て工程" })).toHaveValue(
-    "11",
+    "12",
   );
   await page.getByRole("button", { name: "次の工程", exact: true }).click();
-  await expect(page.getByRole("slider")).toHaveValue("12");
+  await expect(page.getByRole("slider")).toHaveValue("13");
   await page
     .getByRole("button", { name: "組み立てを再生", exact: true })
     .click();
-  await expect(page.getByRole("slider")).not.toHaveValue("12");
+  await expect(page.getByRole("slider")).not.toHaveValue("13");
   await page.getByRole("button", { name: "一時停止", exact: true }).click();
   await page.getByRole("tab", { name: "回路図", exact: true }).click();
   await expect(
@@ -140,7 +145,7 @@ test("successful generation updates circuit and reports Firestore persistence", 
     "回路を生成し、保存しました。",
   );
   await expect(page.locator(".workspace-status")).toContainText("保存済み");
-  await expect(page.getByRole("slider")).toHaveValue("5");
+  await expect(page.getByRole("slider")).toHaveValue("6");
 });
 
 test("expanded catalog respects board capabilities", async ({ page }) => {
@@ -183,8 +188,8 @@ test("expanded catalog respects board capabilities", async ({ page }) => {
 });
 
 for (const [name, title, steps, code] of [
-  ["OLEDディスプレイ", "OLEDにメッセージを表示", "5", "SSD1306_I2C"],
-  ["DS18B20 温度計", "DS18B20でつくる温度計", "7", "ds18x20"],
+  ["OLEDディスプレイ", "OLEDにメッセージを表示", "6", "SSD1306_I2C"],
+  ["DS18B20 温度計", "DS18B20でつくる温度計", "8", "ds18x20"],
 ]) {
   test(`${name}: sample renders, steps navigate and firmware matches`, async ({
     page,

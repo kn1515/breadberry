@@ -100,7 +100,10 @@ for (const board of Object.keys(boards) as Board[]) {
             holes.push(end.label.split(" → ")[0].toLowerCase());
         }
       assert.equal(new Set(holes).size, holes.length);
-      assert.equal(steps.length, c.parts.length + c.wires.length);
+      assert.equal(
+        steps.length,
+        c.parts.length + c.wires.length + (board === "raspberry-pi" ? 0 : 1),
+      );
       assert.ok(
         billOfMaterials(c).some(
           (p) => p.kind === kind && p.name === catalog[kind].name,

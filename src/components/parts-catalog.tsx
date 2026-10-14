@@ -65,7 +65,7 @@ function Preview({ kind }: { kind: Kind }) {
           <Canvas
             frameloop="demand"
             orthographic
-            camera={{ position: [2, 2, 4], zoom: 80 }}
+            camera={{ position: [2, 2, 4], zoom: kind === "st7789" ? 30 : 80 }}
             dpr={[1, 1.5]}
             fallback={fallback}
           >

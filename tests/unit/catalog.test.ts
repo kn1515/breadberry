@@ -21,6 +21,7 @@ const added: Kind[] = [
   "bmp280",
   "sht31",
   "ssd1306",
+  "st7789",
   "ds18b20",
   "potentiometer",
   "ntc",
@@ -47,7 +48,28 @@ function fixture(kind: Kind, board: Board): Circuit {
       purpose: "テスト",
     },
   ];
-  if (isI2c(kind)) {
+  if (kind === "st7789") {
+    c.parts[0].value = "M154-240240-RGB";
+    c.parts[0].placement = { hole: "b9", reversed: false };
+    const pins =
+      board === "pico"
+        ? ["GP2", "GP3", "GP4", "GP5", "GP6"]
+        : [
+            "GPIO18" in boards[board].pins ? "GPIO18" : "GPIO17",
+            "GPIO23",
+            "GPIO16",
+            "GPIO5",
+            "GPIO19",
+          ];
+    c.wires = [
+      wire("board.3V3", "U1.VCC"),
+      wire("board.GND", "U1.GND"),
+      ...["SCL", "SDA", "RES", "DC", "CS"].map((pin, i) =>
+        wire(`board.${pins[i]}`, `U1.${pin}`),
+      ),
+      wire("U1.VCC", "U1.BLK"),
+    ];
+  } else if (isI2c(kind)) {
     const sda =
       board === "pico" ? "GP4" : board === "esp32" ? "GPIO21" : "GPIO2";
     const scl =
@@ -134,7 +156,9 @@ test("catalog and generation schema expose the same part kinds", () => {
       assert.ok(def.offsets.every((n) => n >= 0 && n < def.pins.length / 2));
     } else {
       assert.equal(new Set(def.offsets).size, def.offsets.length);
-      assert.ok(def.offsets.every((n) => n >= 0 && n < 5));
+      assert.ok(
+        def.offsets.every((n) => n >= 0 && n < (kind === "st7789" ? 8 : 5)),
+      );
     }
   }
 });
@@ -210,4 +234,41 @@ test("NTC needs a real 10k divider and switches need internal pullups", () => {
     c.wires[0].from = "board.GPIO34";
     assert.throws(() => validateCircuit(c), /プルアップ/);
   }
+});
+
+test("ST7789 rejects missing controls, invalid power, input-only GPIOs and shorted SPI signals", () => {
+  for (const pin of catalog.st7789.pins) {
+    const c = fixture("st7789", "esp32");
+    c.wires = c.wires.filter((w) => ![w.from, w.to].includes(`U1.${pin}`));
+    assert.throws(() => validateCircuit(c), /未接続/);
+  }
+  const power = fixture("st7789", "esp32");
+  power.wires[0].from = "board.GPIO32";
+  assert.throws(() => validateCircuit(power), /電源|短絡/);
+  for (const signal of ["SCL", "SDA", "RES", "DC", "CS", "BLK"]) {
+    const c = fixture("st7789", "esp32");
+    c.wires.find((w) => w.to === `U1.${signal}`)!.from = "board.GPIO34";
+    assert.throws(() => validateCircuit(c), /出力可能/);
+  }
+  const short = fixture("st7789", "esp32");
+  short.wires.find((w) => w.to === "U1.SDA")!.from = "U1.SCL";
+  assert.throws(() => validateCircuit(short), /短絡/);
+  const pwm = fixture("st7789", "esp32");
+  pwm.wires.at(-1)!.from = "board.GPIO32";
+  assert.doesNotThrow(() => validateCircuit(pwm));
+  assert.equal(isI2c("st7789"), false);
+});
+
+test("ST7789 cannot share its clock or data with an I2C module", () => {
+  const c = fixture("st7789", "esp32");
+  c.parts.push({
+    id: "U2",
+    kind: "ssd1306",
+    value: "128x64",
+    purpose: "I2C",
+    placement: { hole: "g20", reversed: false },
+  });
+  for (const pin of ["VCC", "GND", "SCL", "SDA"])
+    c.wires.push(wire(`U1.${pin}`, `U2.${pin}`));
+  assert.throws(() => validateCircuit(c), /I2Cバス/);
 });

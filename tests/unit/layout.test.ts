@@ -3,10 +3,16 @@ import assert from "node:assert/strict";
 import { demoCircuit } from "../../src/lib/demo";
 import {
   compileCircuit,
+  holePosition,
   validateDraft,
   type Circuit,
 } from "../../src/lib/circuit";
-import { addPart, checkLayout, removePart } from "../../src/lib/layout";
+import {
+  addPart,
+  checkLayout,
+  removePart,
+  partBounds,
+} from "../../src/lib/layout";
 
 test("legacy sample placement remains valid on every supported board", () => {
   for (const board of ["esp32", "pico", "raspberry-pi"] as const)
@@ -131,4 +137,29 @@ test("3D coordinates snap to signal holes and reject off-board or non-finite dro
   assert.equal(moved.parts[0].placement?.hole, "g20");
   assert.equal(c.parts[0].placement, undefined);
   assert.deepEqual(moved.wires, c.wires);
+});
+
+test("ST7789 reserves eight rows and mirrors its full PCB footprint when reversed", () => {
+  const c = addPart(demoCircuit("esp32", "led"), "st7789");
+  const index = c.parts.length - 1;
+  const part = c.parts[index];
+  assert.equal(part.value, "M154-240240-RGB");
+  part.placement = { hole: "b10", reversed: false };
+  const pins = compileCircuit(c).pinHoles;
+  assert.equal(pins[`${part.id}.GND`], "b10");
+  assert.equal(pins[`${part.id}.BLK`], "b17");
+  const before = partBounds(c, index);
+  assert.ok(Math.abs(before.width - (32 * 0.24) / 2.54) < 1e-9);
+  assert.ok(Math.abs(before.depth - (43.72 * 0.24) / 2.54) < 1e-9);
+  part.placement.reversed = true;
+  const after = partBounds(c, index);
+  assert.equal(compileCircuit(c).pinHoles[`${part.id}.BLK`], "b3");
+  assert.ok(Math.abs(before.x - after.x - 7 * 0.24) < 1e-9);
+  assert.ok(Math.abs(before.z + after.z - 2 * holePosition("b10")[2]) < 1e-9);
+  part.placement = { hole: "b27", reversed: false };
+  assert.ok(
+    checkLayout(c).some(
+      (issue) => issue.code === "bounds" && issue.parts.includes(part.id),
+    ),
+  );
 });

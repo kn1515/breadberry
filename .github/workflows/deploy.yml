@@ -47,6 +47,8 @@ jobs:
 
       - name: Set up gcloud
         uses: google-github-actions/setup-gcloud@v2
+        with:
+          install_components: beta
 
       - name: Deploy
         run: make deploy

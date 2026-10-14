@@ -789,4 +789,8 @@ export const messages: Record<string, string> = {
     "DigiKey has reached its search limit and is excluded from this search. Other stores remain available.",
   "本日のショップ検索・商品確認回数の上限に達しました。":
     "Today's limit for store searches and product verification has been reached.",
+  "リクエストがセキュリティ検査で拒否されました。入力内容を見直して再試行してください。":
+    "The request was blocked by a security check. Review your input and try again.",
+  "リクエストが集中しています。しばらく待ってから再試行してください。":
+    "Too many requests. Wait a moment and try again.",
 };

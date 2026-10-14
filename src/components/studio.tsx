@@ -57,6 +57,7 @@ import {
   type Project,
 } from "@/lib/circuit";
 import { demoProject, type Example } from "@/lib/demo";
+import { responseError } from "@/lib/api-error";
 import Schematic from "./schematic";
 import CircuitChat from "./circuit-chat";
 import LayoutEditor from "./layout-editor";
@@ -297,8 +298,7 @@ export default function Studio() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
       });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error);
+      if (!res.ok) throw await responseError(res, "接続できませんでした。");
       await loadConfig();
     })();
     sessionRequest.current = request;
@@ -345,10 +345,7 @@ export default function Studio() {
               }),
         }),
       });
-      if (!res.ok) {
-        const failure = await res.json();
-        throw new Error(failure.error);
-      }
+      if (!res.ok) throw await responseError(res, "生成に失敗しました。");
       if (res.headers.get("content-type")?.includes("application/json")) {
         const data = await res.json();
         applyProject(data);
@@ -497,8 +494,8 @@ export default function Studio() {
     if (!config?.active) return;
     try {
       const res = await fetch("/api/projects");
+      if (!res.ok) throw await responseError(res, "一覧を取得できません。");
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
       setSaved((s) => [...data.projects, ...s]);
     } catch (e) {
       setHistoryError(
@@ -512,9 +509,8 @@ export default function Studio() {
       const p = item.local
         ? readLocal().find((p) => p.id === item.id)
         : await fetch(`/api/projects/${item.id}`).then(async (r) => {
-            const d = await r.json();
-            if (!r.ok) throw new Error(d.error);
-            return d;
+            if (!r.ok) throw await responseError(r, "読み込めませんでした。");
+            return r.json();
           });
       if (!p) throw new Error(t("保存データがありません。"));
       if (generating.current) return;

@@ -26,8 +26,10 @@ rule() {
   # Rule commands default to global scope and do not accept --global.
   gc compute security-policies rules "$verb" "$priority" --security-policy="$EDGE_NAME" --no-preview "$@"
 }
-rule 1000 --action=deny-403 --expression="evaluatePreconfiguredWaf('sqli-v33-stable', {'sensitivity': 1})"
-rule 1010 --action=deny-403 --expression="evaluatePreconfiguredWaf('xss-v33-stable', {'sensitivity': 1})"
+# Signatures that match circuit JSON bodies (no SQL backend, React escapes output):
+# 942160 sleep(1) in MicroPython, 942230 C conditionals such as `if (a < b`, 941120 notes like `（ONでA=0`.
+rule 1000 --action=deny-403 --expression="evaluatePreconfiguredWaf('sqli-v33-stable', {'sensitivity': 1, 'opt_out_rule_ids': ['owasp-crs-v030301-id942160-sqli', 'owasp-crs-v030301-id942230-sqli']})"
+rule 1010 --action=deny-403 --expression="evaluatePreconfiguredWaf('xss-v33-stable', {'sensitivity': 1, 'opt_out_rule_ids': ['owasp-crs-v030301-id941120-xss']})"
 # Only API requests are throttled; static 3D assets do not consume this threshold.
 rule 2000 --action=throttle --expression="request.path.startsWith('/api/')" \
   --rate-limit-threshold-count=120 --rate-limit-threshold-interval-sec=60 \

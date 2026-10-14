@@ -77,7 +77,7 @@ esac
     assert.match(commands, /--exceed-action=deny-429 --enforce-on-key=IP/);
     assert.match(
       commands,
-      /--json-parsing=STANDARD --request-body-inspection-size=64KB/,
+      /beta compute security-policies update .*--json-parsing=STANDARD --request-body-inspection-size=64KB/,
     );
     assert.match(
       commands,

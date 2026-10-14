@@ -23,7 +23,8 @@ rule() {
   local priority="$1" verb=create
   shift
   if [[ ";${priorities//$'\n'/;} ;" =~ (^|[\;\ ])${priority}([\;\ ]|$) ]]; then verb=update; fi
-  gc compute security-policies rules "$verb" "$priority" --security-policy="$EDGE_NAME" --global --no-preview "$@"
+  # Rule commands default to global scope and do not accept --global.
+  gc compute security-policies rules "$verb" "$priority" --security-policy="$EDGE_NAME" --no-preview "$@"
 }
 rule 1000 --action=deny-403 --expression="evaluatePreconfiguredWaf('sqli-v33-stable', {'sensitivity': 1})"
 rule 1010 --action=deny-403 --expression="evaluatePreconfiguredWaf('xss-v33-stable', {'sensitivity': 1})"

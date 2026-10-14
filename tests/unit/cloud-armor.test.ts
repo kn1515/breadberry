@@ -42,6 +42,13 @@ for (const existing of [false, true]) {
       `#!/usr/bin/env bash
 printf '%s\\n' "$*" >> "$EDGE_TEST_LOG"
 case "$*" in
+  *"compute security-policies rules "*)
+    for arg in "$@"; do
+      if [[ "$arg" == --global ]]; then
+        echo 'unrecognized arguments: --global' >&2
+        exit 2
+      fi
+    done ;;
   *" list "*) [[ "$EDGE_TEST_EXISTING" == true ]] && echo breadberry-edge; exit 0 ;;
   *"value(rules.priority)"*) if [[ "$EDGE_TEST_EXISTING" == true ]]; then echo '1000;1010;2000;2147483647'; else echo 2147483647; fi ;;
   *"value(backends.group)"*) [[ "$EDGE_TEST_EXISTING" == true ]] && echo 'https://www.googleapis.com/compute/v1/projects/test-project/regions/asia-northeast1/networkEndpointGroups/breadberry-edge'; exit 0 ;;

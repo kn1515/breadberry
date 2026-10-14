@@ -156,7 +156,7 @@ export default function Studio() {
   useEffect(() => {
     if (tourStep === null) return;
     setMode(tourStep === 4 ? "editor" : "viewer");
-    setTab("3d");
+    setTab(tourStep === 5 || tourStep === 6 ? "code" : "3d");
     setPlaying(tourStep === 3);
     if (tourStep === 3) setStep(0);
   }, [tourStep]);
@@ -902,6 +902,7 @@ export default function Studio() {
                   </div>
                   <button
                     className="serial-launch"
+                    data-tour="build"
                     disabled={busy || saving}
                     aria-haspopup="dialog"
                     onClick={() => setSerialBuild(true)}

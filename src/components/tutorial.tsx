@@ -37,6 +37,18 @@ const steps = [
       "Editorに切り替えました。部品を追加・移動し、レイアウトチェックで配置を確認できます。",
   },
   {
+    target: '[data-tour="build"]',
+    title: "USBでビルド・実行",
+    description:
+      "MicroPythonと必要なドライバーを導入済みのESP32／PicoをUSB接続します。PC版Chrome／EdgeでHTTPSまたはlocalhostから開き、「自動ビルド」→「接続してビルド・実行」で接続先を選ぶと、転送・ビルド・保存・実行が進みます。",
+  },
+  {
+    target: '[data-tour="build"]',
+    title: "エラーはAIで解析",
+    description:
+      "失敗するとログをもとにAIが原因と対処方法を案内します。自動解析はオフにもできます。修正案がある場合は「修正コードを確認」し、「修正を反映して再ビルド・実行」で試せます。main.pyは上書きされ、元のコードはバックアップされます。",
+  },
+  {
     target: '[data-tour="download"]',
     title: "保存して、続きへ",
     description:

@@ -6,6 +6,18 @@ test("guided tour highlights real controls, plays assembly and restores the view
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   let generationCalls = 0;
+  await page.addInitScript(() => {
+    (window as any).__tourSerialRequests = 0;
+    Object.defineProperty(navigator, "serial", {
+      configurable: true,
+      value: {
+        requestPort() {
+          (window as any).__tourSerialRequests++;
+          return Promise.reject(new DOMException("Canceled", "NotFoundError"));
+        },
+      },
+    });
+  });
   await page.route("**/api/generate", (route) => {
     generationCalls++;
     return route.fulfill({ json: {} });
@@ -45,6 +57,30 @@ test("guided tour highlights real controls, plays assembly and restores the view
   await expect(
     page.getByRole("button", { name: "Editor · 編集", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
+  await tour.getByRole("button", { name: "次へ" }).click();
+  await expect(
+    tour.getByRole("heading", { name: "USBでビルド・実行" }),
+  ).toBeVisible();
+  await expect(tour).toContainText("STEP 6 / 8");
+  await expect(page.locator('[data-tour="build"]')).toHaveClass(
+    /tour-highlight/,
+  );
+  await expect(
+    page.getByRole("tab", { name: "コード", exact: true }),
+  ).toHaveAttribute("aria-selected", "true");
+  await expect(tour).toContainText("MicroPython");
+  await tour.getByRole("button", { name: "次へ" }).click();
+  await expect(
+    tour.getByRole("heading", { name: "エラーはAIで解析" }),
+  ).toBeVisible();
+  await expect(page.locator('[data-tour="build"]')).toHaveClass(
+    /tour-highlight/,
+  );
+  await expect(tour).toContainText("修正を反映して再ビルド・実行");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  expect(await page.evaluate(() => (window as any).__tourSerialRequests)).toBe(
+    0,
+  );
   await tour.getByRole("button", { name: "次へ" }).click();
   await expect(page.locator('[data-tour="download"]')).toHaveClass(
     /tour-highlight/,

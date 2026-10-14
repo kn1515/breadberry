@@ -8,6 +8,12 @@ export const messages: Record<string, string> = {
     "Disconnect power. Mount a Pico with downward-facing male headers across MCU1's center trench, with USB toward the low row numbers. Insert pins 1–20 into H6–H25 and pins 40–21 into C6–C25. Connect jumpers to the exposed A/B and I/J columns.",
   "電源を外し、下向きのオスヘッダー付き30ピンESP32をMCU1とMCU2にまたがせます。USB端子を小さい行番号側へ向け、3V3をMCU1:A8、VINをMCU2:J8に合わせ、両側15本を8〜22行へ挿します。基板の幅に合わせて2枚の間隔を調整し、外側の空き穴へ配線します。38ピン版などピン配列の違う基板は対象外です。":
     "Disconnect power. Mount a 30-pin ESP32 with downward-facing male headers across MCU1 and MCU2, with USB toward the low row numbers. Align 3V3 with MCU1:A8 and VIN with MCU2:J8; insert both 15-pin banks into rows 8–22. Adjust the gap between breadboards to fit the board and connect jumpers to the exposed outer holes. Other pinouts, including 38-pin boards, are not supported.",
+  "USBでビルド・実行": "Build and run over USB",
+  "MicroPythonと必要なドライバーを導入済みのESP32／PicoをUSB接続します。PC版Chrome／EdgeでHTTPSまたはlocalhostから開き、「自動ビルド」→「接続してビルド・実行」で接続先を選ぶと、転送・ビルド・保存・実行が進みます。":
+    "Connect an ESP32 or Pico with MicroPython and any required drivers installed via USB. Open the app over HTTPS or localhost in desktop Chrome or Edge, then choose Auto build → Connect, build & run and select the port to upload, compile, save and run.",
+  "エラーはAIで解析": "Analyze errors with AI",
+  "失敗するとログをもとにAIが原因と対処方法を案内します。自動解析はオフにもできます。修正案がある場合は「修正コードを確認」し、「修正を反映して再ビルド・実行」で試せます。main.pyは上書きされ、元のコードはバックアップされます。":
+    "When a build or run fails, AI uses the logs to explain the cause and next steps. You can turn automatic analysis off. If a fix is suggested, select Review corrected code, then Apply fix, rebuild & run to try it. This replaces main.py and backs up the original code.",
   "自動ビルド": "Auto build",
   "自動ビルド・実行": "Auto build & run",
   "ボードに接続中": "Connecting to board",
@@ -538,6 +544,14 @@ export const messages: Record<string, string> = {
     "I2C address 0x76. Does not measure humidity.",
   "SHT31 温湿度モジュール": "SHT31 temperature & humidity module",
   "I2Cアドレス0x44。": "I2C address 0x44.",
+  "{0} は出力可能なGPIOに接続してください（BLKは3.3Vも可）。":
+    "Connect {0} to an output-capable GPIO (BLK may also connect to 3.3V).",
+  "{0}: SPI信号をI2Cバスと共有できません。":
+    "{0}: SPI signals cannot share an I2C bus.",
+  "ST7789 1.54インチ TFT液晶 (M154-240240-RGB)":
+    "ST7789 1.54-inch TFT LCD (M154-240240-RGB)",
+  "秋月131019 / M154-240240-RGB。OLEDではなく240×240のTFT液晶。3.3V電源・3.3Vロジック専用（5V不可）。SCL=SCK、SDA=MOSIの4線式SPIで、I2Cではありません。RES/DC/CSは別々の出力GPIO、BLKは3.3Vまたは出力GPIO（HIGHで点灯）。8端子・2.54mmピッチ。基板32×43.72mm。ヘッダー実装状態を確認し、実物の端子印字を優先してください。":
+    "Akizuki 131019 / M154-240240-RGB. 240×240 TFT LCD, not OLED. 3.3V supply and logic only; never use 5V. Four-wire SPI: SCL=SCK, SDA=MOSI, not I2C. RES/DC/CS need separate output GPIOs. BLK connects to 3.3V or an output GPIO (HIGH turns the backlight on). Eight pins at 2.54mm pitch; 32×43.72mm PCB. Check header assembly and follow the actual pin markings.",
   "SSD1306 OLEDディスプレイ": "SSD1306 OLED display",
   "128×64、I2Cアドレス0x3C、リセット回路内蔵の4端子モジュール。SPI版は対象外です。":
     "128×64, I2C address 0x3C, four-pin module with reset circuitry. SPI versions are not supported.",

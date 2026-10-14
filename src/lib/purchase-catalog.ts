@@ -71,6 +71,15 @@ export const purchaseCatalog: readonly RegisteredProduct[] = [
     reviewedOn: "2026-10-03",
     enabled: true,
   },
+  {
+    id: "akizuki-131019",
+    name: "M154-240240-RGB · ST7789 1.54-inch 240×240 TFT LCD",
+    store: "akizuki",
+    url: "https://akizukidenshi.com/catalog/g/g131019/",
+    match: { kind: "st7789", value: "M154-240240-RGB" },
+    reviewedOn: "2026-10-15",
+    enabled: true,
+  },
 ];
 
 /** Free-text queries cannot override the circuit's hard specification filters. */

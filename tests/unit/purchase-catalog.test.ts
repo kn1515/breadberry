@@ -82,3 +82,17 @@ test("board and sensor registrations must match the authoritative circuit model 
     0,
   );
 });
+
+test("ST7789 retrieves the exact Akizuki module without substituting an OLED or another size", () => {
+  const c = demoCircuit();
+  c.parts = [
+    { id: "LCD1", kind: "st7789", value: "M154-240240-RGB", purpose: "表示" },
+  ];
+  const part = purchaseParts(c).find((p) => p.kind === "st7789")!;
+  assert.equal(
+    registeredCandidates(part, c)[0].url,
+    "https://akizukidenshi.com/catalog/g/g131019/",
+  );
+  assert.deepEqual(registeredCandidates({ ...part, kind: "ssd1306" }, c), []);
+  assert.deepEqual(registeredCandidates({ ...part, value: "240x320" }, c), []);
+});

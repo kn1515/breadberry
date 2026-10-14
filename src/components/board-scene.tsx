@@ -20,6 +20,7 @@ import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { movePart, nearestLayoutHole, partBounds } from "@/lib/layout";
 import { isDip, isLogic } from "@/lib/logic";
 import { resolveLedColor } from "@/lib/led";
+import St7789Model from "./st7789-model";
 import LedModel from "./led-model";
 import {
   boards,
@@ -387,6 +388,13 @@ export function Part({
       ) : part.kind === "led" ? (
         <group position={[x, 0.55, z]}>
           <LedModel color={resolveLedColor(part)} />
+        </group>
+      ) : part.kind === "st7789" ? (
+        <group
+          position={[x, 0, z]}
+          rotation={[0, part.placement?.reversed ? Math.PI : 0, 0]}
+        >
+          <St7789Model labels={labels} />
         </group>
       ) : isI2c(part.kind) ? (
         <>

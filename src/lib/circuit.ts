@@ -162,6 +162,13 @@ export const catalog = {
     "#345275",
     "128×64、I2Cアドレス0x3C、リセット回路内蔵の4端子モジュール。SPI版は対象外です。",
   ),
+  st7789: {
+    name: "ST7789 1.54インチ TFT液晶 (M154-240240-RGB)",
+    pins: ["GND", "VCC", "SCL", "SDA", "RES", "DC", "CS", "BLK"],
+    offsets: [0, 1, 2, 3, 4, 5, 6, 7],
+    color: "#176342",
+    note: "秋月131019 / M154-240240-RGB。OLEDではなく240×240のTFT液晶。3.3V電源・3.3Vロジック専用（5V不可）。SCL=SCK、SDA=MOSIの4線式SPIで、I2Cではありません。RES/DC/CSは別々の出力GPIO、BLKは3.3Vまたは出力GPIO（HIGHで点灯）。8端子・2.54mmピッチ。基板32×43.72mm。ヘッダー実装状態を確認し、実物の端子印字を優先してください。",
+  },
   ds18b20: {
     name: "DS18B20 温度センサー",
     pins: ["GND", "DQ", "VDD"],
@@ -651,9 +658,7 @@ export function validateCircuit(input: unknown): Circuit {
         r.kind === "resistor" &&
         resistanceOhms(r.value) > 0 &&
         ((root(`${r.id}.1`) === net &&
-          [root("board.3V3"), root("board.GND")].includes(
-            root(`${r.id}.2`),
-          )) ||
+          [root("board.3V3"), root("board.GND")].includes(root(`${r.id}.2`))) ||
           (root(`${r.id}.2`) === net &&
             [root("board.3V3"), root("board.GND")].includes(
               root(`${r.id}.1`),
@@ -690,7 +695,15 @@ export function validateCircuit(input: unknown): Circuit {
   const busAddresses = new Set<string>();
   for (const p of c.parts) {
     const nets = catalog[p.kind].pins
-      .filter((pin) => pin !== "NC")
+      .filter(
+        (pin) =>
+          pin !== "NC" &&
+          !(
+            p.kind === "st7789" &&
+            pin === "BLK" &&
+            root(`${p.id}.BLK`) === root("board.3V3")
+          ),
+      )
       .map((pin) => root(`${p.id}.${pin}`));
     if (
       !isLogic(p.kind) &&
@@ -707,11 +720,7 @@ export function validateCircuit(input: unknown): Circuit {
         throw new Error(`${p.id}.${pin} が未接続です。`);
     if (isLogic(p.kind)) {
       for (const pin of catalog[p.kind].pins) {
-        if (
-          ["VCC", "GND"].includes(pin) ||
-          logicOutput(p.kind, pin)
-        )
-          continue;
+        if (["VCC", "GND"].includes(pin) || logicOutput(p.kind, pin)) continue;
         if (!hasDefinedLevel(root(`${p.id}.${pin}`)))
           throw new Error(`${p.id}.${pin} の入力レベルが定義されていません。`);
       }
@@ -731,13 +740,37 @@ export function validateCircuit(input: unknown): Circuit {
     }
     if (p.kind === "resistor" && !(resistanceOhms(p.value) > 0))
       throw new Error("抵抗値は 330Ω や 10kΩ の形式で指定してください。");
-    if (p.kind === "dht22" || isI2c(p.kind) || p.kind === "ds18b20") {
+    if (
+      p.kind === "dht22" ||
+      isI2c(p.kind) ||
+      p.kind === "ds18b20" ||
+      p.kind === "st7789"
+    ) {
       if (
         root(`${p.id}.${p.kind === "ds18b20" ? "VDD" : "VCC"}`) !==
           root("board.3V3") ||
         root(`${p.id}.GND`) !== root("board.GND")
       )
         throw new Error(`${p.id} の電源配線を確認してください。`);
+    }
+    if (p.kind === "st7789") {
+      for (const signal of ["SCL", "SDA", "RES", "DC", "CS", "BLK"]) {
+        if (signal === "BLK" && root(`${p.id}.BLK`) === root("board.3V3"))
+          continue;
+        if (!connectedTo(`${p.id}.${signal}`, gpios.filter(canDriveGpio)))
+          throw new Error(
+            `${p.id}.${signal} は出力可能なGPIOに接続してください（BLKは3.3Vも可）。`,
+          );
+      }
+      // The module's SCL/SDA labels describe SPI, not an I2C bus.
+      for (const other of c.parts.filter((other) => isI2c(other.kind)))
+        for (const signal of ["SCL", "SDA"])
+          if (
+            ["SCL", "SDA"].some(
+              (pin) => root(`${p.id}.${signal}`) === root(`${other.id}.${pin}`),
+            )
+          )
+            throw new Error(`${p.id}: SPI信号をI2Cバスと共有できません。`);
     }
     if (p.kind === "led") {
       if (root(`${p.id}.K`) !== root("board.GND"))
@@ -955,9 +988,7 @@ export function validateCircuit(input: unknown): Circuit {
       if (
         closedSupply.has(net) ||
         driven.has(net) ||
-        gpios.some(
-          (g) => canDriveGpio(g) && closedNet(`board.${g}`) === net,
-        )
+        gpios.some((g) => canDriveGpio(g) && closedNet(`board.${g}`) === net)
       )
         throw new Error(
           `${p.id}.${pin}: IC出力を電源や別の出力に直結できません。`,

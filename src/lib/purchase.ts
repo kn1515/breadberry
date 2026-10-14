@@ -99,7 +99,6 @@ export type RecommendedPurchaseSearch = PurchaseSearch & {
   recommendation: PurchaseRecommendation;
 };
 export const PURCHASE_SEARCH_TIMEOUT_MS = 60_000;
-export const PURCHASE_BATCH_TIMEOUT_MS = 90_000;
 export type PurchasePhase =
   "queued" | "connecting" | "digikey" | "discovery" | "verification" | "done";
 export type PurchaseSearchEvent =

@@ -35,6 +35,9 @@ export async function runPurchaseSearch(
   },
 ): Promise<RecommendedPurchaseSearch> {
   const { part, circuit, query, locale, emit } = options;
+  // Leave the AI enough slack to report "not verified in time" with the
+  // offers found so far instead of failing the whole part.
+  const deadline = Date.now() + services.timeoutMs - 3_000;
   return withDeadline(
     async (signal) => {
       const quota = (take: () => Promise<void>) =>
@@ -95,6 +98,7 @@ export async function runPurchaseSearch(
         search.checkedAt,
         {
           signal,
+          deadline,
           onPhase: (phase) => {
             signal.throwIfAborted();
             emit({ type: "phase", phase });

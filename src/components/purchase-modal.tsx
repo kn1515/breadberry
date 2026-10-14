@@ -22,7 +22,6 @@ import {
   unitPrice,
   type PurchaseOffer,
   type RecommendedProduct,
-  PURCHASE_BATCH_TIMEOUT_MS,
   type PurchasePhase,
 } from "@/lib/purchase";
 
@@ -179,16 +178,10 @@ export default function PurchaseModal({
   async function searchBatch(indices: number[], parent: AbortSignal) {
     const controller = new AbortController();
     batch.current = controller;
+    // No batch-wide deadline: each part is already bounded by its own
+    // request timeout, and a shared one expired parts still queued behind
+    // slower ones (jumper wires are always last in the list).
     const signal = AbortSignal.any([parent, controller.signal]);
-    const timer = setTimeout(
-      () =>
-        controller.abort(
-          new Error(
-            "検索の待ち時間が長いため一旦終了しました。未完了の部品だけ再試行できます。",
-          ),
-        ),
-      PURCHASE_BATCH_TIMEOUT_MS,
-    );
     setRows((old) =>
       old.map((row, i) =>
         indices.includes(i)
@@ -207,7 +200,6 @@ export default function PurchaseModal({
         }),
       );
     } finally {
-      clearTimeout(timer);
       if (batch.current === controller && !parent.aborted && signal.aborted)
         setRows((old) =>
           old.map((row, i) =>

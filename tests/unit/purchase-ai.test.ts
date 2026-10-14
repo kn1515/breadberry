@@ -466,3 +466,57 @@ test("catalog entries without successful URL retrieval are not recommendations",
   assert.equal(result.best, null);
   assert.equal(state.requests.length, 2);
 });
+
+test("one commodity bag may exceed the automatic quantity limit; multiple bags and reels may not", async (t) => {
+  const state = setup(t);
+  state.ranked = [{ ...choice, unitsPerPack: 100, unitPriceJPY: 200 }];
+  const resistor = purchaseParts(circuit).find((p) => p.kind === "resistor")!;
+  const result = await recommendPurchase(
+    resistor,
+    circuit,
+    resistor.query,
+    [],
+    quota,
+  );
+  assert.equal(result.best?.quantity, 1);
+  assert.equal(result.best?.totalPrice, 200);
+  state.ranked = [{ ...choice, unitsPerPack: 100, minimumOrder: 2 }];
+  assert.equal(
+    (await recommendPurchase(resistor, circuit, resistor.query, [], quota))
+      .best,
+    null,
+  );
+  state.ranked = [{ ...choice, unitsPerPack: 1000 }];
+  assert.equal(
+    (await recommendPurchase(resistor, circuit, resistor.query, [], quota))
+      .best,
+    null,
+  );
+});
+
+test("an expiring deadline returns an explicit unverified result instead of failing", async (t) => {
+  const state = setup(t);
+  state.ranked = [];
+  const result = await recommendPurchase(
+    part,
+    circuit,
+    part.query,
+    [offer],
+    quota,
+    "ja",
+    undefined,
+    { deadline: Date.now() + 5_000 },
+  );
+  assert.equal(result.best, null);
+  assert.match(result.reason, /時間内に/);
+  assert.equal(state.requests.length, 0);
+  const many = Array.from({ length: 25 }, (_, n) => ({
+    ...offer,
+    partNumber: `P${n}`,
+    prices: [{ quantity: 1, unitPrice: 100 - n }],
+  }));
+  await recommendPurchase(part, circuit, part.query, many, quota);
+  const data = JSON.parse(state.requests[0].contents[0].parts[0].text);
+  assert.equal(data.offers.length, 10);
+  assert.equal(data.offers[0].partNumber, "P24");
+});

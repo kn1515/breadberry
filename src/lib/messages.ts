@@ -11,55 +11,75 @@ export const messages: Record<string, string> = {
   "USBでビルド・実行": "Build and run over USB",
   "MicroPythonと必要なドライバーを導入済みのESP32／PicoをUSB接続します。PC版Chrome／EdgeでHTTPSまたはlocalhostから開き、「自動ビルド」→「接続してビルド・実行」で接続先を選ぶと、転送・ビルド・保存・実行が進みます。":
     "Connect an ESP32 or Pico with MicroPython and any required drivers installed via USB. Open the app over HTTPS or localhost in desktop Chrome or Edge, then choose Auto build → Connect, build & run and select the port to upload, compile, save and run.",
-  "エラーはAIで解析": "Analyze errors with AI",
+  エラーはAIで解析: "Analyze errors with AI",
   "失敗するとログをもとにAIが原因と対処方法を案内します。自動解析はオフにもできます。修正案がある場合は「修正コードを確認」し、「修正を反映して再ビルド・実行」で試せます。main.pyは上書きされ、元のコードはバックアップされます。":
     "When a build or run fails, AI uses the logs to explain the cause and next steps. You can turn automatic analysis off. If a fix is suggested, select Review corrected code, then Apply fix, rebuild & run to try it. This replaces main.py and backs up the original code.",
-  "自動ビルド": "Auto build",
+  自動ビルド: "Auto build",
   "自動ビルド・実行": "Auto build & run",
-  "ボードに接続中": "Connecting to board",
-  "実行環境を確認中": "Checking runtime",
-  "コードを転送中": "Uploading code",
-  "ボード上でビルド中": "Compiling on board",
+  ボードに接続中: "Connecting to board",
+  実行環境を確認中: "Checking runtime",
+  コードを転送中: "Uploading code",
+  ボード上でビルド中: "Compiling on board",
   "main.pyを保存中": "Saving main.py",
   "実行中・ログを受信中": "Running \u00b7 receiving logs",
-  "Raspberry Pi OSのコードはUSBシリアルから直接ビルドできません。ESP32またはPicoを選択してください。": "Raspberry Pi OS code cannot be built directly over USB serial. Select an ESP32 or Pico.",
-  "この機能はMicroPython専用です。C++はコードをダウンロードして対応する開発環境でビルドしてください。": "This feature supports MicroPython. Download C++ code and build it with a compatible development environment.",
-  "この回路には実行するコードがありません。": "This circuit has no executable code.",
-  "コードが長すぎます。12000文字以内にしてください。": "Code must be no longer than 12,000 characters.",
+  "Raspberry Pi OSのコードはUSBシリアルから直接ビルドできません。ESP32またはPicoを選択してください。":
+    "Raspberry Pi OS code cannot be built directly over USB serial. Select an ESP32 or Pico.",
+  "この機能はMicroPython専用です。C++はコードをダウンロードして対応する開発環境でビルドしてください。":
+    "This feature supports MicroPython. Download C++ code and build it with a compatible development environment.",
+  "この回路には実行するコードがありません。":
+    "This circuit has no executable code.",
+  "コードが長すぎます。12000文字以内にしてください。":
+    "Code must be no longer than 12,000 characters.",
   "シリアルポートを開けませんでした。": "Could not open the serial port.",
   "ボードとの接続が切れました。": "The board was disconnected.",
-  "受信ログが多すぎます。出力頻度を下げてください。": "Too much serial output. Reduce the output rate.",
-  "ボードの応答がタイムアウトしました。MicroPythonの導入と接続を確認してください。": "The board timed out. Check its connection and MicroPython installation.",
+  "受信ログが多すぎます。出力頻度を下げてください。":
+    "Too much serial output. Reduce the output rate.",
+  "ボードの応答がタイムアウトしました。MicroPythonの導入と接続を確認してください。":
+    "The board timed out. Check its connection and MicroPython installation.",
   "シリアルポートが接続されていません。": "No serial port is connected.",
-  "MicroPythonから予期しない応答が返されました。": "Unexpected response from MicroPython.",
-  "選択した基板と接続先の実行環境が一致しません。MicroPythonと基板を確認してください。": "The connected runtime does not match the selected board. Check the board and MicroPython installation.",
+  "MicroPythonから予期しない応答が返されました。":
+    "Unexpected response from MicroPython.",
+  "選択した基板と接続先の実行環境が一致しません。MicroPythonと基板を確認してください。":
+    "The connected runtime does not match the selected board. Check the board and MicroPython installation.",
   "ボードとの接続を終了しました。": "Disconnected from the board.",
-  "AIによるエラー解析は現在利用できません。": "AI error analysis is currently unavailable.",
-  "AIがエラー解析を完了できませんでした。再試行してください。": "AI could not complete the error analysis. Please try again.",
-  "AIの解析結果を読み取れませんでした。再試行してください。": "Could not read the AI analysis. Please try again.",
-  "解析するコードとエラーログを確認してください。": "Check the code and error log to analyze.",
+  "AIによるエラー解析は現在利用できません。":
+    "AI error analysis is currently unavailable.",
+  "AIがエラー解析を完了できませんでした。再試行してください。":
+    "AI could not complete the error analysis. Please try again.",
+  "AIの解析結果を読み取れませんでした。再試行してください。":
+    "Could not read the AI analysis. Please try again.",
+  "解析するコードとエラーログを確認してください。":
+    "Check the code and error log to analyze.",
   "解析する回路データが不正です。": "The circuit data for analysis is invalid.",
   "AIによるエラー解析に失敗しました。": "AI error analysis failed.",
   "回路データを確認してください。": "Check the circuit data.",
-  "ビルド・保存・プログラムの実行が完了しました。": "Build, save and program execution completed.",
-  "接続を終了しました。ボード上のプログラムは停止しない場合があります。": "Disconnected. The program may continue running on the board.",
+  "ビルド・保存・プログラムの実行が完了しました。":
+    "Build, save and program execution completed.",
+  "接続を終了しました。ボード上のプログラムは停止しない場合があります。":
+    "Disconnected. The program may continue running on the board.",
   "接続先の選択をキャンセルしました。": "Port selection was canceled.",
   "ビルドまたは実行に失敗しました。": "Build or execution failed.",
-  "MicroPython導入済みのESP32／PicoをUSBで接続し、接続先を選ぶと、転送・ビルド・保存・実行を自動で行います。": "Connect an ESP32 or Pico with MicroPython installed via USB. Select its port to automatically upload, compile, save and run.",
-  "現在のプログラムを中断し、main.pyを上書きします。元のファイルはmain.py.breadberry.bakに保存します。必要な外部ドライバーは事前に導入してください。": "The current program will be interrupted and main.py replaced. The original is backed up as main.py.breadberry.bak. Install any required external drivers first.",
-  "Web Serialに対応したPC版Chrome／Edgeで、HTTPSまたはlocalhostから開いてください。": "Open this page over HTTPS or localhost in a desktop browser supporting Web Serial, such as Chrome or Edge.",
-  "失敗したらAIで自動解析する（コード・回路・ログを送信）": "Automatically analyze failures with AI (sends code, circuit and logs)",
+  "MicroPython導入済みのESP32／PicoをUSBで接続し、接続先を選ぶと、転送・ビルド・保存・実行を自動で行います。":
+    "Connect an ESP32 or Pico with MicroPython installed via USB. Select its port to automatically upload, compile, save and run.",
+  "現在のプログラムを中断し、main.pyを上書きします。元のファイルはmain.py.breadberry.bakに保存します。必要な外部ドライバーは事前に導入してください。":
+    "The current program will be interrupted and main.py replaced. The original is backed up as main.py.breadberry.bak. Install any required external drivers first.",
+  "Web Serialに対応したPC版Chrome／Edgeで、HTTPSまたはlocalhostから開いてください。":
+    "Open this page over HTTPS or localhost in a desktop browser supporting Web Serial, such as Chrome or Edge.",
+  "失敗したらAIで自動解析する（コード・回路・ログを送信）":
+    "Automatically analyze failures with AI (sends code, circuit and logs)",
   "接続してビルド・実行": "Connect, build & run",
-  "切断": "Disconnect",
-  "ログを保存": "Save log",
-  "接続待ち": "Waiting for connection",
-  "ビルド・保存済みです。実行ログを監視しています。切断してもボードは動作を続ける場合があります。": "Build and save completed. Monitoring runtime logs. The board may keep running after disconnecting.",
+  切断: "Disconnect",
+  ログを保存: "Save log",
+  接続待ち: "Waiting for connection",
+  "ビルド・保存済みです。実行ログを監視しています。切断してもボードは動作を続ける場合があります。":
+    "Build and save completed. Monitoring runtime logs. The board may keep running after disconnecting.",
   "ビルド・実行ログ": "Build & runtime log",
-  "ここにビルド結果と実行ログが表示されます。": "Build results and runtime logs will appear here.",
-  "AIエラー解析": "AI error analysis",
-  "エラーを解析中": "Analyzing error",
-  "AIでエラーを解析": "Analyze error with AI",
-  "修正コードを確認": "Review corrected code",
+  "ここにビルド結果と実行ログが表示されます。":
+    "Build results and runtime logs will appear here.",
+  AIエラー解析: "AI error analysis",
+  エラーを解析中: "Analyzing error",
+  AIでエラーを解析: "Analyze error with AI",
+  修正コードを確認: "Review corrected code",
   "修正を反映して再ビルド・実行": "Apply fix, rebuild & run",
 
   回路図の操作: "Schematic controls",
@@ -322,6 +342,8 @@ export const messages: Record<string, string> = {
     "Checking products and availability across stores…",
   "在庫と適合性を確認できる商品が見つかりませんでした。再検索してください。":
     "No products with verified availability and compatibility were found. Please search again.",
+  "時間内に在庫と適合性を確認できませんでした。候補から手動で選択するか、この部品だけ再検索してください。":
+    "Availability and compatibility could not be verified in time. Select an option manually or retry this part.",
   "注文数 {0} × {1}個入り（必要数 {2}）":
     "Order {0} × {1} units per pack (required: {2})",
   価格は商品ページで確認: "Check the product page for the price",
@@ -840,8 +862,6 @@ export const messages: Record<string, string> = {
     "Found {0} DigiKey options. Select them in the details below.",
   "検索に時間がかかっているため中断しました。取得済みの候補を確認するか、この部品だけ再試行してください。":
     "Search timed out. Review the options already found or retry this part.",
-  "検索の待ち時間が長いため一旦終了しました。未完了の部品だけ再試行できます。":
-    "Search stopped after reaching the time limit. You can retry unfinished parts.",
   "検索を中止しました。未完了の部品だけ再試行できます。":
     "Search stopped. You can retry unfinished parts.",
   "接続状態の確認がタイムアウトしました。閉じて再度お試しください。":

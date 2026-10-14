@@ -62,6 +62,15 @@ Cloud RunのNext.js APIは回路設計エージェント、購入検索、署名
 - 応答の `messages` に今回の依頼と生成された回路の説明を追加
 - 生成要求は全体・個別の上限を Firestore トランザクションで消費。失敗した要求も利用回数に含まれます
 
+### `POST /api/ask`
+
+「質問のみ」モード。`{ prompt, locale, context: { circuit, messages } }` を受け取り、`{ answer }` を返します。
+
+- `context` は必須。入力サイズ・会話の上限と修正元の回路の検査は `/api/generate` と同じ
+- 回路の生成・接続検査・保存は行わない。回答は最大2000文字のプレーンテキスト
+- 回路と会話は信頼しないデータとして Gemini に渡し、質問と回答を Model Armor で検査
+- `/api/generate` と同じ利用回数を消費
+
 ## データモデル（Firestore）
 
 | パス | 内容 |
@@ -92,6 +101,8 @@ Cloud RunのNext.js APIは回路設計エージェント、購入検索、署名
 | `src/lib/circuit.ts` | 共通スキーマ、ピン表、配置、部品表、接続検査 |
 | `src/lib/agent.ts` | 生成・検査・レビューを繰り返す回路設計エージェント |
 | `src/lib/ai.ts` | Gemini 生成と GMI 補助レビュー |
+| `src/lib/ask-ai.ts` | 「質問のみ」モードの回答生成 |
+| `src/lib/pico-flash.ts` | Pico への MicroPython（UF2）書き込み |
 | `src/lib/model-armor.ts` | Model Armor による入力・生成結果の検査 |
 | `src/lib/tracing.ts` | Cloud Trace へのトレース（OpenTelemetry）と構造化ログ |
 | `src/lib/conversation.ts` | 会話コンテキストの型・制約 |

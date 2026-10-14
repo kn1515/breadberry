@@ -3825,3 +3825,59 @@ button.parts-catalog {
 .purchase-search-progress > li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 12px; }
 .purchase-search-progress > li > strong { margin-right: auto; }
 .purchase-search-progress .purchase-error, .purchase-search-progress .purchase-note { flex-basis: 100%; }
+
+/* A neutral drawing sheet keeps exported circuit symbols readable in both themes. */
+.cad-schematic {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.schematic-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.schematic-toolbar strong {
+  margin-right: auto;
+  font-size: 12px;
+}
+.schematic-toolbar button {
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 6px 10px;
+  background: var(--surface-raised);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 11px;
+}
+.schematic-toolbar button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.schematic-toolbar output {
+  font: 11px monospace;
+  min-width: 4ch;
+  text-align: center;
+}
+.schematic-sheet {
+  overflow: auto;
+  flex: 1;
+  min-height: 280px;
+  background: #fcfcf7;
+  border: 1px solid #b4bdb9;
+  border-radius: 4px;
+}
+.schematic-sheet svg {
+  min-width: 460px;
+  font-family: monospace;
+}
+.schematic-sheet path[role="button"] {
+  cursor: pointer;
+  pointer-events: stroke;
+}
+.schematic-sheet path[role="button"]:focus {
+  outline: none;
+  stroke: #d35817;
+  stroke-width: 3;
+}

@@ -455,7 +455,7 @@ GitHub Actionsでも実行します。APIキー・Google Cloudプロジェクト
 
 - `src/components/studio.tsx`：ワークスペースと各操作
 - `src/components/board-scene.tsx`：部品・基板・ジャンパ線の3D描画とアニメーション
-- `src/components/schematic.tsx`：ネットリストの接続図
+- `src/components/schematic.tsx`：CAD風の回路図（抵抗・LED・コンデンサ・スイッチなどの記号、直角配線、端子名、配線選択、拡大縮小、SVG出力）
 - `src/lib/circuit.ts`：共通スキーマ、ピン表、配置、部品表、接続検査
 - `src/lib/agent.ts`：生成・検査・レビューを繰り返す回路設計エージェント
 - `src/lib/ai.ts`：Gemini生成とGMI補助レビュー
@@ -635,3 +635,12 @@ breadberry本体は [ISC License](LICENSE) で公開しています。
 Gemini API、GMI Cloud、DigiKey API、Google Cloudの各サービスは、それぞれの利用規約に従って利用しています。
 
 `docs/` の構成図には、Google Cloudが配布する[公式アイコン](https://cloud.google.com/icons)（Cloud Run、Cloud Firestore、Secret Manager、Cloud Build、Artifact Registry）と、[Simple Icons](https://github.com/simple-icons/simple-icons)（CC0-1.0）のアイコンを使用しています。各サービス・製品の名称とロゴは、それぞれの権利者の商標です。
+
+### CAD風の回路図表示
+
+「回路図」タブでは、明るいグリッド付きの図面に回路記号と端子名を表示します。
+抵抗・LED・コンデンサ・常開スイッチ・CdS・NTCは専用記号、それ以外のセンサーやロジックICは端子付きのブロックで表示します。
+接続は回路データから直角配線として描画され、クリックまたはキーボードで配線を選ぶと接続先と説明を確認できます。
+拡大・縮小・全体表示とSVG保存に対応し、保存した図面はブラウザやベクター編集ソフトで開けます。
+交差する線は接続を意味しません。同じ端子名を接続の基準にしてください。記号の端子配置は実物のピン配置とは異なります。
+この表示は接続確認用で、電気的な動作シミュレーションやPCB製造データの出力は行いません。
